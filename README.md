@@ -1,23 +1,57 @@
-# CommonRoad Repository Template
+# DrPlanner 🩺: Diagnosis and Repair of Motion Planners Using Large Language Models
 
-[![pipeline status](https://gitlab.lrz.de/cps/commonroad/commonroad-template/badges/dev/pipeline.svg)](https://gitlab.lrz.de/cps/commonroad/commonroad-template/-/commits/dev)
-[![coverage report](https://gitlab.lrz.de/cps/commonroad/commonroad-template/badges/dev/coverage.svg)](https://gitlab.lrz.de/cps/commonroad/commonroad-template/-/commits/dev)
 
-This repository should be used as a reference when creating new CommonRoad-related repositories or when updating
-existing ones to match the CommonRoad coding conventions. Please also refer to the [corresponding wiki entry](https://collab.dvb.bayern/display/TUMcpsgroup/CommonRoad+Software+Development+Workflow).
+## 🔍 Framework Overview
 
-## Pre-commit hooks
-The pre-commit hook can be executed with
+<img src="./docs/figures/framework.png" width=92%>
+
+**DrPlanner**: the first framework to autonomously **d**iagnose and **r**epair motion **planner**s 📍, harnessing the power of LLMs that improve as they scale.
+
+
+## 🌟 Highlights
+- **`2024-xx-xx`** Our paper is available on [Arxiv](link-to-be-determined)📄!
+- 
+## 🚀 Getting Started
+### 1. Requirements 📦
+For diagnosing your motion planner, we recommend using [Anaconda](https://www.anaconda.com/) to manage your environment 
+so that even if you mess something up, you can always have a safe and clean restart. A guide for managing python 
+environments with Anaconda can be found [here](https://conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html).
+
 ```bash
-pre-commit run
+conda create -n drplanner python=3.8 -y
+conda activate drplanner
+cd <path-to-this-repo>
+pip install .
 ```
-or it's automatically run once you commit your changes.
 
-## Push to PyPI
-Detailed instructions for publishing your package to [PyPI](pypi.org) are given [here](https://collab.dvb.bayern/display/TUMcpsgroup/Publishing+CommonRoad+tools+on+PyPI).
+### 2. Configuration ⚙️ 
 
-## Mirroring to GitHub
-To establish a mirror to GitHub, follow [these instructions](https://collab.dvb.bayern/display/TUMcpsgroup/Gitlab+Repository+Mirrors).
+All configurable parameters are located in `config.yaml`.
 
-## Further information
-are given in the [CPS wiki > Software tools > CommonRoad](https://collab.dvb.bayern/display/TUMcpsgroup/CommonRoad) and its sub-pages.
+Before running DrPlanner, set up your `OpenAI API keys`.
+
+Configure as below in `config.yaml`:
+```yaml
+OPENAI_KEY: # 'sk-xxxxxx'
+token_limit: 8000
+```
+
+### 3. Running DrPlanner 🩺
+
+Running DiLu is straightforward:
+```bash
+python run_drplanner.py
+```
+
+The default settings include the iterative prompting, which you can deactivate in `config.yaml`.
+
+## 🔖 Citation
+If you find our paper and codes useful, we highly encourage you to cite our paper:
+
+```bibtex
+tbd
+```
+
+
+## 📝 License
+tbd

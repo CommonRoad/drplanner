@@ -1,0 +1,15 @@
+[tool.poetry]
+name = "drplanner"
+version = "0.1.0"
+description = "Diagnosis and Repair of Search-Based Motion Planners Using Large Language Models"
+authors = ["Yuanfei Lin <yuanfei.lin@tum.de>"]
+license = "CPS TUM"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = ">=3.8"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

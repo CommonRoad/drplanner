@@ -38,7 +38,7 @@ token_limit: 8000
 
 ### 3. Running DrPlanner 🩺
 
-Running DiLu is straightforward:
+Running DrPlanner is straightforward:
 ```bash
 python run_drplanner.py
 ```

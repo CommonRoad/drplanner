@@ -49,9 +49,9 @@ The default settings include the iterative prompting, which you can deactivate i
 If you find our paper and codes useful, we highly encourage you to cite our paper:
 
 ```bibtex
-tbd
+coming soon
 ```
 
 
 ## 📝 License
-tbd
+BSD 3-Clause License

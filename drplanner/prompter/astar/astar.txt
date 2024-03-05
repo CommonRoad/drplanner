@@ -1,0 +1,1 @@
+The A* search algorithm is employed in trajectory planning to navigate from an initial state to a designated goal region by linking motion primitives.

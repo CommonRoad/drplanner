@@ -1,0 +1,6 @@
+Before you start, it is important to understand and adhere to the instructions:
+- Ensure that the improved code is free from errors and that all modifications positively impact the final outcome.
+- Be cautious when adjusting weights or constants, particularly when setting them to zero.
+- When modifying 'if', 'elif', and 'else' constructs, consider that changes may yield variable outcomes across different situations.
+- The diagnosis should concisely pinpoint each issue, using only a few words for clarity and brevity. For each prescription, provide a detailed, step-by-step action plan.
+- Adhere strictly to all specified instructions. In case of a contradiction with your knowledge, offer a thorough explanation.

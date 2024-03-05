@@ -11,14 +11,13 @@
 ## 🌟 Highlights
 - **`2024-xx-xx`** Our paper is available on [Arxiv](link-to-be-determined)📄!
 
-<p align="center">
-  <img src="./docs/figures/DEU_Guetersloh-15_2_T-1_itr0.gif" alt="First GIF" width="30%" />
-  <img src="./docs/figures/DEU_Guetersloh-15_2_T-1_itr1.gif" alt="Second GIF" width="30%" />
-  <img src="./docs/figures/DEU_Guetersloh-15_2_T-1_itr3.gif" alt="Third GIF" width="30%" />
-</p>
-<h3 align="center">
-  initial planner &emsp; | &emsp; First iteration &emsp; | &emsp; hird iteration
-</h3>
+<table>
+  <tr>
+    <td align="center"><img src="./docs/figures/DEU_Guetersloh-15_2_T-1_itr0.gif" alt="First GIF" width="300"/><br>Initial Planner</td>
+    <td align="center"><img src="./docs/figures/DEU_Guetersloh-15_2_T-1_itr1.gif" alt="Second GIF" width="300"/><br>First Iteration</td>
+    <td align="center"><img src="./docs/figures/DEU_Guetersloh-15_2_T-1_itr3.gif" alt="Third GIF" width="300"/><br>Third Iteration</td>
+  </tr>
+</table>
 
 ## 🚀 Getting Started
 ### 1. Requirements 📦

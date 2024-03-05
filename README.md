@@ -1,4 +1,4 @@
-# DrPlanner 🩺: Diagnosis and Repair of Motion Planners Using Large Language Models
+# DrPlanner 🩺: Diagnosis and Repair of Motion Planners Using LLMs
 
 
 ## 🔍 Framework Overview
@@ -11,8 +11,8 @@
 ## 🌟 Highlights
 - **`2024-xx-xx`** Our paper is available on [Arxiv](link-to-be-determined)📄!
 
-<table>
-  <tr>
+<table style="border-collapse: collapse; border: none;">
+  <tr style="border: none;">
     <td align="center"><img src="./docs/figures/DEU_Guetersloh-15_2_T-1_itr0.gif" alt="First GIF" width="300"/><br>Initial Planner</td>
     <td align="center"><img src="./docs/figures/DEU_Guetersloh-15_2_T-1_itr1.gif" alt="Second GIF" width="300"/><br>First Iteration</td>
     <td align="center"><img src="./docs/figures/DEU_Guetersloh-15_2_T-1_itr3.gif" alt="Third GIF" width="300"/><br>Third Iteration</td>
@@ -45,8 +45,9 @@ token_limit: 8000
 ```
 
 ### 3. Running DrPlanner 🩺
-
-Running DrPlanner is straightforward:
+We use the search-based motion planner, i.e., [commonroad-search](https://gitlab.lrz.de/tum-cps/commonroad-search), to demonstrate the advantages of our framework.
+If you wish to replicate this, please consult its README for the installation steps and place your own planner within `SMP/motion_planner/search_algorithms/`. To facilitate a smoother start, we offer the planner used in the paper within `./planners/` in this repository.
+After this, running DrPlanner is straightforward:
 ```bash
 python run_drplanner.py
 ```
@@ -55,7 +56,8 @@ The default settings include the iterative prompting, which you can deactivate i
 
 ### 4. Example Prompt
 <details>
->You are an expert in diagnosing motion planners for automated vehicles. Your task is to identify diagnoses and recommend 
+
+> You are an expert in diagnosing motion planners for automated vehicles. Your task is to identify diagnoses and recommend 
 prescriptions for the motion planner, with the objective of enhancing its performance.
 
 >Before you start, it is important to understand and adhere to the instructions:
@@ -67,8 +69,6 @@ situations.
 prescription, provide a detailed, step-by-step action plan.
 >- Adhere strictly to all specified instructions. In case of a contradiction with your knowledge, offer a thorough
  explanation.
-
->Description of the imperfect planner and its output:
 
 >The A* search algorithm is employed in trajectory planning to navigate from an initial state to a designated goal 
 region by linking motion primitives.This is the code of the heuristic function: 

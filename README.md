@@ -55,7 +55,7 @@ python run_drplanner.py
 
 The default settings include the iterative prompting, which you can deactivate in `config.yaml`.
 
-### 4. Example Prompt
+### 4. Example Prompt 🌠
 <details>
 
 > You are an expert in diagnosing motion planners for automated vehicles. Your task is to identify diagnoses and recommend 

@@ -34,13 +34,14 @@ pip install .
 
 ### 2. Configuration ⚙️ 
 
-All configurable parameters are located in `config.yaml`.
+All configurable parameters are located in `drplanner/utils/config.py`.
 
 Before running DrPlanner, set up your `OpenAI API keys`.
 
-Configure as below in `config.yaml`:
-```yaml
-OPENAI_KEY: # 'sk-xxxxxx'
+Configure as below:
+```
+api_key: # 'sk-xxxxxx'
+gpt_version: # "gpt4-xxx"
 token_limit: 8000
 ```
 

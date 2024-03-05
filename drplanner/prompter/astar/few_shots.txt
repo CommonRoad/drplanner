@@ -1,0 +1,65 @@
+There are also some pre-defined helper functions can be directly called in the heuristic function:
+```def calc_acceleration_cost(self, path: List[KSState]) -> float:
+        """Returns the acceleration costs."""```,
+```def calc_path_efficiency(self, path: List[KSState]) -> float:
+        """
+        Returns the path efficiency = travelled_distance / time_cost.
+        """```
+```def calc_steering_angle_cost(self, path: List[KSState]) -> float:
+        """
+        Returns steering angle cost of the given path.
+        """```
+```def calc_steering_velocity_cost(self, path: List[KSState]) -> float:
+        """
+        Returns steering velocity cost of the given path.
+        """```
+Adding `calc_acceleration_cost` can help to reduce the cost of sum of acceleration.
+Adding `calc_path_efficiency` can help to reduce the cost of path length.
+Adding `calc_steering_angle_cost` can help to reduce the cost of steering angle.
+Adding `calc_steering_velocity_cost` can help to reduce the cost of steering velocity.
+
+Example:
+```
+    def heuristic_function(self, node_current: PriorityNode) -> float:
+
+        if self.reached_goal(path_last):
+            return 0
+        if self.position_desired is None:
+            return ...
+        else:
+            ...
+        # total cost
+        cost = path_efficiency
+        if cost < 0:
+            cost = 0
+        return cost
+```
+Improved result:
+
+Diagnosis: the acceleration is not considered
+Prescription: add acceleration cost to the heuristic function
+Diagnosis: the heuristic should not return 0 when reaching goal region
+Prescription: set a certain heuristic when reaching the goal
+```
+    def heuristic_function(self, node_current: PriorityNode) -> float:
+        acceleration_cost = self.calc_acceleration_cost(path_last)
+        if self.reached_goal(path_last):
+            return path_efficiency + acceleration_cost + ...
+        if self.position_desired is None:
+            return ...
+        else:
+            ...
+        cost = path_efficiency + acceleration_cost
+        if cost < 0:
+            cost = 0
+        return cost
+```
+
+Feasible motion primitives with the same name format that you can directly use, pls be careful about the name:
+'V_0.0_20.0_Vstep_1.0_SA_-1.066_1.066_SAstep_0.27_T_0.5_Model_BMW_320i.xml',
+'V_0.0_20.0_Vstep_1.0_SA_-1.066_1.066_SAstep_2.13_T_0.5_Model_BMW_320i.xml',
+'V_0.0_20.0_Vstep_2.0_SA_-1.066_1.066_SAstep_0.18_T_0.5_Model_BMW_320i.xml',
+'V_0.0_20.0_Vstep_2.22_SA_-1.066_1.066_SAstep_0.18_T_0.5_Model_BMW_320i.xml',
+'V_0.0_20.0_Vstep_2.86_SA_-1.066_1.066_SAstep_0.18_T_0.5_Model_BMW_320i.xml',
+'V_0.0_20.0_Vstep_3.33_SA_-1.066_1.066_SAstep_0.18_T_0.5_Model_BMW_320i.xml',
+'V_0.0_20.0_Vstep_4.0_SA_-1.066_1.066_SAstep_0.18_T_0.5_Model_BMW_320i.xml'

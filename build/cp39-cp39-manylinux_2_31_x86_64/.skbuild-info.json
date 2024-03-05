@@ -1,8 +1,0 @@
-{
-  "source_dir": "/home/yuanfei/commonroad2/drplanner",
-  "build_dir": "/home/yuanfei/commonroad2/drplanner/build/cp39-cp39-manylinux_2_31_x86_64",
-  "cmake_path": "/tmp/pip-build-env-7usvzgqz/normal/lib/python3.9/site-packages/cmake/data/bin/cmake",
-  "skbuild_path": "/tmp/pip-build-env-7usvzgqz/overlay/lib/python3.9/site-packages/scikit_build_core",
-  "skbuild_version": "0.4.8",
-  "python_executable": "/home/yuanfei/anaconda3/envs/commonroad-py39/bin/python"
-}

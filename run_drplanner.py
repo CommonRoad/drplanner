@@ -4,7 +4,7 @@ from drplanner.utils.config import DiagnoserConfiguration
 from commonroad.common.file_reader import CommonRoadFileReader
 
 
-file_path_root = "../scenarios/"
+file_path_root = "scenarios/"
 
 name_file_motion_primitives = (
     "V_0.0_20.0_Vstep_4.0_SA_-1.066_1.066_SAstep_0.18_T_0.5_Model_BMW_320i.xml"

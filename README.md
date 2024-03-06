@@ -145,7 +145,7 @@ region by linking motion primitives.This is the code of the heuristic function:
 >def calc_steering_velocity_cost(self, path: List[KSState]) -> float:"""
 >        """Returns steering velocity cost of the given path."""
 >```
-
+>
 >Example:
 >```
 >    def heuristic_function(self, node_current: PriorityNode) -> float:
@@ -163,7 +163,7 @@ region by linking motion primitives.This is the code of the heuristic function:
 >        return cost
 >```
 >Improved result:
-
+>
 >Diagnosis: the acceleration is not considered
 >Prescription: add acceleration cost to the heuristic function
 >Diagnosis: the heuristic should not return 0 when reaching goal region

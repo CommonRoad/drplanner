@@ -3,13 +3,7 @@
 
 ## 🔍 Framework Overview
 
-
-<p align="center">
-  <img src="./docs/figures/framework.png" alt="Framework Image" style="width: 55%; height: auto;">
-  <a href="https://www.youtube.com/watch?v=9r1-S2w9G5E" style="display: inline-block; width: 20.5%; height: auto; vertical-align: top;">
-    <img src="https://img.youtube.com/vi/9r1-S2w9G5E/0.jpg" alt="DrPlanner Video" style="width: 100%; height: auto;">
-  </a>
-</p>
+<img src="./docs/figures/framework.png" width=92%>
 
 **DrPlanner**: the first framework to autonomously **d**iagnose and **r**epair motion **planner**s 📍, harnessing the power of LLMs that improve as they scale.
 

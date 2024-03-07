@@ -7,6 +7,9 @@
 
 **DrPlanner**: the first framework to autonomously **d**iagnose and **r**epair motion **planner**s 📍, harnessing the power of LLMs that improve as they scale.
 
+<div align="center">
+  <a href="https://www.youtube.com/watch?v=9r1-S2w9G5E"><img src="https://img.youtube.com/vi/9r1-S2w9G5E/0.jpg" alt="DrPlanner Video"></a>
+</div>
 
 ## 🌟 Highlights
 - **`2024-xx-xx`** Our paper is available on [Arxiv](link-to-be-determined)📄!

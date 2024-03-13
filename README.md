@@ -1,6 +1,9 @@
 # DrPlanner 🩺: Diagnosis and Repair of Motion Planners Using LLMs
 
-
+[![Static Badge](https://img.shields.io/badge/Arxiv-pdf-8A2BE2?logo=arxiv)](https://arxiv.org/abs/2403.07470)
+[![Custom badge](https://img.shields.io/badge/Project%20Page-white?logo=GitHub&color=yellow)](https://commonroad.github.io/drplanner/)
+![GitHub stars](https://img.shields.io/github/stars/CommonRoad/drplanner?color=yellow&label=Stars)
+[![GitHub issues](https://img.shields.io/github/issues/CommonRoad/drplanner?style=flat-square)](https://github.com/PJLab-ADG/DiLu/issues)
 ## 🔍 Framework Overview
 
 <img src="./docs/figures/framework.png" width=92%>
@@ -9,7 +12,7 @@
 
 
 ## 🌟 Highlights
-- **`2024-xx-xx`** Our paper is available on [Arxiv](link-to-be-determined)📄!
+- **`2024-03-13`** Our paper is available on [Arxiv](https://arxiv.org/abs/2403.07470)📄!
 
 <table style="border-collapse: collapse; border: none;">
   <tr style="border: none;">
@@ -201,7 +204,12 @@ region by linking motion primitives.This is the code of the heuristic function:
 If you find our paper and codes useful, we highly encourage you to cite our paper:
 
 ```bibtex
-coming soon
+@article{DrPlanner,
+  title = {{DrPlanner}: Diagnosis and Repair of Motion Planners Using Large Language Models },
+  author = {Yuanfei Lin and Chenran Li and Mingyu Ding and Masayoshi Tomizuka and Wei Zhan and Matthias Althoff},
+  archivePrefix = {arXiv},
+  journal = {arXiv preprint arXiv:2403.07470},
+  year = {2024}}
 ```
 
 

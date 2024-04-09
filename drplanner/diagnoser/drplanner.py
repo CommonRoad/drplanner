@@ -18,20 +18,23 @@ from commonroad.common.solution import (
 
 # make sure the SMP has been installed successfully
 try:
-    import SMP
-    print("SMP module is successfully installed.")
+    from SMP.maneuver_automaton.maneuver_automaton import ManeuverAutomaton
+    from SMP.motion_planner.utility import create_trajectory_from_list_states
+    from SMP.motion_planner.utility import visualize_solution
+    import SMP.batch_processing.helper_functions as hf
+    from SMP.motion_planner.queue import PriorityQueue
+    from SMP.motion_planner.utility import plot_primitives
+    from SMP.motion_planner.node import PriorityNode
+    from SMP.motion_planner.plot_config import DefaultPlotConfig
+    from SMP.motion_planner.search_algorithms.best_first_search import GreedyBestFirstSearch
+    print("Installed SMP module is called.")
 except ImportError as e:
-    print("Failed to import SMP:", e)
-
-from SMP.maneuver_automaton.maneuver_automaton import ManeuverAutomaton
-from SMP.motion_planner.utility import create_trajectory_from_list_states
-from SMP.motion_planner.utility import visualize_solution
-import SMP.batch_processing.helper_functions as hf
-from SMP.motion_planner.queue import PriorityQueue
-from SMP.motion_planner.utility import plot_primitives
-from SMP.motion_planner.node import PriorityNode
-from SMP.motion_planner.plot_config import DefaultPlotConfig
-from SMP.motion_planner.search_algorithms.best_first_search import GreedyBestFirstSearch
+    import sys
+    import os
+    current_file_dir = os.path.dirname(os.path.abspath(__file__))
+    smp_path = os.path.join(current_file_dir, '../../external/')
+    sys.path.append(smp_path)
+    print("Use the external submodule SMP.")
 
 from commonroad_dc.costs.evaluation import (
     CostFunctionEvaluator,

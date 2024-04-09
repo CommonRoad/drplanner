@@ -16,6 +16,13 @@ from commonroad.common.solution import (
     VehicleModel,
 )
 
+# make sure the SMP has been installed successfully
+try:
+    import SMP
+    print("SMP module is successfully installed.")
+except ImportError as e:
+    print("Failed to import SMP:", e)
+
 from SMP.maneuver_automaton.maneuver_automaton import ManeuverAutomaton
 from SMP.motion_planner.utility import create_trajectory_from_list_states
 from SMP.motion_planner.utility import visualize_solution

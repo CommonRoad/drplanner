@@ -27,10 +27,18 @@ For diagnosing your motion planner, we recommend using [Anaconda](https://www.an
 so that even if you mess something up, you can always have a safe and clean restart. A guide for managing python 
 environments with Anaconda can be found [here](https://conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html).
 
+#### Clone the repository
+```git
+git clone <this-repository>
+cd <path-to-this-repo>
+git submodule init
+git submodule update
+```
+
+#### Install the package
 ```bash
 conda create -n drplanner python=3.8 -y
 conda activate drplanner
-cd <path-to-this-repo>
 pip install .
 ```
 
@@ -49,7 +57,7 @@ token_limit: 8000
 
 ### 3. Running DrPlanner 🩺
 We use the search-based motion planner, i.e., [commonroad-search](https://gitlab.lrz.de/tum-cps/commonroad-search), to demonstrate the advantages of our framework.
-If you wish to replicate this, please consult its README for the installation steps and place your own planner within `SMP/motion_planner/search_algorithms/`. To facilitate a smoother start, we offer the planner used in the paper within `./planners/` in this repository.
+If you wish to replicate this, please consult its README for the installation steps and place your own planner within `drplanner/planners/`. To facilitate a smoother start, we offer the planner used in the paper in this repository.
 After this, running DrPlanner is straightforward:
 ```bash
 python run_drplanner.py

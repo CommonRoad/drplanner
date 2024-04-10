@@ -7,13 +7,27 @@ import json
 from datetime import datetime
 
 
+def check_openai_api_key(api_key):
+    openai.api_key = api_key
+    try:
+        openai.models.list()
+    except openai.AuthenticationError as e:
+        return False
+    else:
+        return True
+
 class LLM:
     def __init__(self, gpt_version, api_key, temperature=0.2) -> None:
         self.gpt_version = gpt_version
         if api_key is None:
             raise ValueError("OpenAI API key is not provided.")
         else:
-            openai.api_key = api_key
+            is_valid = check_openai_api_key(api_key)
+            if is_valid:
+                openai.api_key = api_key
+            else:
+                raise ValueError(f"The given OpenAI API key {api_key} is not valid.")
+
         self.temperature = temperature
 
         self.HEURISTIC_FUNCTION = "improved_heuristic_function"

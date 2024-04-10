@@ -32,7 +32,7 @@ except ImportError as e:
     import sys
     import os
     current_file_dir = os.path.dirname(os.path.abspath(__file__))
-    smp_path = os.path.join(current_file_dir, '../../external/')
+    smp_path = os.path.join(current_file_dir, '../../commonroad-search/')
     sys.path.append(smp_path)
     print("Use the external submodule SMP.")
 

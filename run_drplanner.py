@@ -1,5 +1,5 @@
-from drplanner.diagnoser.drplanner import DrPlanner
-from drplanner.utils.config import DiagnoserConfiguration
+from drplanner.diagnostics.search import DrSearchPlanner
+from drplanner.utils.config import DrPlannerConfiguration
 
 from commonroad.common.file_reader import CommonRoadFileReader
 
@@ -19,12 +19,13 @@ scenario_id = (
 file_path = file_path_root + scenario_id + ".xml"
 scenario, planning_problem_set = CommonRoadFileReader(file_path).open(True)
 
-config = DiagnoserConfiguration()
-config.api_key = "sk-..."
+config = DrPlannerConfiguration()
+config.openai_api_key = "sk-..."
 
-diagnoser = DrPlanner(
-    scenario, planning_problem_set, name_file_motion_primitives, planner_id, config
+dr_planner = DrSearchPlanner(
+    scenario, planning_problem_set, config, name_file_motion_primitives, planner_id
 )
 
-result = diagnoser.diagnose_repair()
-print(diagnoser.cost_list, min(diagnoser.cost_list), diagnoser.initial_cost)
+result = dr_planner.diagnose_repair()
+
+print(dr_planner.cost_list, min(dr_planner.cost_list), dr_planner.initial_cost)

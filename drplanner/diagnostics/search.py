@@ -19,10 +19,12 @@ from commonroad.common.solution import (
 # make sure the SMP has been installed successfully
 try:
     import SMP
+
     print("Installed SMP module is called.")
 except ImportError as e:
     import sys
     import os
+
     current_file_dir = os.path.dirname(os.path.abspath(__file__))
     smp_path = os.path.join(current_file_dir, '../../commonroad-search/')
     sys.path.append(smp_path)
@@ -44,34 +46,30 @@ from commonroad_dc.costs.evaluation import (
 )
 
 from drplanner.utils.gpt import num_tokens_from_messages
-from drplanner.utils.config import DiagnoserConfiguration
+from drplanner.utils.config import DrPlannerConfiguration
+from drplanner.diagnostics.base import DrPlannerBase
 from drplanner.prompter.prompter import Prompter
 
 import numpy as np
 
 
-class DrPlanner:
+class DrSearchPlanner(DrPlannerBase):
     def __init__(
-        self,
-        scenario: Scenario,
-        planning_problem_set: PlanningProblemSet,
-        motion_primitives_id: str,
-        planner_id: str,
-        config: DiagnoserConfiguration,
+            self,
+            scenario: Scenario,
+            planning_problem_set: PlanningProblemSet,
+            config: DrPlannerConfiguration,
+            motion_primitives_id: str,
+            planner_id: str,
     ):
-        self.scenario = scenario
-        self.planning_problem_set = planning_problem_set
-
-        # otherwise the planning problem might be changed during the initialization of the planner
-        self.planning_problem = copy.deepcopy(
-            list(self.planning_problem_set.planning_problem_dict.values())[0]
-        )
+        super().__init__(scenario, planning_problem_set, config)
 
         # initialize the motion primitives
         self.motion_primitives_id = motion_primitives_id
 
         # initialize the motion planner
         self.planner_id = planner_id
+        # import the planner
         planner_name = f"drplanner.planners.student_{self.planner_id}"
         planner_module = importlib.import_module(planner_name)
         automaton = ManeuverAutomaton.generate_automaton(motion_primitives_id)
@@ -81,35 +79,13 @@ class DrPlanner:
             self.scenario, self.planning_problem, automaton, DefaultPlotConfig
         )
 
-        self._visualize = False
-        self._save_solution = True
-
+        # initialize the vehicle parameters and the cost function
         self.cost_type = CostFunction.SM1
         self.vehicle_type = VehicleType.BMW_320i
         self.vehicle_model = VehicleModel.KS
         self.cost_evaluator = CostFunctionEvaluator(
             self.cost_type, VehicleType.BMW_320i
         )
-
-        self.dir_output = "../../outputs/solutions/"
-
-        self.prompter = Prompter(
-            self.scenario, self.planning_problem, config.api_key, config.gpt_version
-        )
-        self.prompter.LLM.temperature = config.temperature
-
-        # todo: load from solution file
-        self.desired_cost = config.desired_cost
-        self.current_cost = None
-
-        self.token_count = 0
-
-        self.THRESHOLD = config.cost_threshold
-        self.TOKEN_LIMIT = config.token_limit
-        self.ITERATION_MAX = config.iteration_max
-
-        self.cost_list = []
-        self.initial_cost = math.inf
 
     def diagnose_repair(self):
         nr_iteration = 0
@@ -123,9 +99,9 @@ class DrPlanner:
         result = None
         self.initial_cost = self.current_cost
         while (
-            abs(self.current_cost - self.desired_cost) > self.THRESHOLD
-            and self.token_count < self.TOKEN_LIMIT
-            and nr_iteration < self.ITERATION_MAX
+                abs(self.current_cost - self.desired_cost) > self.THRESHOLD
+                and self.token_count < self.TOKEN_LIMIT
+                and nr_iteration < self.ITERATION_MAX
         ):
             print(
                 f"<{nr_iteration}>: total cost {self.current_cost} (desired: {self.desired_cost}),"
@@ -158,7 +134,7 @@ class DrPlanner:
                 planned_trajectory = self.plan(nr_iteration)
                 # add feedback
                 prompt_planner += (
-                    self.add_feedback(planned_trajectory, nr_iteration) + "\n"
+                        self.add_feedback(planned_trajectory, nr_iteration) + "\n"
                 )
             except Exception as e:
                 error_traceback = (
@@ -236,7 +212,7 @@ class DrPlanner:
         self.motion_planner.frontier = PriorityQueue()
 
     def describe(
-        self, planned_trajectory: Union[Trajectory, None]
+            self, planned_trajectory: Union[Trajectory, None]
     ) -> (str, PlanningProblemCostResult):
         template = self.prompter.astar_template
 
@@ -305,7 +281,7 @@ class DrPlanner:
                     self.planning_problem.planning_problem_id
                 ),
                 planning_problem_solution.trajectory,
-                output_path="..",
+                output_path=self.dir_output,
             )
         if self._save_solution:
             # create solution object

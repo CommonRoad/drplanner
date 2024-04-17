@@ -60,7 +60,7 @@ class Prompter:
         ).replace("[FEW_SHOTS]", self.astar_few_shots)
 
     def reload_LLM(self):
-        print("The LLM is reloaded")
+        print("*\t <LLM> The LLM is reloaded")
         self.LLM = LLM(self.gpt_version, self.api_key)
 
     def generate_planner_description(

@@ -20,15 +20,15 @@ from commonroad.common.solution import (
 try:
     import SMP
 
-    print("Installed SMP module is called.")
+    print("[DrPlanner] Installed SMP module is called.")
 except ImportError as e:
     import sys
     import os
 
     current_file_dir = os.path.dirname(os.path.abspath(__file__))
-    smp_path = os.path.join(current_file_dir, '../../commonroad-search/')
+    smp_path = os.path.join(current_file_dir, "../../commonroad-search/")
     sys.path.append(smp_path)
-    print("Use the external submodule SMP.")
+    print(f"[DrPlanner] Use the external submodule SMP under {smp_path}.")
 
 from SMP.maneuver_automaton.maneuver_automaton import ManeuverAutomaton
 from SMP.motion_planner.utility import create_trajectory_from_list_states
@@ -55,12 +55,12 @@ import numpy as np
 
 class DrSearchPlanner(DrPlannerBase):
     def __init__(
-            self,
-            scenario: Scenario,
-            planning_problem_set: PlanningProblemSet,
-            config: DrPlannerConfiguration,
-            motion_primitives_id: str,
-            planner_id: str,
+        self,
+        scenario: Scenario,
+        planning_problem_set: PlanningProblemSet,
+        config: DrPlannerConfiguration,
+        motion_primitives_id: str,
+        planner_id: str,
     ):
         super().__init__(scenario, planning_problem_set, config)
 
@@ -89,6 +89,7 @@ class DrSearchPlanner(DrPlannerBase):
 
     def diagnose_repair(self):
         nr_iteration = 0
+        print("[DrPlanner] Starts the diagnosis and repair process.")
         try:
             planned_trajectory = self.plan(nr_iteration)
             prompt_planner, evaluation_trajectory = self.describe(planned_trajectory)
@@ -99,13 +100,14 @@ class DrSearchPlanner(DrPlannerBase):
         result = None
         self.initial_cost = self.current_cost
         while (
-                abs(self.current_cost - self.desired_cost) > self.THRESHOLD
-                and self.token_count < self.TOKEN_LIMIT
-                and nr_iteration < self.ITERATION_MAX
+            abs(self.current_cost - self.desired_cost) > self.THRESHOLD
+            and self.token_count < self.TOKEN_LIMIT
+            and nr_iteration < self.ITERATION_MAX
         ):
+            print(f"*\t -----------iteration {nr_iteration}-----------")
             print(
-                f"<{nr_iteration}>: total cost {self.current_cost} (desired: {self.desired_cost}),"
-                f" used tokens {self.token_count} (limit: {self.TOKEN_LIMIT})"
+                f"*\t <{nr_iteration}>: total cost {self.current_cost} (desired: {self.desired_cost})\n"
+                f"*\t used tokens {self.token_count} (limit: {self.TOKEN_LIMIT})"
             )
             message = [
                 {"role": "system", "content": self.prompter.prompt_system},
@@ -121,12 +123,13 @@ class DrSearchPlanner(DrPlannerBase):
                 str(self.planner_id),
                 message,
                 nr_iter=nr_iteration,
+                save_dir=self.dir_output + "prompts/",
             )
             self.prompter.reload_LLM()
             # add nr of iteration
             nr_iteration += 1
             prompt_planner += (
-                f"Diagnoses and prescriptions from the iteration {nr_iteration}:"
+                f"*\t Diagnoses and prescriptions from the iteration {nr_iteration}:"
             )
             try:
                 prompt_planner += f" {result['summary']}"
@@ -134,22 +137,20 @@ class DrSearchPlanner(DrPlannerBase):
                 planned_trajectory = self.plan(nr_iteration)
                 # add feedback
                 prompt_planner += (
-                        self.add_feedback(planned_trajectory, nr_iteration) + "\n"
+                    self.add_feedback(planned_trajectory, nr_iteration) + "\n"
                 )
             except Exception as e:
                 error_traceback = (
                     traceback.format_exc()
                 )  # This gets the traceback as a string
-                print("----------------------------")
-                print("!! Errors: ", error_traceback)
-                print("----------------------------")
+                print("*\t !! Errors: ", error_traceback)
                 # Catching the exception and extracting error information
                 prompt_planner += (
                     f" But they cause the error message: {error_traceback}"
                 )
                 self.current_cost = np.inf
             self.cost_list.append(self.current_cost)
-        print("ends.")
+        print("[DrPlanner] Ends.")
         return result
 
     def repair(self, diagnosis_result: Union[str, None]):
@@ -189,7 +190,7 @@ class DrSearchPlanner(DrPlannerBase):
         if not updated_motion_primitives_id.endswith(".xml"):
             updated_motion_primitives_id += ".xml"
         if updated_motion_primitives_id != self.motion_primitives_id:
-            print(f"New MP {updated_motion_primitives_id} are loaded")
+            print(f"*\t New primitives {updated_motion_primitives_id} are loaded")
             updated_automaton = ManeuverAutomaton.generate_automaton(
                 updated_motion_primitives_id
             )
@@ -197,7 +198,7 @@ class DrSearchPlanner(DrPlannerBase):
             if self._visualize:
                 plot_primitives(updated_automaton.list_primitives)
         else:
-            print("Same MP are used")
+            print("*\t Same primitives are used")
             updated_automaton = self.motion_planner.automaton
 
         planning_problem = copy.deepcopy(
@@ -212,7 +213,7 @@ class DrSearchPlanner(DrPlannerBase):
         self.motion_planner.frontier = PriorityQueue()
 
     def describe(
-            self, planned_trajectory: Union[Trajectory, None]
+        self, planned_trajectory: Union[Trajectory, None]
     ) -> (str, PlanningProblemCostResult):
         template = self.prompter.astar_template
 
@@ -228,9 +229,8 @@ class DrSearchPlanner(DrPlannerBase):
                 evaluation_trajectory, self.desired_cost
             )
         else:
-            traj_description = "no trajectory is generated"
+            traj_description = "*\t no trajectory is generated"
             evaluation_trajectory = None
-        print(traj_description)
         template = template.replace("[PLANNED_TRAJECTORY]", traj_description)
         return template, evaluation_trajectory
 
@@ -238,7 +238,6 @@ class DrSearchPlanner(DrPlannerBase):
         feedback = "After applying this diagnostic result,"
         evaluation_trajectory = self.evaluate_trajectory(updated_trajectory)
         feedback += self.prompter.update_cost_description(evaluation_trajectory)
-        print(self.prompter.update_cost_description(evaluation_trajectory))
         if evaluation_trajectory.total_costs > self.current_cost:
             feedback += (
                 f" the performance of the motion planner ({evaluation_trajectory.total_costs})"
@@ -251,7 +250,7 @@ class DrSearchPlanner(DrPlannerBase):
                 f" is getting better than iteration {iteration - 1} ({self.current_cost})."
                 " Please continue output the improved heuristic function and motion primitives."
             )
-        print(feedback)
+        print(f"*\t Feedback: {feedback}")
         # update the current cost
         self.current_cost = evaluation_trajectory.total_costs
         return feedback
@@ -274,6 +273,10 @@ class DrSearchPlanner(DrPlannerBase):
             visualize_solution(
                 self.scenario, self.planning_problem_set, trajectory_solution
             )
+            target_folder = self.dir_output + "search/"
+            os.makedirs(
+                os.path.dirname(target_folder), exist_ok=True
+            )  # Ensure the directory exists
             # create PlanningProblemSolution object
             hf.save_gif2(
                 self.scenario,
@@ -281,7 +284,7 @@ class DrSearchPlanner(DrPlannerBase):
                     self.planning_problem.planning_problem_id
                 ),
                 planning_problem_solution.trajectory,
-                output_path=self.dir_output,
+                output_path=target_folder,
             )
         if self._save_solution:
             # create solution object
@@ -293,8 +296,12 @@ class DrSearchPlanner(DrPlannerBase):
             solution = Solution(**kwarg)
             # write solution to a CommonRoad XML file
             csw = CommonRoadSolutionWriter(solution)
+            target_folder = self.dir_output + "search/solutions/"
+            os.makedirs(
+                os.path.dirname(target_folder), exist_ok=True
+            )  # Ensure the directory exists
             csw.write_to_file(
-                output_path=self.dir_output,
+                output_path=target_folder,
                 filename=f"solution_{solution.benchmark_id}_iter_{nr_iter}.xml",
                 overwrite=True,
             )

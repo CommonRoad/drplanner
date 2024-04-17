@@ -11,10 +11,11 @@ from drplanner.prompter.prompter import Prompter
 
 class DrPlannerBase:
     def __init__(
-            self,
-            scenario: Scenario,
-            planning_problem_set: PlanningProblemSet,
-            config: DrPlannerConfiguration):
+        self,
+        scenario: Scenario,
+        planning_problem_set: PlanningProblemSet,
+        config: DrPlannerConfiguration,
+    ):
 
         self.scenario = scenario
         self.planning_problem_set = planning_problem_set
@@ -39,11 +40,17 @@ class DrPlannerBase:
         self.token_count = 0
         self.cost_list = []
 
-        self.dir_output = os.path.join(os.path.dirname(__file__), "../../outputs/solutions/")
-        os.makedirs(os.path.dirname(self.dir_output), exist_ok=True)  # Ensure the directory exists
+        self.dir_output = os.path.join(
+            os.path.dirname(__file__), "../../outputs/solutions/"
+        )
+        os.makedirs(
+            os.path.dirname(self.dir_output), exist_ok=True
+        )  # Ensure the directory exists
 
         self.prompter = Prompter(
-            self.scenario, self.planning_problem, self.config.openai_api_key, self.config.gpt_version
+            self.scenario,
+            self.planning_problem,
+            self.config.openai_api_key,
+            self.config.gpt_version,
         )
         self.prompter.LLM.temperature = self.config.temperature
-

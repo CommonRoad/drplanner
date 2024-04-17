@@ -12,9 +12,15 @@ class StudentMotionPlanner(AStarSearch):
     Here as an example, the planner is inherited from the GreedyBestFirstSearch planner.
     """
 
-    def __init__(self, scenario, planningProblem, automata, plot_config=DefaultPlotConfig):
-        super().__init__(scenario=scenario, planningProblem=planningProblem, automaton=automata,
-                         plot_config=plot_config)
+    def __init__(
+        self, scenario, planningProblem, automata, plot_config=DefaultPlotConfig
+    ):
+        super().__init__(
+            scenario=scenario,
+            planningProblem=planningProblem,
+            automaton=automata,
+            plot_config=plot_config,
+        )
 
     def evaluation_function(self, node_current: PriorityNode) -> float:
         ########################################################################
@@ -28,7 +34,9 @@ class StudentMotionPlanner(AStarSearch):
 
         angleToGoal = self.calc_angle_to_goal(path_last[-1])
 
-        orientationToGoalDiff = self.calc_orientation_diff(angleToGoal, path_last[-1].orientation)
+        orientationToGoalDiff = self.calc_orientation_diff(
+            angleToGoal, path_last[-1].orientation
+        )
 
         cost_time = self.calc_time_cost(path_last)
 
@@ -36,7 +44,9 @@ class StudentMotionPlanner(AStarSearch):
             heur_time = 0.0
 
         if self.position_desired is None:
-            heur_time = self.time_desired.start - node_current.list_paths[-1][-1].time_step
+            heur_time = (
+                self.time_desired.start - node_current.list_paths[-1][-1].time_step
+            )
 
         else:
             velocity = node_current.list_paths[-1][-1].velocity
@@ -45,7 +55,9 @@ class StudentMotionPlanner(AStarSearch):
                 heur_time = np.inf
 
             else:
-                heur_time = self.calc_euclidean_distance(current_node=node_current) / velocity
+                heur_time = (
+                    self.calc_euclidean_distance(current_node=node_current) / velocity
+                )
 
         cost = 20 * orientationToGoalDiff + 0.5 * cost_time + heur_time
         if cost < 0:

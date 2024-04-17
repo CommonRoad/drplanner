@@ -16,6 +16,7 @@ def check_openai_api_key(api_key):
     else:
         return True
 
+
 class LLM:
     def __init__(self, gpt_version, api_key, temperature=0.2) -> None:
         self.gpt_version = gpt_version

@@ -26,7 +26,7 @@ except ImportError as e:
     import os
 
     current_file_dir = os.path.dirname(os.path.abspath(__file__))
-    smp_path = os.path.join(current_file_dir, '../../commonroad-search/')
+    smp_path = os.path.join(current_file_dir, "../../commonroad-search/")
     sys.path.append(smp_path)
     print("Use the external submodule SMP.")
 
@@ -55,12 +55,12 @@ import numpy as np
 
 class DrSearchPlanner(DrPlannerBase):
     def __init__(
-            self,
-            scenario: Scenario,
-            planning_problem_set: PlanningProblemSet,
-            config: DrPlannerConfiguration,
-            motion_primitives_id: str,
-            planner_id: str,
+        self,
+        scenario: Scenario,
+        planning_problem_set: PlanningProblemSet,
+        config: DrPlannerConfiguration,
+        motion_primitives_id: str,
+        planner_id: str,
     ):
         super().__init__(scenario, planning_problem_set, config)
 
@@ -99,9 +99,9 @@ class DrSearchPlanner(DrPlannerBase):
         result = None
         self.initial_cost = self.current_cost
         while (
-                abs(self.current_cost - self.desired_cost) > self.THRESHOLD
-                and self.token_count < self.TOKEN_LIMIT
-                and nr_iteration < self.ITERATION_MAX
+            abs(self.current_cost - self.desired_cost) > self.THRESHOLD
+            and self.token_count < self.TOKEN_LIMIT
+            and nr_iteration < self.ITERATION_MAX
         ):
             print(
                 f"<{nr_iteration}>: total cost {self.current_cost} (desired: {self.desired_cost}),"
@@ -134,7 +134,7 @@ class DrSearchPlanner(DrPlannerBase):
                 planned_trajectory = self.plan(nr_iteration)
                 # add feedback
                 prompt_planner += (
-                        self.add_feedback(planned_trajectory, nr_iteration) + "\n"
+                    self.add_feedback(planned_trajectory, nr_iteration) + "\n"
                 )
             except Exception as e:
                 error_traceback = (
@@ -212,7 +212,7 @@ class DrSearchPlanner(DrPlannerBase):
         self.motion_planner.frontier = PriorityQueue()
 
     def describe(
-            self, planned_trajectory: Union[Trajectory, None]
+        self, planned_trajectory: Union[Trajectory, None]
     ) -> (str, PlanningProblemCostResult):
         template = self.prompter.astar_template
 

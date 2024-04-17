@@ -21,13 +21,13 @@ class LLM:
     def __init__(self, gpt_version, api_key, temperature=0.2) -> None:
         self.gpt_version = gpt_version
         if api_key is None:
-            raise ValueError("OpenAI API key is not provided.")
+            raise ValueError("*\t <LLM> OpenAI API key is not provided.")
         else:
             is_valid = check_openai_api_key(api_key)
             if is_valid:
                 openai.api_key = api_key
             else:
-                raise ValueError(f"The given OpenAI API key {api_key} is not valid.")
+                raise ValueError(f"*\t <LLM> The given OpenAI API key {api_key} is not valid.")
 
         self.temperature = temperature
 
@@ -98,7 +98,7 @@ class LLM:
             content = response.choices[0].message.function_call.arguments
             content_json = json.loads(content)
             print(
-                f"<Prompt> Iteration {nr_iter} succeeds, "
+                f"*\t <Prompt> Iteration {nr_iter} succeeds, "
                 f"{response.usage.total_tokens} tokens are used"
             )
             filename_result = (
@@ -121,5 +121,5 @@ class LLM:
                 json.dump(content_json, file)
             return content_json
         else:
-            print(f"<Prompt> Iteration {nr_iter} failed, no response is generated")
+            print(f"*\t <Prompt> Iteration {nr_iter} failed, no response is generated")
             return None

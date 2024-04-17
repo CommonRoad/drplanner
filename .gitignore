@@ -4,3 +4,5 @@ __pycache__
 public
 .coverage
 build/
+
+outputs/

@@ -41,7 +41,7 @@ class DrPlannerBase:
         self.cost_list = []
 
         self.dir_output = os.path.join(
-            os.path.dirname(__file__), "../../outputs/solutions/"
+            os.path.dirname(__file__), "../../outputs/"
         )
         os.makedirs(
             os.path.dirname(self.dir_output), exist_ok=True

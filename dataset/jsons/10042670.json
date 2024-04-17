@@ -1,0 +1,34 @@
+{
+    "input": {
+        "heuristic_function": "\n    def heuristic_function(self, node_current: PriorityNode) -> float:\n\n        path_last = node_current.list_paths[-1]  # the last path taken\n        current_node = path_last[-1]\n\n        if self.reached_goal(path_last):\n            return 0\n\n        # calculate distance from current/start node to goal node\n        dist_current_goal = self.calc_heuristic_distance(current_node)\n\n        # orientation diff:\n        angle_to_goal = self.calc_angle_to_goal(current_node)\n        orientation_diff_to_goal = self.calc_orientation_diff(angle_to_goal, current_node.orientation)\n\n        # time: time cost (number of time steps) to perform the given path\n        cost_time = self.calc_time_cost(path_last)\n\n        # path length\n        pathLength = self.calc_travelled_distance(path_last)\n\n        #path efficiency\n        path_efficiency = self.calc_path_efficiency(path_last)\n\n        # total cost\n        cost = 2 * dist_current_goal + abs(orientation_diff_to_goal) + cost_time + (100-pathLength) + (1/path_efficiency)\n\n        if cost < 0:\n            cost = 0\n        return cost\n"
+    },
+    "output": {
+        "summary": [
+            {
+                "diagnosis": "Heuristic function returns zero at goal",
+                "prescription": "Remove the code that sets the heuristic to zero when the goal is reached"
+            },
+            {
+                "diagnosis": "Inefficient use of path efficiency",
+                "prescription": "Incorporate path efficiency into the cost calculation more effectively"
+            },
+            {
+                "diagnosis": "Neglect of acceleration cost",
+                "prescription": "Add acceleration cost to the heuristic to discourage high accelerations"
+            },
+            {
+                "diagnosis": "Orientation difference not weighted",
+                "prescription": "Introduce a weight for the orientation difference to balance its influence"
+            },
+            {
+                "diagnosis": "Path length penalty inverted",
+                "prescription": "Correct the path length penalty to encourage shorter paths"
+            },
+            {
+                "diagnosis": "Zero cost for negative values",
+                "prescription": "Ensure cost cannot be negative without setting it to zero"
+            }
+        ],
+        "improved_heuristic_function": "\n    def heuristic_function(self, node_current: PriorityNode) -> float:\n\n        path_last = node_current.list_paths[-1]  # the last path taken\n        current_node = path_last[-1]\n\n        # calculate distance from current/start node to goal node\n        dist_current_goal = self.calc_heuristic_distance(current_node)\n\n        # orientation diff:\n        angle_to_goal = self.calc_angle_to_goal(current_node)\n        orientation_diff_to_goal = self.calc_orientation_diff(angle_to_goal, current_node.orientation)\n\n        # time: time cost (number of time steps) to perform the given path\n        cost_time = self.calc_time_cost(path_last)\n\n        # path length\n        pathLength = self.calc_travelled_distance(path_last)\n\n        #path efficiency\n        path_efficiency = self.calc_path_efficiency(path_last)\n        \n        acceleration_cost = self.calc_acceleration_cost(path_last)\n\n        orientation_weight = 1.0\n        cost = (2 * dist_current_goal + orientation_weight * abs(orientation_diff_to_goal) + cost_time + pathLength + acceleration_cost) / path_efficiency\n\n        if cost < 0:\n            cost = 0\n        return cost\n"
+    }
+}

@@ -1,0 +1,30 @@
+{
+    "input": {
+        "heuristic_function": "\n    def heuristic_function(self, node_current: PriorityNode) -> float:\n        \n        last_path = node_current.list_paths[-1]\n\n        cost_path_efficiency = self.calc_path_efficiency(last_path)\n        cost_orientation = self.calc_orientation_diff(last_path[-1])\n        cost_dist_to_LastState = self.calc_heuristic_distance(last_path[-1])\n        cost_dist_to_FirstState = self.calc_heuristic_distance(last_path[0])\n        cost_time = abs(self.calc_time_cost(last_path))\n        cost_vel = self.calc_velocity_difference(last_path[-1])\n\n        #Preliminary checks\n        if cost_dist_to_LastState is None:\n            return np.inf\n\n        if cost_dist_to_FirstState < cost_dist_to_LastState:\n            return np.inf\n\n        weights = np.zeros(5)\n\n        #Weigth definition\n        weights[0] = 5  #Path efficiency [Is alredy between 0 and 1]\n        weights[1] = 30 #Orientation Radians very low value, so we need a high weight to balance out\n        weights[2] = 3  #Distance to last state\n        weights[3] = 3\n        weights[4] = 2\n\n        cost = weights[0] * 1/cost_path_efficiency +                weights[1] * cost_orientation +                weights[2] * cost_dist_to_LastState +                weights[3] * cost_time +                weights[4] * cost_vel\n\n        return cost\n"
+    },
+    "output": {
+        "summary": [
+            {
+                "diagnosis": "Inverted efficiency cost",
+                "prescription": "Invert the path efficiency cost calculation"
+            },
+            {
+                "diagnosis": "Zero weights",
+                "prescription": "Ensure weights are non-zero and properly scaled"
+            },
+            {
+                "diagnosis": "Redundant distance check",
+                "prescription": "Remove unnecessary distance comparison"
+            },
+            {
+                "diagnosis": "Missing acceleration cost",
+                "prescription": "Integrate acceleration cost into heuristic"
+            },
+            {
+                "diagnosis": "Missing steering costs",
+                "prescription": "Incorporate steering angle and velocity costs"
+            }
+        ],
+        "improved_heuristic_function": "\n    def heuristic_function(self, node_current: PriorityNode) -> float:\n\n        last_path = node_current.list_paths[-1]\n\n        cost_path_efficiency = self.calc_path_efficiency(last_path)\n        cost_orientation = self.calc_orientation_diff(last_path[-1])\n        cost_dist_to_LastState = self.calc_heuristic_distance(last_path[-1])\n        cost_time = abs(self.calc_time_cost(last_path))\n        cost_vel = self.calc_velocity_difference(last_path[-1])\n        cost_acceleration = self.calc_acceleration_cost(last_path)\n        cost_steering_angle = self.calc_steering_angle_cost(last_path)\n        cost_steering_velocity = self.calc_steering_velocity_cost(last_path)\n\n        weights = np.array([5, 30, 3, 3, 2, 50, 50, 50])\n\n        cost = weights[0] * cost_path_efficiency +                weights[1] * cost_orientation +                weights[2] * cost_dist_to_LastState +                weights[3] * cost_time +                weights[4] * cost_vel +                weights[5] * cost_acceleration +                weights[6] * cost_steering_angle +                weights[7] * cost_steering_velocity\n\n        return cost\n"
+    }
+}

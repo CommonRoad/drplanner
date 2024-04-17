@@ -1,0 +1,30 @@
+{
+    "input": {
+        "heuristic_function": "\n    def heuristic_function(self, node_current: PriorityNode) -> float:\n        \n        path_last = node_current.list_paths[-1]\n        \n        if self.reached_goal(node_current.list_paths[-1]):\n            return 0.0\n\n        if self.position_desired is None:\n            return self.time_desired.start - path_last[-1].time_step\n        \n        #cost lanelet\n        cost_lanelet, final_lanelet_id, start_lanelet_id = self.calc_heuristic_lanelet(path_last)\n\n        if cost_lanelet is None or final_lanelet_id[0] is None:\n            return np.inf\n        \n        else:\n            pathEffic = self.calc_path_efficiency(path_last)\n            velocity = path_last[-1].velocity\n\n            return ((self.calc_euclidean_distance(current_node=node_current)) / (1.3*velocity)) * (1/pathEffic)**4\n"
+    },
+    "output": {
+        "summary": [
+            {
+                "diagnosis": "Goal heuristic zeroing",
+                "prescription": "Remove zero heuristic for goal state to maintain consistency in cost evaluation"
+            },
+            {
+                "diagnosis": "Neglect of steering and acceleration costs",
+                "prescription": "Incorporate steering angle, steering velocity and acceleration costs into the heuristic"
+            },
+            {
+                "diagnosis": "Oversimplified path efficiency",
+                "prescription": "Refine path efficiency calculation to better represent trajectory cost"
+            },
+            {
+                "diagnosis": "Inadequate velocity handling",
+                "prescription": "Adjust velocity consideration to prevent division by zero and enhance realism"
+            },
+            {
+                "diagnosis": "Lanelet cost handling",
+                "prescription": "Ensure lanelet cost contributes to the heuristic when relevant"
+            }
+        ],
+        "improved_heuristic_function": "\n    def heuristic_function(self, node_current: PriorityNode) -> float:\n\n        path_last = node_current.list_paths[-1]\n\n        if self.position_desired is None:\n            return self.time_desired.start - path_last[-1].time_step\n\n        cost_lanelet, final_lanelet_id, start_lanelet_id = self.calc_heuristic_lanelet(path_last)\n\n        if cost_lanelet is None or final_lanelet_id[0] is None:\n            return np.inf\n\n        path_efficiency = self.calc_path_efficiency(path_last)\n        velocity = path_last[-1].velocity\n        velocity = max(velocity, 0.1)  # Prevent division by zero and ensure a minimum velocity is considered\n\n        steering_angle_cost = self.calc_steering_angle_cost(path_last)\n        steering_velocity_cost = self.calc_steering_velocity_cost(path_last)\n        acceleration_cost = self.calc_acceleration_cost(path_last)\n\n        # Adjust the heuristic calculation to include steering and acceleration costs and refine path efficiency\n        heuristic_cost = (\n                (self.calc_euclidean_distance(current_node=node_current)) / (1.3 * velocity)\n                + steering_angle_cost * 10 + steering_velocity_cost * 10 + acceleration_cost / 2\n        )\n        heuristic_cost *= (1 / max(path_efficiency,\n                                   0.1)) ** 2  # Prevent division by zero and unrealistic high costs due to very low efficiency\n\n        # Include lanelet cost if it's significant\n        if cost_lanelet > 0.1:\n            heuristic_cost += cost_lanelet\n\n        return heuristic_cost\n"
+    }
+}

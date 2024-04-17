@@ -1,0 +1,38 @@
+{
+    "input": {
+        "heuristic_function": "\n    def heuristic_function(self, node_current: PriorityNode):\n\n        node_last = node_current.list_paths[-1][-1]\n        #lanelet_id = self.scenario.lanelet_network.find_lanelet_by_position([node_current.list_paths[0][0].position])[0][0]\n\n        if self.reached_goal(node_current.list_paths[-1]):\n            return 0.0\n        #survival mode\n        if self.position_desired is None:\n            #print('Case position_desired is None')\n            return self.time_desired.start - node_current.list_paths[-1][-1].time_step\n\n        else:\n            #a = self.planningProblem.goal\n            angle_diff = self.calc_angle_to_goal(node_last)\n            orientationToGoalDiff = self.calc_orientation_diff(angle_diff, node_last.orientation)\n\n            velocity = node_current.list_paths[-1][-1].velocity\n            dist_to_goal = self.calc_euclidean_distance(current_node=node_current)\n            dist_to_goal_disc = min(5 * dist_to_goal, 100)\n            orient_disc = min(orientationToGoalDiff, 1)\n\n            if np.isclose(velocity, 0):\n                return np.inf\n            else:\n                return dist_to_goal / velocity + orient_disc + dist_to_goal_disc\n"
+    },
+    "output": {
+        "summary": [
+            {
+                "diagnosis": "Zero cost for goal state",
+                "prescription": "Remove zero cost for goal state to maintain consistency in cost evaluation"
+            },
+            {
+                "diagnosis": "Neglect of acceleration cost",
+                "prescription": "Incorporate calc_acceleration_cost into heuristic to account for acceleration"
+            },
+            {
+                "diagnosis": "Neglect of path efficiency",
+                "prescription": "Incorporate calc_path_efficiency into heuristic to account for path length"
+            },
+            {
+                "diagnosis": "Neglect of steering costs",
+                "prescription": "Incorporate steering angle and velocity costs into heuristic"
+            },
+            {
+                "diagnosis": "Infinite cost for zero velocity",
+                "prescription": "Adjust handling of zero velocity to avoid infinite costs"
+            },
+            {
+                "diagnosis": "Arbitrary distance cap",
+                "prescription": "Remove or adjust arbitrary cap on distance to goal"
+            },
+            {
+                "diagnosis": "Arbitrary orientation cap",
+                "prescription": "Remove or adjust arbitrary cap on orientation difference"
+            }
+        ],
+        "improved_heuristic_function": "\n    def heuristic_function(self, node_current: PriorityNode) -> float:\n\n        node_last = node_current.list_paths[-1][-1]\n\n        if self.reached_goal(node_current.list_paths[-1]):\n            return self.calc_acceleration_cost(node_current.list_paths[-1]) + self.calc_steering_angle_cost(\n                node_current.list_paths[-1]) + self.calc_steering_velocity_cost(node_current.list_paths[-1])\n\n        acceleration_cost = self.calc_acceleration_cost(node_current.list_paths[-1])\n        path_efficiency = self.calc_path_efficiency(node_current.list_paths[-1])\n        steering_angle_cost = self.calc_steering_angle_cost(node_current.list_paths[-1])\n        steering_velocity_cost = self.calc_steering_velocity_cost(node_current.list_paths[-1])\n\n        angle_diff = self.calc_angle_to_goal(node_last)\n        orientationToGoalDiff = self.calc_orientation_diff(angle_diff, node_last.orientation)\n\n        velocity = node_last.velocity\n        dist_to_goal = self.calc_euclidean_distance(current_node=node_current)\n\n        if np.isclose(velocity, 0):\n            velocity_cost = 10  # Assign a high but finite cost for zero velocity\n        else:\n            velocity_cost = dist_to_goal / velocity\n\n        total_cost = acceleration_cost + path_efficiency + steering_angle_cost + steering_velocity_cost + velocity_cost + orientationToGoalDiff\n\n        return total_cost\n"
+    }
+}

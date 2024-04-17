@@ -1,0 +1,30 @@
+{
+    "input": {
+        "heuristic_function": "\n    def heuristic_function(self, node_current: PriorityNode) -> float:\n\n        last_path = self.remove_states_behind_goal(node_current.list_paths)[-1]\n        PathFinalState = last_path[-1]\n        PathStartState = last_path[0]\n        velocity = PathFinalState.velocity\n        \n        if self.reached_goal(node_current.list_paths[-1]):\n            return 0.0\n        #dist to goal\n        #dist_goal = self.calc_euclidean_distance(current_node=node_current)\n        \n        #time diff\n        \n        if (self.position_desired is None):\n            required_time = self.time_desired.start - node_current.list_paths[-1][-1].time_step\n        else:\n            required_time = self.calc_euclidean_distance(current_node=node_current)\n        #angle diff\n        angle_goal = self.calc_angle_to_goal(PathFinalState)\n        diff_angle = self.calc_orientation_diff(PathFinalState.orientation,angle_goal)\n            \n        #velocity diff\n        #diff_velocity = abs((self.velocity_desired.start +self.velocity_desired.end)/2 - velocity)\n        \n        weights = np.ones(4)\n        weights[0] = 0.5\n        weights[1] = 0.5\n        weights[2] = 0.3\n        weights[3] = 0.3\n        cost =  weights[0]*required_time + weights[1]*diff_angle\n        return cost\n        pass\n"
+    },
+    "output": {
+        "summary": [
+            {
+                "diagnosis": "Zero cost for goal state",
+                "prescription": "Remove zero cost for goal state to maintain consistency in cost evaluation"
+            },
+            {
+                "diagnosis": "Unused velocity difference",
+                "prescription": "Incorporate velocity difference into cost calculation"
+            },
+            {
+                "diagnosis": "Inconsistent time difference handling",
+                "prescription": "Correct time difference calculation to reflect actual time to goal"
+            },
+            {
+                "diagnosis": "Weights not aligned with cost components",
+                "prescription": "Adjust weights to balance cost components appropriately"
+            },
+            {
+                "diagnosis": "Neglect of path efficiency and steering costs",
+                "prescription": "Include path efficiency and steering costs in heuristic"
+            }
+        ],
+        "improved_heuristic_function": "\n    def heuristic_function(self, node_current: PriorityNode) -> float:\n        last_path = self.remove_states_behind_goal(node_current.list_paths)[-1]\n        PathFinalState = last_path[-1]\n\n        # Time difference to goal\n        required_time = self.time_desired.start - PathFinalState.time_step if self.position_desired is None else self.calc_euclidean_distance(\n            current_node=node_current)\n\n        # Angle difference to goal\n        angle_goal = self.calc_angle_to_goal(PathFinalState)\n        diff_angle = self.calc_orientation_diff(PathFinalState.orientation, angle_goal)\n\n        # Acceleration_cost\n        acc_cost = self.calc_acceleration_cost(last_path)\n\n        # Path efficiency and steering costs\n        path_efficiency = self.calc_path_efficiency(last_path)\n        steering_angle_cost = self.calc_steering_angle_cost(last_path)\n        steering_velocity_cost = self.calc_steering_velocity_cost(last_path)\n\n        # Weights adjustment\n        weights = np.array([1.0, 0.5, 0.5, 0.3, 0.3, 0.2, 0.2])\n        cost_components = np.array(\n            [required_time, diff_angle, acc_cost, path_efficiency, steering_angle_cost, steering_velocity_cost])\n\n        # Total cost calculation\n        cost = np.dot(weights[:len(cost_components)], cost_components)\n        cost = max(cost, 0)  # Ensure cost is non-negative\n\n        return cost\n"
+    }
+}

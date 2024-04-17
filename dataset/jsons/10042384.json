@@ -1,0 +1,30 @@
+{
+    "input": {
+        "heuristic_function": "\n    def heuristic_function(self, node_current: PriorityNode) -> float:\n        path_last = node_current.list_paths[-1]\n        start_state = path_last[0]\n        last_state = path_last[-1]\n\n\n        dist_start_state = self.calc_heuristic_distance(start_state)\n        dist_last_state = self.calc_heuristic_distance(last_state)\n\n        # If we have reached the goal, finished\n        if self.reached_goal(path_last):\n            return 0.0\n\n\n        # Make sure we didn't go pass the goal\n        if dist_start_state < dist_last_state:\n            return np.inf\n\n        # If we just have to 'survive' (Not reach any specific state)\n        # We just care how much left do we have to survive\n        if self.position_desired is None:\n            return self.time_desired.start - last_state.time_step\n\n\n        # WE ARE MOSTLY DOWN HERE:\n        # Most of the time we want to reach some final state\n        velocity = last_state.velocity\n\n        if np.isclose(velocity, 0):\n            return np.inf\n\n        cost_lanelet, final_lanelet_id, start_lanelet_id = self.calc_heuristic_lanelet(path_last)\n        if cost_lanelet is None or final_lanelet_id[0] is None: # Maybe in this case change goal_in_lane , instead of returning inf?\n            return np.inf\n\n        # We want to be as close as possible to the goal state (euclidean distance)\n        rel_dist_to_goal = self.calc_euclidean_distance(current_node=node_current) / velocity\n        last_path_efficiency = self.calc_path_efficiency(path_last)\n        goal_in_lane = self.is_goal_in_lane(final_lanelet_id[0])\n\n        weighted_variables = [(0.65, rel_dist_to_goal),\n                              (0.125, last_path_efficiency),\n                              (0.225, goal_in_lane)\n                              ]\n\n        pond_heuristics = sum([(w * var) for w, var in weighted_variables])\n\n        return pond_heuristics\n"
+    },
+    "output": {
+        "summary": [
+            {
+                "diagnosis": "Zero heuristic for goal",
+                "prescription": "Replace zero heuristic with a small positive value"
+            },
+            {
+                "diagnosis": "Infinite cost for velocity close to zero",
+                "prescription": "Adjust heuristic for low velocities"
+            },
+            {
+                "diagnosis": "Infinite cost for path deviation",
+                "prescription": "Introduce a penalty for deviation rather than infinite cost"
+            },
+            {
+                "diagnosis": "High acceleration cost",
+                "prescription": "Penalize acceleration in heuristic"
+            },
+            {
+                "diagnosis": "Weighted variables not normalized",
+                "prescription": "Normalize weighted variables"
+            }
+        ],
+        "improved_heuristic_function": "\n    def heuristic_function(self, node_current: PriorityNode) -> float:\n        path_last = node_current.list_paths[-1]\n        start_state = path_last[0]\n        last_state = path_last[-1]\n\n        dist_start_state = self.calc_heuristic_distance(start_state)\n        dist_last_state = self.calc_heuristic_distance(last_state)\n\n        if self.reached_goal(path_last):\n            return 0.01  # Small positive value to ensure gradient towards goal\n\n        if dist_start_state < dist_last_state:\n            return dist_last_state - dist_start_state + 100.0  # Penalty for reverse direction\n\n        if self.position_desired is None:\n            return max(self.time_desired.start - last_state.time_step, 0)\n\n        velocity = last_state.velocity\n\n        if np.isclose(velocity, 0):\n            return 1000.0  # High penalty for zero velocity\n\n        cost_lanelet, final_lanelet_id, start_lanelet_id = self.calc_heuristic_lanelet(path_last)\n        if cost_lanelet is None or final_lanelet_id[0] is None:\n            return 1000.0  # High penalty for lanelet issues\n\n        rel_dist_to_goal = self.calc_euclidean_distance(current_node=node_current) / (velocity + 0.1)\n        last_path_efficiency = self.calc_path_efficiency(path_last)\n        goal_in_lane = self.is_goal_in_lane(final_lanelet_id[0])\n        acceleration_cost = self.calc_acceleration_cost(path_last)\n\n        weighted_variables = [(0.45, rel_dist_to_goal),\n                              (0.125, last_path_efficiency),\n                              (0.225, goal_in_lane),\n                              (0.200, acceleration_cost)]\n\n        pond_heuristics = sum([(w * var) for w, var in weighted_variables if w > 0])\n\n        return max(pond_heuristics, 0)\n"
+    }
+}

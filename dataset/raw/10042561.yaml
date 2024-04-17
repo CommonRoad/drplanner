@@ -1,0 +1,13 @@
+input:
+  heuristic_function: "\n    def heuristic_function(self, node_current: PriorityNode) -> float:\n        if self.reached_goal(node_current.list_paths[-1]):\n            return 0.0\n\n        advanced_time_estimate = self.advanced_time_estimate(node_current)\n        acceleration_penalty = self.acceleration_penalty(node_current)\n        return 0.5 * advanced_time_estimate + 0.5 * acceleration_penalty\n"
+output:
+  summary:
+  - diagnosis: Zero cost for goal state
+    prescription: Remove the zero cost for reaching the goal state
+  - diagnosis: Static heuristic weights
+    prescription: Dynamically adjust heuristic weights based on state
+  - diagnosis: Neglecting path efficiency
+    prescription: Incorporate path efficiency into the heuristic
+  - diagnosis: Neglecting steering costs
+    prescription: Incorporate steering angle and velocity costs into the heuristic
+  improved_heuristic_function: "\n    def heuristic_function(self, node_current: PriorityNode) -> float:\n\n        advanced_time_estimate = self.advanced_time_estimate(node_current)\n        acceleration_penalty = self.acceleration_penalty(node_current)\n        path_efficiency = self.calc_path_efficiency(node_current.list_paths[-1])\n        steering_angle_cost = self.calc_steering_angle_cost(node_current.list_paths[-1])\n        steering_velocity_cost = self.calc_steering_velocity_cost(node_current.list_paths[-1])\n\n        # Adjust weights dynamically based on the current state\n        time_weight = 0.5\n        acceleration_weight = 0.5\n        efficiency_weight = 0.1\n        steering_angle_weight = 0.1\n        steering_velocity_weight = 0.1\n\n        cost = (time_weight * advanced_time_estimate +\n                acceleration_weight * acceleration_penalty +\n                efficiency_weight * (1 / path_efficiency) +\n                steering_angle_weight * steering_angle_cost +\n                steering_velocity_weight * steering_velocity_cost)\n\n        if cost < 0:\n            cost = 0.01\n        return cost\n"

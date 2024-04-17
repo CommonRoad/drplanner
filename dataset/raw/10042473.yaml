@@ -1,0 +1,15 @@
+input:
+  heuristic_function: "\n    def heuristic_function(self, node_current: PriorityNode) -> float:\n\n        last_path = node_current.list_paths[-1]\n        state = last_path[-1]\n\n        velocity = state.velocity\n        orientation = state.orientation\n\n        ####################################\n        # adapted from SMP best first search class:#\n        ####################################\n        if self.reached_goal(node_current.list_paths[-1]):\n            # returns 0 if the goal node is reached\n            return 0.0\n\n        desired_start = self.time_desired.start\n        time_step = node_current.list_paths[-1][-1].time_step\n\n        if self.position_desired is None:\n            # if the desired position is not set, use the goal position\n            return desired_start - time_step\n        else:\n            if np.isclose(velocity, 0):\n                return np.inf\n            else:\n                distance = self.calc_euclidean_distance(current_node=node_current)\n                return (distance + orientation) / (velocity * time_step)\n        # get the goal\n\n"
+output:
+  summary:
+  - diagnosis: Heuristic returns zero at goal
+    prescription: Remove zero return for goal heuristic
+  - diagnosis: Infinite cost for zero velocity
+    prescription: Modify handling of zero velocity
+  - diagnosis: Orientation in heuristic
+    prescription: Refine orientation influence in heuristic
+  - diagnosis: Time step influence unclear
+    prescription: Clarify and adjust time step influence
+  - diagnosis: Neglecting other costs in heuristic
+    prescription: Incorporate additional costs into heuristic
+  improved_heuristic_function: "\n    def heuristic_function(self, node_current: PriorityNode) -> float:\n\n        last_path = node_current.list_paths[-1]\n        state = last_path[-1]\n\n        velocity = state.velocity\n        orientation = state.orientation\n\n        if self.position_desired is None:\n            desired_start = self.time_desired.start\n            time_step = state.time_step\n            return max(desired_start - time_step, 0)\n        else:\n            distance = self.calc_euclidean_distance(current_node=node_current)\n            orientation_diff = abs(orientation - (self.orientation_desired.start + self.orientation_desired.end)/2)\n            velocity_diff = abs(velocity - self.velocity_desired.start)\n\n            if np.isclose(velocity, 0):\n                velocity_cost = np.inf\n            else:\n                velocity_cost = self.calc_acceleration_cost(last_path)\n\n            time_cost = state.time_step - self.time_desired.start\n\n            cost = (distance + orientation_diff * 10 + velocity_diff * 5) * velocity_cost + abs(time_cost)\n            return max(cost, 0)\n"

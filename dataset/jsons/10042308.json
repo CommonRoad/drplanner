@@ -1,0 +1,42 @@
+{
+    "input": {
+        "heuristic_function": "\n    def heuristic_function(self, node_current: PriorityNode) -> float:\n\n        # heuristic_function\n        path_last = node_current.list_paths[-1]\n        \n        if self.reached_goal(path_last):\n            return 0.0\n        \n        cost_lanelet, final_lanelet_id, start_lanelet_id = self.calc_heuristic_lanelet(path_last)\n        \n        angleToGoal = self.calc_angle_to_goal(path_last[-1])\n        diff_orient_Goal = self.calc_orientation_diff(angleToGoal, path_last[-1].orientation)        \n        pathLength = self.calc_travelled_distance(path_last)\n        \n\n        if self.position_desired is None:\n            return self.time_desired.start - path_last[-1].time_step\n\n        else:\n            velocity = path_last[-1].velocity\n\n            if np.isclose(velocity, 0):\n                return np.inf\n\n            else:\n                dist_toGoal = self.calc_euclidean_distance(current_node=node_current)\n                time_toGoal = dist_toGoal / velocity\n                cost_h = time_toGoal + pathLength*0.2 + diff_orient_Goal*0.3\n                \n                if final_lanelet_id != None:\n                    \n                    goal_in_lane = self.is_goal_in_lane(final_lanelet_id[0])\n                    lane_ident = self.is_adjacent(start_lanelet_id[0], final_lanelet_id[0])\n                    \n                    if goal_in_lane == False and lane_ident:\n                        cost_h += diff_orient_Goal\n                                            \n                return cost_h\n"
+    },
+    "output": {
+        "summary": [
+            {
+                "diagnosis": "Zero heuristic for goal state",
+                "prescription": "Remove zero heuristic for goal state to maintain consistency in cost evaluation"
+            },
+            {
+                "diagnosis": "Neglecting acceleration cost",
+                "prescription": "Incorporate calc_acceleration_cost into heuristic to account for acceleration"
+            },
+            {
+                "diagnosis": "Path length not efficiently evaluated",
+                "prescription": "Utilize calc_path_efficiency to evaluate path length cost"
+            },
+            {
+                "diagnosis": "Steering angle cost omitted",
+                "prescription": "Include calc_steering_angle_cost to factor in steering angle"
+            },
+            {
+                "diagnosis": "Steering velocity cost excluded",
+                "prescription": "Add calc_steering_velocity_cost to consider steering velocity"
+            },
+            {
+                "diagnosis": "Infinite cost for zero velocity",
+                "prescription": "Refine condition for zero velocity to prevent infinite costs"
+            },
+            {
+                "diagnosis": "Orientation difference weighted inconsistently",
+                "prescription": "Standardize orientation difference weighting in heuristic"
+            },
+            {
+                "diagnosis": "Lanelet adjacency not fully utilized",
+                "prescription": "Enhance lanelet adjacency handling for better trajectory planning"
+            }
+        ],
+        "improved_heuristic_function": "\n    def heuristic_function(self, node_current: PriorityNode) -> float:\n\n        path_last = node_current.list_paths[-1]\n\n        cost_lanelet, final_lanelet_id, start_lanelet_id = self.calc_heuristic_lanelet(path_last)\n\n        angleToGoal = self.calc_angle_to_goal(path_last[-1])\n        diff_orient_Goal = self.calc_orientation_diff(angleToGoal, path_last[-1].orientation)\n        path_efficiency = self.calc_path_efficiency(path_last)\n\n        if self.position_desired is None:\n            return self.time_desired.start - path_last[-1].time_step\n\n        else:\n            velocity = path_last[-1].velocity\n\n            if np.isclose(velocity, 0):\n                velocity = 0.1  # Small velocity to avoid division by zero\n\n            dist_toGoal = self.calc_euclidean_distance(current_node=node_current)\n            time_toGoal = dist_toGoal / velocity\n            cost_h = time_toGoal + path_efficiency + diff_orient_Goal\n\n            acceleration_cost = self.calc_acceleration_cost(path_last)\n            steering_angle_cost = self.calc_steering_angle_cost(path_last)\n            steering_velocity_cost = self.calc_steering_velocity_cost(path_last)\n\n            cost_h += acceleration_cost + steering_angle_cost + steering_velocity_cost\n\n            if final_lanelet_id is not None:\n\n                goal_in_lane = self.is_goal_in_lane(final_lanelet_id[0])\n                lane_ident = self.is_adjacent(start_lanelet_id[0], final_lanelet_id[0])\n\n                if not goal_in_lane and lane_ident:\n                    cost_h += diff_orient_Goal\n\n            return cost_h\n"
+    }
+}

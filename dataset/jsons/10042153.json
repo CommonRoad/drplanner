@@ -1,0 +1,30 @@
+{
+    "input": {
+        "heuristic_function": "\n    def heuristic_function(self, node_current: PriorityNode) -> float:\n\n        path_last = node_current.list_paths[-1]\n\n        angleToGoal = self.calc_angle_to_goal(path_last[-1])\n\n        orientationToGoalDiff = self.calc_orientation_diff(angleToGoal, path_last[-1].orientation)\n\n        cost_time = self.calc_time_cost(path_last)\n            \n        if self.reached_goal(node_current.list_paths[-1]):\n            heur_time = 0.0\n\n        if self.position_desired is None:\n            heur_time = self.time_desired.start - node_current.list_paths[-1][-1].time_step\n\n        else:\n            velocity = node_current.list_paths[-1][-1].velocity\n\n            if np.isclose(velocity, 0):\n                heur_time = np.inf\n\n            else:\n                heur_time = self.calc_euclidean_distance(current_node=node_current) / velocity\n\n        cost = 20*orientationToGoalDiff + 0.5 * cost_time + heur_time\n        if cost < 0:\n            cost = 0\n        return cost\n        pass\n"
+    },
+    "output": {
+        "summary": [
+            {
+                "diagnosis": "Unnecessary goal reach check",
+                "prescription": "Correct the condition to set heur_time for goal reached"
+            },
+            {
+                "diagnosis": "Position desired check redundancy",
+                "prescription": "Remove redundant check for self.position_desired"
+            },
+            {
+                "diagnosis": "Zero velocity handling",
+                "prescription": "Handle zero velocity case appropriately"
+            },
+            {
+                "diagnosis": "Negative cost possibility",
+                "prescription": "Ensure cost is non-negative without explicit check"
+            },
+            {
+                "diagnosis": "Heuristic cost components missing",
+                "prescription": "Incorporate additional cost components into heuristic"
+            }
+        ],
+        "improved_heuristic_function": "\n    def heuristic_function(self, node_current: PriorityNode) -> float:\n        path_last = node_current.list_paths[-1]\n\n        angleToGoal = self.calc_angle_to_goal(path_last[-1])\n        orientationToGoalDiff = self.calc_orientation_diff(angleToGoal, path_last[-1].orientation)\n        cost_time = self.calc_time_cost(path_last)\n        if self.position_desired is None:\n            heur_time = self.time_desired.start - node_current.list_paths[-1][-1].time_step\n        else:\n            heur_time = self.calc_euclidean_distance(current_node=node_current) / max(path_last[-1].velocity, 0.1)\n\n        acceleration_cost = self.calc_acceleration_cost(path_last)\n        path_efficiency = self.calc_path_efficiency(path_last)\n        steering_angle_cost = self.calc_steering_angle_cost(path_last)\n        steering_velocity_cost = self.calc_steering_velocity_cost(path_last)\n\n        cost = 20 * orientationToGoalDiff + 0.5 * cost_time + heur_time + acceleration_cost + path_efficiency + steering_angle_cost + steering_velocity_cost\n\n        return max(cost, 0)\n"
+    }
+}

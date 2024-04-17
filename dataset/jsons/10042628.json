@@ -1,0 +1,34 @@
+{
+    "input": {
+        "heuristic_function": "\n    def heuristic_function(self, node_current: PriorityNode) -> float:\n\n        path_last = node_current.list_paths[-1]\n        if self.reached_goal(path_last):\n            return 0.0\n\n        velocity = path_last[-1].velocity\n\n        time_diff = 0\n        exp_travel_time = 0\n        path_efficiency = 0\n        if self.position_desired is None:\n            time_diff = self.time_desired.start - path_last[-1].time_step\n            path_efficiency = self.calc_path_efficiency(path_last)\n        else:\n            if np.isclose(velocity, 0):\n                exp_travel_time = np.inf\n            else:\n                exp_travel_time = self.calc_euclidean_distance(current_node=node_current) / velocity\n\n        cost_lanelet, final_lanelet_id, start_lanelet_id = self.calc_heuristic_lanelet(path_last)\n\n        obstacles = 0\n        if final_lanelet_id is not None:\n            obstacles = self.num_obstacles_in_lanelet_at_time_step(path_last[-1].time_step, final_lanelet_id[0])\n\n        orientationToGoalDiff = 0\n        angleToGoal = self.calc_angle_to_goal(path_last[-1])\n        orientationToGoalDiff = self.calc_orientation_diff(angleToGoal, path_last[-1].orientation)\n\n        cost = 3 * exp_travel_time +                3 * time_diff +                1 * path_efficiency +                2 * obstacles +                1 * orientationToGoalDiff\n\n        return cost\n"
+    },
+    "output": {
+        "summary": [
+            {
+                "diagnosis": "Goal heuristic set to zero",
+                "prescription": "Remove zero heuristic for goal state"
+            },
+            {
+                "diagnosis": "Infinite travel time for zero velocity",
+                "prescription": "Handle zero velocity case appropriately"
+            },
+            {
+                "diagnosis": "Orientation difference not normalized",
+                "prescription": "Normalize orientation difference"
+            },
+            {
+                "diagnosis": "Inconsistent heuristic weights",
+                "prescription": "Adjust heuristic weights for balance"
+            },
+            {
+                "diagnosis": "Neglect of acceleration cost",
+                "prescription": "Incorporate acceleration cost into heuristic"
+            },
+            {
+                "diagnosis": "Path efficiency calculation redundancy",
+                "prescription": "Remove redundant path efficiency calculation"
+            }
+        ],
+        "improved_heuristic_function": "\n    def heuristic_function(self, node_current: PriorityNode) -> float:\n        path_last = node_current.list_paths[-1]\n        velocity = path_last[-1].velocity\n\n        if self.position_desired is None:\n            exp_travel_time = self.time_desired.start - path_last[-1].time_step\n        else:\n            if np.isclose(velocity, 0):\n                exp_travel_time = np.inf\n            else:\n                exp_travel_time = self.calc_euclidean_distance(current_node=node_current) / velocity\n\n        cost_lanelet, final_lanelet_id, start_lanelet_id = self.calc_heuristic_lanelet(path_last)\n\n        obstacles = 0\n        if final_lanelet_id is not None:\n            obstacles = self.num_obstacles_in_lanelet_at_time_step(path_last[-1].time_step, final_lanelet_id[0])\n\n        orientationToGoalDiff = self.calc_orientation_diff(self.calc_angle_to_goal(path_last[-1]),\n                                                           path_last[-1].orientation)\n        orientationToGoalDiff = (orientationToGoalDiff + np.pi) % (2 * np.pi) - np.pi\n\n        acceleration_cost = self.calc_acceleration_cost(path_last)\n\n        cost = 2 * exp_travel_time +                1 * acceleration_cost +                2 * obstacles +                1 * orientationToGoalDiff\n\n        return max(cost, 0)\n"
+    }
+}

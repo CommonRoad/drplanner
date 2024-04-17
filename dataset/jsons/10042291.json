@@ -1,0 +1,22 @@
+{
+    "input": {
+        "heuristic_function": "\n    def heuristic_function(self, node_current: PriorityNode) -> float:\n\n        # list_paths[-1] == [state1 of last primitive, ..., state i of ..., ]\n        # list_paths[-1] is the list of last KSStates of current primitive node\n        if self.reached_goal(node_current.list_paths[-1]):\n            return 0.0\n        if self.position_desired is None:\n            return self.time_desired.start - node_current.list_paths[-1][-1].time_step\n        else:\n            position = node_current.list_paths[-1][-1].position\n            steering_angle = node_current.list_paths[-1][-1].steering_angle\n            velocity = node_current.list_paths[-1][-1].velocity\n            orientation = node_current.list_paths[-1][-1].orientation\n\n            if np.isclose(velocity, 0):\n                return np.inf\n\n            else:\n                return self.calc_heuristic_distance(state=node_current.list_paths[-1][-1], distance_type=5) / velocity +                     self.calc_travelled_distance(node_current.list_paths[-1]) +                     self.calc_angle_to_goal(node_current.list_paths[-1][-1]) +                     self.calc_time_cost(node_current.list_paths[-1])\n"
+    },
+    "output": {
+        "summary": [
+            {
+                "diagnosis": "Infinite cost for zero velocity",
+                "prescription": "Implement a fallback cost calculation for zero velocity scenarios to prevent discarding potentially viable paths."
+            },
+            {
+                "diagnosis": "Neglecting acceleration and steering costs",
+                "prescription": "Incorporate acceleration and steering costs into the heuristic to better reflect the trajectory planning cost."
+            },
+            {
+                "diagnosis": "No consideration for path efficiency",
+                "prescription": "Include path efficiency in the heuristic to encourage more efficient trajectories."
+            }
+        ],
+        "improved_heuristic_function": "\n    def heuristic_function(self, node_current: PriorityNode) -> float:\n\n        velocity = node_current.list_paths[-1][-1].velocity\n\n        if self.position_desired is None:\n            return self.time_desired.start - node_current.list_paths[-1][-1].time_step\n        else:\n            if np.isclose(velocity, 0):\n                # Fallback cost for zero velocity\n                velocity_cost = self.calc_heuristic_distance(state=node_current.list_paths[-1][-1], distance_type=5)\n            else:\n                velocity_cost = self.calc_heuristic_distance(state=node_current.list_paths[-1][-1],\n                                                             distance_type=5) / velocity\n\n            # Incorporating additional costs\n            acceleration_cost = self.calc_acceleration_cost(node_current.list_paths[-1])\n            steering_angle_cost = self.calc_steering_angle_cost(node_current.list_paths[-1])\n            steering_velocity_cost = self.calc_steering_velocity_cost(node_current.list_paths[-1])\n            path_efficiency = self.calc_path_efficiency(node_current.list_paths[-1])\n\n            # Total cost calculation\n            total_cost = velocity_cost +                          self.calc_travelled_distance(node_current.list_paths[-1]) +                          self.calc_angle_to_goal(node_current.list_paths[-1][-1]) +                          self.calc_time_cost(node_current.list_paths[-1]) +                          acceleration_cost +                          steering_angle_cost +                          steering_velocity_cost -                          path_efficiency  # Subtracting to encourage efficiency\n\n            return max(total_cost, 0)  # Ensure non-negative cost\n"
+    }
+}

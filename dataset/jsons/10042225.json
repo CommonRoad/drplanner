@@ -1,0 +1,34 @@
+{
+    "input": {
+        "heuristic_function": "\n    def heuristic_function(self, node_current: PriorityNode) -> float:\n\n        if self.reached_goal(node_current.list_paths[-1]):\n            return 0.0\n\n        if self.position_desired is None:\n            return self.time_desired.start - node_current.list_paths[-1][-1].time_step\n        \n        #--------goal state---------------\n\n        else:\n            #######factor 1: remaining time to the goal based from default heuristic\n            velocity = node_current.list_paths[-1][-1].velocity\n\n            if np.isclose(velocity, 0):\n                return np.inf\n\n            else:\n                f_time = self.calc_euclidean_distance(current_node=node_current) / velocity\n\n            ######factor : orientation better be align with the lane orientation\n            orientation = node_current.list_paths[-1][-1].orientation\n\n            #ts = node_current.list_paths[-1][-1].time_step\n\n            pos = node_current.list_paths[-1][-1].position\n            l_lists = self.scenario.lanelet_network.find_lanelet_by_position([pos])[0]\n            if l_lists:\n                l_orientations = [abs(orientation - self.calc_lanelet_orientation(l, pos)) for l in l_lists]\n                #l_ob = [self.calc_dist_to_closest_obstacle(l, pos, ts) for l in l_lists]\n                min_orientations = min(l_orientations) # only consider align with any one of the lanelet\n                #min_ob = min(l_ob)\n                \n            else:# if not on any lanelet at all\n                min_orientations = 10\n            \n            #######factor : euclidean distance to the goal\n            distance = self.calc_heuristic_distance(node_current.list_paths[-1][-1])\n\n            #######factor : path efficiency\n            eff = self.calc_path_efficiency(node_current.list_paths[-1])\n\n\n            return distance + f_time + min_orientations * 1 - eff\n"
+    },
+    "output": {
+        "summary": [
+            {
+                "diagnosis": "Heuristic returns zero at goal",
+                "prescription": "Remove zero return for goal heuristic"
+            },
+            {
+                "diagnosis": "Neglects acceleration cost",
+                "prescription": "Incorporate acceleration cost into heuristic"
+            },
+            {
+                "diagnosis": "Neglects steering costs",
+                "prescription": "Incorporate steering angle and velocity costs into heuristic"
+            },
+            {
+                "diagnosis": "Inconsistent handling of desired velocity",
+                "prescription": "Consistently handle desired velocity in heuristic"
+            },
+            {
+                "diagnosis": "Inefficient path cost ignored",
+                "prescription": "Incorporate path efficiency into heuristic"
+            },
+            {
+                "diagnosis": "Zero weight for lane keeping",
+                "prescription": "Assign appropriate weight to lane keeping"
+            }
+        ],
+        "improved_heuristic_function": "\n    def heuristic_function(self, node_current: PriorityNode) -> float:\n        path_last = node_current.list_paths[-1][-1]\n\n        # Calculate costs\n        acceleration_cost = self.calc_acceleration_cost(node_current.list_paths[-1])\n        steering_angle_cost = self.calc_steering_angle_cost(node_current.list_paths[-1])\n        steering_velocity_cost = self.calc_steering_velocity_cost(node_current.list_paths[-1])\n        path_efficiency = self.calc_path_efficiency(node_current.list_paths[-1])\n\n        # Calculate heuristic components\n        distance_to_goal = self.calc_heuristic_distance(path_last)\n        time_to_goal = self.time_desired.start - path_last.time_step\n\n        orientation = node_current.list_paths[-1][-1].orientation\n        pos = node_current.list_paths[-1][-1].position\n        l_lists = self.scenario.lanelet_network.find_lanelet_by_position([pos])[0]\n        if l_lists:\n            l_orientations = [abs(orientation - self.calc_lanelet_orientation(l, pos)) for l in l_lists]\n            min_orientations = min(l_orientations)  # only consider align with any one of the lanelet\n\n        else:  # if not on any lanelet at all\n            min_orientations = 10\n\n        # Total cost\n        cost = (\n                    distance_to_goal + time_to_goal + min_orientations - path_efficiency + acceleration_cost + steering_angle_cost + steering_velocity_cost)\n\n        # Ensure cost is non-negative\n        cost = max(cost, 0)\n\n        return cost\n"
+    }
+}

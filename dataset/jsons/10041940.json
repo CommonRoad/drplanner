@@ -1,0 +1,34 @@
+{
+    "input": {
+        "heuristic_function": "\n    def heuristic_function(self, node_current: PriorityNode) -> float:\n\n        if self.reached_goal(node_current.list_paths[-1]):\n            return 0.0\n        mean_time = (self.time_desired.start + self.time_desired.end)/2\n        if self.position_desired is None:\n            return mean_time - node_current.list_paths[-1][-1].time_step\n\n\n        position_difference = self.calc_euclidean_distance(current_node=node_current)\n\n        velocity = node_current.list_paths[-1][-1].velocity\n        mean_end_velocity=(self.velocity_desired.start + self.velocity_desired.end) / 2\n        velocity_difference=abs(velocity-mean_end_velocity)\n\n        angle = self.calc_angle_to_goal(node_current.list_paths[-1][-1])\n        orientation_difference = abs(self.calc_orientation_diff(angle,node_current.list_paths[-1][-1].orientation))\n\n        time_difference = mean_time - node_current.list_paths[-1][-1].time_step\n\n        weights = np.zeros(6)\n        weights[0] = 5\n        weights[1] = 6\n        weights[2] = 15\n        weights[3] = 0\n        cost = weights[0]*position_difference+weights[1]*position_difference/velocity*math.sin(orientation_difference)-weights[2]*velocity_difference\n\n\n        factor = 1 / self.calc_path_efficiency(node_current.list_paths[-1])\n\n\n        return cost\n"
+    },
+    "output": {
+        "summary": [
+            {
+                "diagnosis": "Zero weight on orientation difference",
+                "prescription": "Assign a non-zero weight to orientation difference"
+            },
+            {
+                "diagnosis": "Neglect of acceleration cost",
+                "prescription": "Incorporate acceleration cost into the heuristic"
+            },
+            {
+                "diagnosis": "Inefficient use of path efficiency",
+                "prescription": "Utilize path efficiency as a multiplicative factor"
+            },
+            {
+                "diagnosis": "Heuristic returns zero at goal",
+                "prescription": "Ensure heuristic is non-zero except at goal"
+            },
+            {
+                "diagnosis": "Redundant time difference calculation",
+                "prescription": "Remove unnecessary time difference calculation"
+            },
+            {
+                "diagnosis": "Neglect of empty element",
+                "prescription": "Add condition for handling elements equal to None"
+            }
+        ],
+        "improved_heuristic_function": "\n    def heuristic_function(self, node_current: PriorityNode) -> float:\n\n        if self.reached_goal(node_current.list_paths[-1]):\n            return 0.0\n\n        if self.position_desired is None:\n            return self.time_desired.start - node_current.list_paths[-1][-1].time_step\n\n        position_difference = self.calc_euclidean_distance(current_node=node_current)\n\n        velocity = node_current.list_paths[-1][-1].velocity\n        mean_end_velocity=(self.velocity_desired.start + self.velocity_desired.end) / 2\n        velocity_difference=abs(velocity-mean_end_velocity)\n\n        angle = self.calc_angle_to_goal(node_current.list_paths[-1][-1])\n        orientation_difference = abs(self.calc_orientation_diff(angle,node_current.list_paths[-1][-1].orientation))\n\n        weights = np.array([5, 6, 15, 10])\n        cost = (weights[0] * position_difference +\n                weights[1] * position_difference / velocity * math.sin(orientation_difference) +\n                weights[2] * velocity_difference +\n                weights[3] * self.calc_acceleration_cost(node_current.list_paths[-1]))\n\n        path_efficiency = self.calc_path_efficiency(node_current.list_paths[-1])\n        factor = 1 / path_efficiency if path_efficiency > 0 else 1\n\n        return cost * factor\n"
+    }
+}

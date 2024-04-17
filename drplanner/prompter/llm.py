@@ -27,7 +27,9 @@ class LLM:
             if is_valid:
                 openai.api_key = api_key
             else:
-                raise ValueError(f"*\t <LLM> The given OpenAI API key {api_key} is not valid.")
+                raise ValueError(
+                    f"*\t <LLM> The given OpenAI API key {api_key} is not valid."
+                )
 
         self.temperature = temperature
 

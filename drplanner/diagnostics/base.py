@@ -40,9 +40,7 @@ class DrPlannerBase:
         self.token_count = 0
         self.cost_list = []
 
-        self.dir_output = os.path.join(
-            os.path.dirname(__file__), "../../outputs/"
-        )
+        self.dir_output = os.path.join(os.path.dirname(__file__), "../../outputs/")
         os.makedirs(
             os.path.dirname(self.dir_output), exist_ok=True
         )  # Ensure the directory exists

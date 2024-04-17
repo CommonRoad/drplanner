@@ -19,6 +19,7 @@ from commonroad.common.solution import (
 # make sure the SMP has been installed successfully
 try:
     import SMP
+
     print("[DrPlanner] Installed SMP module is called.")
 except ImportError as e:
     import sys
@@ -122,7 +123,7 @@ class DrSearchPlanner(DrPlannerBase):
                 str(self.planner_id),
                 message,
                 nr_iter=nr_iteration,
-                save_dir=self.dir_output + "prompts/"
+                save_dir=self.dir_output + "prompts/",
             )
             self.prompter.reload_LLM()
             # add nr of iteration

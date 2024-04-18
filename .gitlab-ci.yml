@@ -1,0 +1,40 @@
+image: python:3.10
+
+cache:
+  paths:
+    - .venv
+
+stages:
+  - style
+  - test
+
+before_script:
+  - pip install --upgrade pip
+  - pip install poetry
+  - poetry config virtualenvs.in-project true
+  - poetry install --with test
+  - source .venv/bin/activate
+
+black:
+  stage: style
+  needs: []
+  image: pyfound/black:24.1.1 
+  before_script: []
+  cache: []
+  allow_failure: true
+  script:
+    - black --check --verbose --diff --color drplanner
+    - black --check --verbose --diff --color tests
+
+unittest:
+  stage: test
+  script:
+    - coverage run --source=./drplanner -m unittest discover tests
+    - coverage report -m || true
+    - coverage xml
+  coverage: '/(?i)total.*? (100(?:\.0+)?\%|[1-9]?\d(?:\.\d+)?\%)$/'
+  artifacts:
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: coverage.xml

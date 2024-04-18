@@ -2,7 +2,6 @@
 name = "drplanner"
 version = "0.1.0"
 readme = "README.md"
-requires-python = ">=3.9"
 license = "BSD"
 authors = ["Yuanfei Lin, Cyber-Physical Systems Group, Technical University of Munich <yuanfei.lin@tum.de>"]
 description = "Diagnosis and Repair of Search-Based Motion Planners Using Large Language Models"
@@ -12,12 +11,13 @@ keywords = [
     "large language models",
 ]
 classifiers = [
-    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
     "License :: OSI Approved :: BSD License",
     "Operating System :: POSIX :: Linux",
 ]
 
 [tool.poetry.dependencies]
+python = "^3.10"  # Adjust according to your project's needs
 openai = ">=1.13.3"
 tiktoken = ">=0.5.2"
 commonroad-io = ">=2023.1"
@@ -25,7 +25,12 @@ commonroad-drivability-checker = ">=2023.1"
 # commonroad-search = { git = "https://gitlab.lrz.de/tum-cps/commonroad-search.git", rev = "be2df4a5b2a0077c85178520dae6aab60030c209" }
 
 [build-system]
-requires = ["poetry-core"]
+requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
 
+[tool.poetry.group.test.dependencies]
+coverage = "^6.5.0"
+
+[tool.poetry.group.test]
+optional = true
 

@@ -59,11 +59,17 @@ def extract_called_functions(func: Callable):
     tree = ast.parse(dedented_source)
 
     # Get all function calls
-    function_calls = [
-        node.func.id
-        for node in ast.walk(tree)
-        if isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
-    ]
+    function_calls = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Call):
+            if isinstance(node.func, ast.Name):
+                function_calls.append(node.func.id)
+            elif (
+                isinstance(node.func, ast.Attribute)
+                and isinstance(node.func.value, ast.Name)
+                and node.func.value.id == "self"
+            ):
+                function_calls.append(node.func.attr)
 
     return function_calls
 

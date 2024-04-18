@@ -18,8 +18,6 @@ classifiers = [
 
 [tool.poetry.dependencies]
 python = "^3.10"  # Adjust according to your project's needs
-
-[tool.poetry.dependencies]
 openai = ">=1.13.3"
 tiktoken = ">=0.5.2"
 commonroad-io = ">=2023.1"

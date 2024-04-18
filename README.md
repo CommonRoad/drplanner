@@ -37,7 +37,7 @@ git submodule update
 
 #### Install the package
 ```bash
-conda create -n drplanner python=3.8 -y
+conda create -n drplanner python=3.10 -y
 conda activate drplanner
 pip install . # or poetry install
 ```

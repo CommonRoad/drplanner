@@ -28,4 +28,9 @@ commonroad-drivability-checker = ">=2023.1"
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
 
+[tool.poetry.group.test.dependencies]
+coverage = "^6.5.0"
+
+[tool.poetry.group.test]
+optional = true
 

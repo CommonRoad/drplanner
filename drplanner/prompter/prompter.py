@@ -5,6 +5,7 @@ import inspect
 
 from commonroad.scenario.scenario import Scenario
 from commonroad.planning.planning_problem import PlanningProblem
+from commonroad_rp.cost_function import DefaultCostFunction
 
 from drplanner.describer.planner_description import (
     HeuristicDescription,
@@ -81,6 +82,11 @@ class Prompter:
         return (
             self.astar_base + hf_code + heuristic_function_des + motion_primitives_des
         )
+
+    def generate_reactive_planner_description(
+        self, motion_planner_obj: Union[object, DefaultCostFunction]
+    ) -> str:
+        pass
 
     @staticmethod
     def generate_cost_description(

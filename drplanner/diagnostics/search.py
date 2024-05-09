@@ -1,7 +1,5 @@
-import math
 from typing import Union
 import importlib
-import traceback
 import copy
 from types import MethodType
 from commonroad.scenario.scenario import Scenario
@@ -9,11 +7,8 @@ from commonroad.planning.planning_problem import PlanningProblemSet
 from commonroad.scenario.trajectory import Trajectory
 from commonroad.common.solution import (
     CommonRoadSolutionWriter,
-    CostFunction,
-    VehicleType,
     Solution,
     PlanningProblemSolution,
-    VehicleModel,
 )
 
 
@@ -41,15 +36,10 @@ from SMP.motion_planner.node import PriorityNode
 from SMP.motion_planner.plot_config import DefaultPlotConfig
 from SMP.motion_planner.search_algorithms.best_first_search import GreedyBestFirstSearch
 
-from commonroad_dc.costs.evaluation import (
-    CostFunctionEvaluator,
-    PlanningProblemCostResult,
-)
+from commonroad_dc.costs.evaluation import PlanningProblemCostResult
 
-from drplanner.utils.gpt import num_tokens_from_messages
 from drplanner.utils.config import DrPlannerConfiguration
 from drplanner.diagnostics.base import DrPlannerBase
-from drplanner.prompter.prompter import Prompter
 
 import numpy as np
 
@@ -76,14 +66,6 @@ class DrSearchPlanner(DrPlannerBase):
         self.StudentMotionPlanner = getattr(planner_module, "StudentMotionPlanner")
         self.motion_planner = self.StudentMotionPlanner(
             self.scenario, self.planning_problem, automaton, DefaultPlotConfig
-        )
-
-        # initialize the vehicle parameters and the cost function
-        self.cost_type = CostFunction.SM1
-        self.vehicle_type = VehicleType.BMW_320i
-        self.vehicle_model = VehicleModel.KS
-        self.cost_evaluator = CostFunctionEvaluator(
-            self.cost_type, VehicleType.BMW_320i
         )
 
     def repair(self, diagnosis_result: Union[str, None]):
@@ -171,27 +153,6 @@ class DrSearchPlanner(DrPlannerBase):
         template = template.replace("[PLANNED_TRAJECTORY]", traj_description)
         return template, evaluation_trajectory
 
-    def add_feedback(self, updated_trajectory: Trajectory, iteration: int):
-        feedback = "After applying this diagnostic result,"
-        evaluation_trajectory = self.evaluate_trajectory(updated_trajectory)
-        feedback += self.prompter.update_cost_description(evaluation_trajectory)
-        if evaluation_trajectory.total_costs > self.current_cost:
-            feedback += (
-                f" the performance of the motion planner ({evaluation_trajectory.total_costs})"
-                f" is getting worse than iteration {iteration - 1} ({self.current_cost}). "
-                f"Please continue output the improved heuristic function and motion primitives."
-            )
-        else:
-            feedback += (
-                f" the performance of the motion planner ({evaluation_trajectory.total_costs})"
-                f" is getting better than iteration {iteration - 1} ({self.current_cost})."
-                " Please continue output the improved heuristic function and motion primitives."
-            )
-        print(f"*\t Feedback: {feedback}")
-        # update the current cost
-        self.current_cost = evaluation_trajectory.total_costs
-        return feedback
-
     def plan(self, nr_iter: int) -> Trajectory:
         list_paths_primitives, _, _ = self.motion_planner.execute_search()
         trajectory_solution = create_trajectory_from_list_states(
@@ -243,8 +204,3 @@ class DrSearchPlanner(DrPlannerBase):
                 overwrite=True,
             )
         return trajectory_solution
-
-    def evaluate_trajectory(self, trajectory: Trajectory) -> PlanningProblemCostResult:
-        return self.cost_evaluator.evaluate_pp_solution(
-            self.scenario, self.planning_problem, trajectory
-        )

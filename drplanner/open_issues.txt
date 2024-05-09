@@ -6,5 +6,7 @@
     evaluate_trajectory --- todo
 
 2. add prompt template for reactive planner in prompter.py --- todo
+   add function generate_reactive_planner_description to prompter.py --- todo
 
 3. add CostFunctionDescription in planner_description.py --- todo
+

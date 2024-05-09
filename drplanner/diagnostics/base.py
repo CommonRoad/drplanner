@@ -7,10 +7,11 @@ from typing import Union
 import numpy as np
 from abc import ABC, abstractmethod
 
+from commonroad.common.solution import VehicleType, VehicleModel, CostFunction
 from commonroad.scenario.scenario import Scenario
 from commonroad.planning.planning_problem import PlanningProblemSet
 from commonroad.scenario.trajectory import Trajectory
-from commonroad_dc.costs.evaluation import PlanningProblemCostResult
+from commonroad_dc.costs.evaluation import PlanningProblemCostResult, CostFunctionEvaluator
 
 from drplanner.utils.config import DrPlannerConfiguration
 from drplanner.prompter.prompter import Prompter
@@ -64,29 +65,74 @@ class DrPlannerBase(ABC):
         )
         self.prompter.LLM.temperature = self.config.temperature
 
+        # initialize meta parameters
+        self.cost_type = CostFunction.SM1
+        self.vehicle_type = VehicleType.BMW_320i
+        self.vehicle_model = VehicleModel.KS
+        self.cost_evaluator = CostFunctionEvaluator(
+            self.cost_type, VehicleType.BMW_320i
+        )
+
     @abstractmethod
     def repair(self, diagnosis_result: Union[str, None]):
+        """
+        Tries to implement the recommendations by DrPlanner
+        """
         pass
 
     @abstractmethod
     def describe(
         self, planned_trajectory: Union[Trajectory, None]
     ) -> (str, PlanningProblemCostResult):
-        pass
-
-    @abstractmethod
-    def add_feedback(self, updated_trajectory: Trajectory, iteration: int):
+        """
+        Describes the current state of the planner to DrPlanner
+        """
         pass
 
     @abstractmethod
     def plan(self, nr_iter: int) -> Trajectory:
+        """
+        Wrapper method to run the motion planner
+        """
         pass
 
-    @abstractmethod
     def evaluate_trajectory(self, trajectory: Trajectory) -> PlanningProblemCostResult:
-        pass
+        return self.cost_evaluator.evaluate_pp_solution(
+            self.scenario, self.planning_problem, trajectory
+        )
+
+    def add_feedback(self, updated_trajectory: Trajectory, iteration: int):
+        """
+        Evaluates the result of the repair process
+        """
+        feedback = "After applying this diagnostic result,"
+        evaluation_trajectory = self.evaluate_trajectory(updated_trajectory)
+        feedback += self.prompter.update_cost_description(evaluation_trajectory)
+        if evaluation_trajectory.total_costs > self.current_cost:
+            feedback += (
+                f" the performance of the motion planner ({evaluation_trajectory.total_costs})"
+                f" is getting worse than iteration {iteration - 1} ({self.current_cost}). "
+                f"Please continue output the improved heuristic function and motion primitives."
+            )
+        else:
+            feedback += (
+                f" the performance of the motion planner ({evaluation_trajectory.total_costs})"
+                f" is getting better than iteration {iteration - 1} ({self.current_cost})."
+                " Please continue output the improved heuristic function and motion primitives."
+            )
+        print(f"*\t Feedback: {feedback}")
+        # update the current cost
+        self.current_cost = evaluation_trajectory.total_costs
+        return feedback
 
     def diagnose_repair(self):
+        """
+        Full DrPlanner session:
+        It first describes the current state of the patient.
+        After that it runs an iterative repairing cycle:
+        Plan. Repair. Evaluate.
+        until the patient is cured, or the doctor runs out of tokens/time
+        """
         nr_iteration = 0
         print("[DrPlanner] Starts the diagnosis and repair process.")
         try:

@@ -120,7 +120,9 @@ class DrSearchPlanner(DrPlannerBase):
         updated_motion_primitives_id = diagnosis_result[
             self.prompter.LLM.MOTION_PRIMITIVES
         ]
-        if updated_motion_primitives_id.startswith("'") and updated_motion_primitives_id.endswith("'"):
+        if updated_motion_primitives_id.startswith(
+            "'"
+        ) and updated_motion_primitives_id.endswith("'"):
             updated_motion_primitives_id = updated_motion_primitives_id[1:-1]
         if not updated_motion_primitives_id.endswith(".xml"):
             updated_motion_primitives_id += ".xml"

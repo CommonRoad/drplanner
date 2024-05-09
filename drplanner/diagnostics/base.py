@@ -19,11 +19,11 @@ from drplanner.utils.gpt import num_tokens_from_messages
 
 class DrPlannerBase(ABC):
     def __init__(
-            self,
-            scenario: Scenario,
-            planning_problem_set: PlanningProblemSet,
-            config: DrPlannerConfiguration,
-            planner_id: str,
+        self,
+        scenario: Scenario,
+        planning_problem_set: PlanningProblemSet,
+        config: DrPlannerConfiguration,
+        planner_id: str,
     ):
 
         self.scenario = scenario
@@ -70,7 +70,7 @@ class DrPlannerBase(ABC):
 
     @abstractmethod
     def describe(
-            self, planned_trajectory: Union[Trajectory, None]
+        self, planned_trajectory: Union[Trajectory, None]
     ) -> (str, PlanningProblemCostResult):
         pass
 
@@ -99,9 +99,9 @@ class DrPlannerBase(ABC):
         result = None
         self.initial_cost = self.current_cost
         while (
-                abs(self.current_cost - self.desired_cost) > self.THRESHOLD
-                and self.token_count < self.TOKEN_LIMIT
-                and nr_iteration < self.ITERATION_MAX
+            abs(self.current_cost - self.desired_cost) > self.THRESHOLD
+            and self.token_count < self.TOKEN_LIMIT
+            and nr_iteration < self.ITERATION_MAX
         ):
             print(f"*\t -----------iteration {nr_iteration}-----------")
             print(
@@ -137,7 +137,7 @@ class DrPlannerBase(ABC):
                 planned_trajectory = self.plan(nr_iteration)
                 # add feedback
                 prompt_planner += (
-                        self.add_feedback(planned_trajectory, nr_iteration) + "\n"
+                    self.add_feedback(planned_trajectory, nr_iteration) + "\n"
                 )
             except Exception as e:
                 error_traceback = (

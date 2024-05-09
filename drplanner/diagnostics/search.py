@@ -16,6 +16,7 @@ from commonroad.common.solution import (
     VehicleModel,
 )
 
+
 # make sure the SMP has been installed successfully
 try:
     import SMP
@@ -62,13 +63,11 @@ class DrSearchPlanner(DrPlannerBase):
         motion_primitives_id: str,
         planner_id: str,
     ):
-        super().__init__(scenario, planning_problem_set, config)
+        super().__init__(scenario, planning_problem_set, config, planner_id)
 
         # initialize the motion primitives
         self.motion_primitives_id = motion_primitives_id
 
-        # initialize the motion planner
-        self.planner_id = planner_id
         # import the planner
         planner_name = f"drplanner.planners.student_{self.planner_id}"
         planner_module = importlib.import_module(planner_name)
@@ -86,72 +85,6 @@ class DrSearchPlanner(DrPlannerBase):
         self.cost_evaluator = CostFunctionEvaluator(
             self.cost_type, VehicleType.BMW_320i
         )
-
-    def diagnose_repair(self):
-        nr_iteration = 0
-        print("[DrPlanner] Starts the diagnosis and repair process.")
-        try:
-            planned_trajectory = self.plan(nr_iteration)
-            prompt_planner, evaluation_trajectory = self.describe(planned_trajectory)
-            self.current_cost = evaluation_trajectory.total_costs
-        except:
-            prompt_planner, _ = self.describe(None)
-            self.current_cost = np.inf
-        result = None
-        self.initial_cost = self.current_cost
-        while (
-            abs(self.current_cost - self.desired_cost) > self.THRESHOLD
-            and self.token_count < self.TOKEN_LIMIT
-            and nr_iteration < self.ITERATION_MAX
-        ):
-            print(f"*\t -----------iteration {nr_iteration}-----------")
-            print(
-                f"*\t <{nr_iteration}>: total cost {self.current_cost} (desired: {self.desired_cost})\n"
-                f"*\t used tokens {self.token_count} (limit: {self.TOKEN_LIMIT})"
-            )
-            message = [
-                {"role": "system", "content": self.prompter.prompt_system},
-                {"role": "user", "content": prompt_planner},
-            ]
-            # count the used token
-            # todo: get the token from the openai interface
-            self.token_count += num_tokens_from_messages(
-                message, self.prompter.LLM.gpt_version
-            )
-            result = self.prompter.LLM.query(
-                str(self.scenario.scenario_id),
-                str(self.planner_id),
-                message,
-                nr_iter=nr_iteration,
-                save_dir=self.dir_output + "prompts/",
-            )
-            self.prompter.reload_LLM()
-            # add nr of iteration
-            nr_iteration += 1
-            prompt_planner += (
-                f"*\t Diagnoses and prescriptions from the iteration {nr_iteration}:"
-            )
-            try:
-                prompt_planner += f" {result['summary']}"
-                self.repair(result)
-                planned_trajectory = self.plan(nr_iteration)
-                # add feedback
-                prompt_planner += (
-                    self.add_feedback(planned_trajectory, nr_iteration) + "\n"
-                )
-            except Exception as e:
-                error_traceback = (
-                    traceback.format_exc()
-                )  # This gets the traceback as a string
-                print("*\t !! Errors: ", error_traceback)
-                # Catching the exception and extracting error information
-                prompt_planner += (
-                    f" But they cause the error message: {error_traceback}"
-                )
-                self.current_cost = np.inf
-            self.cost_list.append(self.current_cost)
-        print("[DrPlanner] Ends.")
-        return result
 
     def repair(self, diagnosis_result: Union[str, None]):
         # ----- heuristic function -----
@@ -187,6 +120,8 @@ class DrSearchPlanner(DrPlannerBase):
         updated_motion_primitives_id = diagnosis_result[
             self.prompter.LLM.MOTION_PRIMITIVES
         ]
+        if updated_motion_primitives_id.startswith("'") and updated_motion_primitives_id.endswith("'"):
+            updated_motion_primitives_id = updated_motion_primitives_id[1:-1]
         if not updated_motion_primitives_id.endswith(".xml"):
             updated_motion_primitives_id += ".xml"
         if updated_motion_primitives_id != self.motion_primitives_id:

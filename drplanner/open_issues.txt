@@ -1,0 +1,10 @@
+1. implement all abstract methods in sampling.py --- in process
+    repair --- done, not tested
+    describe --- in process
+    add_feedback --- todo
+    plan --- todo
+    evaluate_trajectory --- todo
+
+2. add prompt template for reactive planner in prompter.py --- todo
+
+3. add CostFunctionDescription in planner_description.py --- todo

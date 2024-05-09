@@ -7,7 +7,7 @@ import json
 from datetime import datetime
 
 
-def check_openai_api_key(api_key):
+def check_openai_api_key(api_key, mockup=False):
     openai.api_key = api_key
     try:
         openai.models.list()
@@ -23,7 +23,7 @@ class LLM:
         if api_key is None:
             raise ValueError("*\t <LLM> OpenAI API key is not provided.")
         else:
-            is_valid = check_openai_api_key(api_key)
+            is_valid = check_openai_api_key(api_key, mockup=True)
             if is_valid:
                 openai.api_key = api_key
             else:
@@ -87,7 +87,25 @@ class LLM:
         messages: List[Dict[str, str]],
         nr_iter: int = 1,
         save_dir: str = "../outputs/",
+        mockup=-1,
     ):
+        if mockup > -1:
+            filenames = [
+                "iter-0.json",
+                "iter-1.json",
+                "iter-2.json",
+                "iter-3.json",
+            ]
+            index = mockup % len(filenames)
+            filename_result = filenames[index]
+            path = os.path.join(save_dir, scenario_id, "mockup", filename_result)
+            with open(path) as f:
+                # Load the JSON data into a Python data structure
+                return json.load(f)
+
+        # openai.api_key = "pk-RdWHZwMzoNERnWoFTcjSPONQoNOSfzFMnRfcEwliTIEXTXAU"
+        # openai.base_url = "https://api.pawan.krd/gpt-3.5-unfiltered/v1/"
+
         response = openai.chat.completions.create(
             model=self.gpt_version,
             messages=messages,
@@ -95,6 +113,8 @@ class LLM:
             function_call={"name": self.functions[0]["name"]},
             temperature=self.temperature,
         )
+
+        print("RESPONSE: ", response)
         if self._save and response:
             key = datetime.now().strftime("%Y%m%d-%H%M%S")
             content = response.choices[0].message.function_call.arguments

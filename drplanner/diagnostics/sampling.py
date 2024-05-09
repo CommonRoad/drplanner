@@ -3,11 +3,18 @@ from types import MethodType
 from typing import Union, Optional
 
 import numpy as np
-from commonroad.common.solution import CostFunction as CostFunctionType, VehicleType, VehicleModel
+from commonroad.common.solution import (
+    CostFunction as CostFunctionType,
+    VehicleType,
+    VehicleModel,
+)
 from commonroad.planning.planning_problem import PlanningProblemSet
 from commonroad.scenario.scenario import Scenario
 from commonroad.scenario.trajectory import Trajectory
-from commonroad_dc.costs.evaluation import CostFunctionEvaluator, PlanningProblemCostResult
+from commonroad_dc.costs.evaluation import (
+    CostFunctionEvaluator,
+    PlanningProblemCostResult,
+)
 from commonroad_rp.trajectories import TrajectorySample
 from commonroad_rp.cost_function import DefaultCostFunction
 
@@ -18,12 +25,12 @@ from drplanner.utils.config import DrPlannerConfiguration
 
 class DrSamplingPlanner(DrPlannerBase):
     def __init__(
-            self,
-            scenario: Scenario,
-            scenario_path: str,
-            planning_problem_set: PlanningProblemSet,
-            config: DrPlannerConfiguration,
-            cost_function_id: str,
+        self,
+        scenario: Scenario,
+        scenario_path: str,
+        planning_problem_set: PlanningProblemSet,
+        config: DrPlannerConfiguration,
+        cost_function_id: str,
     ):
         super().__init__(scenario, planning_problem_set, config, cost_function_id)
 
@@ -34,8 +41,9 @@ class DrSamplingPlanner(DrPlannerBase):
         cost_function_name = f"drplanner.planners.student_{cost_function_id}"
         cost_function_module = importlib.import_module(cost_function_name)
         self.DefaultCostFunction = getattr(cost_function_module, "DefaultCostFunction")
-        self.cost_function = self.DefaultCostFunction(self.motion_planner.x_0.velocity, desired_d=0.0,
-                                                      desired_s=None)
+        self.cost_function = self.DefaultCostFunction(
+            self.motion_planner.x_0.velocity, desired_d=0.0, desired_s=None
+        )
 
         # initialize meta parameters
         self.cost_type = CostFunctionType.SM1
@@ -71,18 +79,17 @@ class DrSamplingPlanner(DrPlannerBase):
             raise ValueError("No valid 'heuristic_function' found after execution")
 
         # Bind the function to the StudentMotionPlanner instance
-        self.cost_function.evaluate = new_heuristic.__get__(
-            self.cost_function
+        self.cost_function.evaluate = new_heuristic.__get__(self.cost_function)
+
+        self.cost_function = self.DefaultCostFunction(
+            self.motion_planner.x_0.velocity, desired_d=0.0, desired_s=None
         )
 
-        self.cost_function = self.DefaultCostFunction(self.motion_planner.x_0.velocity, desired_d=0.0,
-                                                      desired_s=None)
+        self.cost_function.evaluate = MethodType(new_heuristic, self.cost_function)
 
-        self.cost_function.evaluate = MethodType(
-            new_heuristic, self.cost_function
-        )
-
-    def describe(self, planned_trajectory: Union[Trajectory, None]) -> (str, PlanningProblemCostResult):
+    def describe(
+        self, planned_trajectory: Union[Trajectory, None]
+    ) -> (str, PlanningProblemCostResult):
         template = self.prompter.astar_template
 
         planner_description = self.prompter.generate_planner_description(

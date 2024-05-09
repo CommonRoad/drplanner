@@ -2,6 +2,7 @@
 from typing import Tuple
 
 from commonroad.common.solution import Solution
+
 # commonroad-route-planner
 from commonroad_route_planner.route_planner import RoutePlanner
 
@@ -13,9 +14,7 @@ from commonroad_rp.utility.config import ReactivePlannerConfiguration
 
 def get_planner(filename) -> Tuple[ReactivePlannerConfiguration, ReactivePlanner]:
     # Build config object
-    config = ReactivePlannerConfiguration.load(
-        f"standard-config.yaml", filename
-    )
+    config = ReactivePlannerConfiguration.load(f"standard-config.yaml", filename)
     config.update()
     # run route planner and add reference path to config
     route_planner = RoutePlanner(config.scenario, config.planning_problem)
@@ -29,7 +28,9 @@ def get_planner(filename) -> Tuple[ReactivePlannerConfiguration, ReactivePlanner
     return config, planner
 
 
-def run_planner(planner: ReactivePlanner, config: ReactivePlannerConfiguration) -> Tuple[Solution, list[bool]]:
+def run_planner(
+    planner: ReactivePlanner, config: ReactivePlannerConfiguration
+) -> Tuple[Solution, list[bool]]:
     # Add first state to recorded state and input list
     planner.record_state_and_input(planner.x_0)
 
@@ -63,4 +64,6 @@ def run_planner(planner: ReactivePlanner, config: ReactivePlannerConfiguration) 
                 collision_checker=planner.collision_checker,
                 coordinate_system=planner.coordinate_system,
             )
-    return run_evaluation(planner.config, planner.record_state_list, planner.record_input_list)
+    return run_evaluation(
+        planner.config, planner.record_state_list, planner.record_input_list
+    )

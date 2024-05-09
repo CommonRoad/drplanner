@@ -17,6 +17,21 @@ def check_openai_api_key(api_key, mockup=False):
         return True
 
 
+def mockup_query(iteration, save_dir, scenario_id):
+    filenames = [
+        "iter-0.json",
+        "iter-1.json",
+        "iter-2.json",
+        "iter-3.json",
+    ]
+    index = iteration % len(filenames)
+    filename_result = filenames[index]
+    path = os.path.join(save_dir, scenario_id, "mockup", filename_result)
+    with open(path) as f:
+        # Load the JSON data into a Python data structure
+        return json.load(f)
+
+
 class LLM:
     def __init__(self, gpt_version, api_key, temperature=0.2) -> None:
         self.gpt_version = gpt_version
@@ -90,21 +105,7 @@ class LLM:
         mockup=-1,
     ):
         if mockup > -1:
-            filenames = [
-                "iter-0.json",
-                "iter-1.json",
-                "iter-2.json",
-                "iter-3.json",
-            ]
-            index = mockup % len(filenames)
-            filename_result = filenames[index]
-            path = os.path.join(save_dir, scenario_id, "mockup", filename_result)
-            with open(path) as f:
-                # Load the JSON data into a Python data structure
-                return json.load(f)
-
-        # openai.api_key = "pk-RdWHZwMzoNERnWoFTcjSPONQoNOSfzFMnRfcEwliTIEXTXAU"
-        # openai.base_url = "https://api.pawan.krd/gpt-3.5-unfiltered/v1/"
+            return mockup_query(mockup, save_dir, scenario_id)
 
         response = openai.chat.completions.create(
             model=self.gpt_version,

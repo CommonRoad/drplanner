@@ -2,7 +2,7 @@
 
 [![Static Badge](https://img.shields.io/badge/Arxiv-pdf-8A2BE2?logo=arxiv)](https://arxiv.org/abs/2403.07470)
 [![Custom badge](https://img.shields.io/badge/Project%20Page-white?logo=GitHub&color=yellow)](https://commonroad.github.io/drplanner/)
-[![GitHub issues](https://img.shields.io/github/issues/CommonRoad/drplanner)](https://github.com/PJLab-ADG/DiLu/issues)
+[![GitHub issues](https://img.shields.io/github/issues/CommonRoad/drplanner)](https://github.com/CommonRoad/drplanner/issues)
 ## 🔍 Framework Overview
 
 <img src="./docs/figures/framework.png" width=92%>

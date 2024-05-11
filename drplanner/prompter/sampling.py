@@ -10,7 +10,7 @@ from commonroad_rp.cost_function import DefaultCostFunction, CostFunction
 from drplanner.describer.planner_description import (
     CostFunctionDescription,
 )
-from drplanner.prompter.llm import LLM
+from drplanner.prompter.llm import LLM, LLMFunction
 from drplanner.describer.trajectory_description import TrajectoryCostDescription
 
 from commonroad_dc.costs.evaluation import PlanningProblemCostResult
@@ -33,7 +33,16 @@ class PrompterSampling:
 
         self.iteration_count = 0  # no iteration is used for the default one
 
-        self.LLM = LLM(self.gpt_version, self.api_key)
+        self.COST_FUNCTION = "improved_cost_function"
+        self.EXTRA_INFORMATION = "extra_information"
+        self.llm_function = LLMFunction()
+        self.llm_function.add_code_parameter(
+            self.COST_FUNCTION, "updated cost function"
+        )
+        self.llm_function.add_string_parameter(
+            self.EXTRA_INFORMATION, "extra information"
+        )
+        self.LLM = LLM(self.gpt_version, self.api_key, self.llm_function)
 
         script_dir = os.path.dirname(os.path.abspath(__file__))
         with open(os.path.join(script_dir, "system.txt"), "r") as file:

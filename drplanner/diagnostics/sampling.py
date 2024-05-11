@@ -114,9 +114,7 @@ class DrSamplingPlanner(DrPlannerBase):
 
     def repair(self, diagnosis_result: Union[str, None]):
         # ----- heuristic function -----
-        updated_heuristic_function = diagnosis_result[
-            self.prompter.LLM.HEURISTIC_FUNCTION
-        ]
+        updated_cost_function = diagnosis_result[self.prompter.COST_FUNCTION]
         # Create a namespace dictionary to hold the compiled function
         function_namespace = {}
         function_namespace.update(self.motion_planner.__dict__)
@@ -128,7 +126,7 @@ class DrSamplingPlanner(DrPlannerBase):
 
         # Execute the updated heuristic function string
         try:
-            exec(updated_heuristic_function, globals(), function_namespace)
+            exec(updated_cost_function, globals(), function_namespace)
         except Exception as e:
             # Handle exceptions (e.g., compilation errors)
             raise RuntimeError(f"Error compiling heuristic function: {e}")
@@ -172,7 +170,9 @@ class DrSamplingPlanner(DrPlannerBase):
         return template, evaluation_trajectory
 
     def plan(self, nr_iter: int) -> Trajectory:
-        solution = run_planner(self.motion_planner, self.motion_planner_config, self.cost_function)
+        solution = run_planner(
+            self.motion_planner, self.motion_planner_config, self.cost_function
+        )
         planning_problem_solution = solution.planning_problem_solutions[0]
         trajectory_solution = planning_problem_solution.trajectory
 

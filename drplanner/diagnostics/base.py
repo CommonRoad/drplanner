@@ -17,7 +17,7 @@ from commonroad_dc.costs.evaluation import (
 )
 
 from drplanner.utils.config import DrPlannerConfiguration
-from drplanner.prompter.prompter import PrompterBase
+from drplanner.prompter.search import PrompterSearch
 from drplanner.utils.gpt import num_tokens_from_messages
 
 
@@ -61,7 +61,7 @@ class DrPlannerBase(ABC):
         )  # Ensure the directory exists
 
         # initialize prompter
-        self.prompter = PrompterBase(
+        self.prompter = PrompterSearch(
             self.scenario,
             self.planning_problem,
             self.config.openai_api_key,
@@ -173,7 +173,7 @@ class DrPlannerBase(ABC):
                 message,
                 nr_iter=nr_iteration,
                 save_dir=self.dir_output + "prompts/",
-                mockup=nr_iteration,
+                # mockup=nr_iteration,
             )
             self.prompter.reload_LLM()
             # add nr of iteration

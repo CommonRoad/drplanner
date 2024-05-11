@@ -149,7 +149,7 @@ class DrSamplingPlanner(DrPlannerBase):
 
         template = self.prompter.algorithm_template
 
-        planner_description = self.prompter.generate_reactive_planner_description(
+        planner_description = self.prompter.generate_planner_description(
             self.DefaultCostFunction
         )
 

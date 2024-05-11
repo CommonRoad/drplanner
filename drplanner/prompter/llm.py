@@ -1,4 +1,5 @@
 # adapt from https://github.com/real-stanford/reflect
+from enum import Enum
 from typing import List, Dict
 
 import os
@@ -34,13 +35,69 @@ def mockup_query(iteration, save_dir, scenario_id):
         return json.load(f)
 
 
+class LLMFunction:
+    def __init__(self):
+        # define summary object
+        summary_object = {
+            "diagnosis": LLMFunction._string_parameter("diagnosis"),
+            "prescription": LLMFunction._string_parameter("prescription"),
+        }
+
+        # initialize parameters with summary
+        parameters_object = {
+            "summary": LLMFunction._add_array_parameter(
+                LLMFunction._object_parameter(summary_object),
+                "Diagnostic and prescriptive summary",
+            )
+        }
+
+        self.parameters: dict = LLMFunction._object_parameter(parameters_object)
+
+    def get_functions(self):
+        return [
+            {
+                "name": "planner_diagnosis",
+                "description": "automatic diagnosis of a motion planner",
+                "parameters": self.parameters,
+            }
+        ]
+
+    def add_string_parameter(self, parameter_name: str, parameter_description: str):
+        self.parameters["properties"][parameter_name] = LLMFunction._string_parameter(
+            parameter_description
+        )
+
+    def add_code_parameter(self, parameter_name: str, parameter_description: str):
+        self.parameters["properties"][parameter_name] = LLMFunction._code_parameter(
+            parameter_description
+        )
+
+    @staticmethod
+    def _string_parameter(description: str) -> dict:
+        return {"type": "string", "description": description}
+
+    @staticmethod
+    def _code_parameter(description: str) -> dict:
+        return {"type": "string", "format": "python-code", "description": description}
+
+    @staticmethod
+    def _object_parameter(properties: dict) -> dict:
+        return {"type": "object", "properties": properties}
+
+    @staticmethod
+    def _add_array_parameter(items: dict, description: str) -> dict:
+        return {"type": "array", "items": items, "description": description}
+
+
 class LLM:
-    def __init__(self, gpt_version, api_key, temperature=0.2) -> None:
+    def __init__(
+        self, gpt_version, api_key, llm_function: LLMFunction, temperature=0.2
+    ) -> None:
         self.gpt_version = gpt_version
         if api_key is None:
             raise ValueError("*\t <LLM> OpenAI API key is not provided.")
         else:
-            is_valid = check_openai_api_key(api_key, mockup=True)
+            is_valid = check_openai_api_key(api_key, mockup=False)
             if is_valid:
                 openai.api_key = api_key
             else:
@@ -49,51 +106,7 @@ class LLM:
                 )
 
         self.temperature = temperature
-
-        self.HEURISTIC_FUNCTION = "improved_heuristic_function"
-        self.MOTION_PRIMITIVES = "motion_primitives"
-        self.EXTRA_INFORMATION = "extra_information"
-        self.functions = [
-            {
-                "name": "planner_diagnosis",
-                "description": "automatic diagnosis of a motion planner",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "summary": {
-                            "type": "array",
-                            "items": {
-                                "type": "object",
-                                "properties": {
-                                    "diagnosis": {
-                                        "type": "string",
-                                        "description": "diagnosis",
-                                    },
-                                    "prescription": {
-                                        "type": "string",
-                                        "description": "prescription",
-                                    },
-                                },
-                            },
-                            "description": "Diagnostic and prescriptive summary",
-                        },
-                        self.HEURISTIC_FUNCTION: {
-                            "type": "string",
-                            "format": "python-code",
-                            "description": "updated heuristic function",
-                        },
-                        self.MOTION_PRIMITIVES: {
-                            "type": "string",
-                            "description": "name of the new motion primitives",
-                        },
-                        self.EXTRA_INFORMATION: {
-                            "type": "string",
-                            "description": "extra information",
-                        },
-                    },
-                },
-            }
-        ]
+        self.llm_function = llm_function
 
         self._save = True
 
@@ -109,11 +122,12 @@ class LLM:
         if mockup > -1:
             return mockup_query(mockup, save_dir, scenario_id)
 
+        functions = self.llm_function.get_functions()
         response = openai.chat.completions.create(
             model=self.gpt_version,
             messages=messages,
-            functions=self.functions,
-            function_call={"name": self.functions[0]["name"]},
+            functions=functions,
+            function_call={"name": functions[0]["name"]},
             temperature=self.temperature,
         )
 

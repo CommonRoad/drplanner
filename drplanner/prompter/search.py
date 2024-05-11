@@ -12,7 +12,7 @@ from drplanner.describer.planner_description import (
     HeuristicDescription,
     MotionPrimitiveDescription,
 )
-from drplanner.prompter.llm import LLM
+from drplanner.prompter.llm import LLM, LLMFunction
 from drplanner.describer.trajectory_description import TrajectoryCostDescription
 
 # make sure the SMP has been installed successfully
@@ -34,7 +34,7 @@ from SMP.motion_planner.search_algorithms.best_first_search import AStarSearch
 from commonroad_dc.costs.evaluation import PlanningProblemCostResult
 
 
-class PrompterBase(ABC):
+class PrompterSearch(ABC):
     def __init__(
         self,
         scenario: Scenario,
@@ -53,7 +53,20 @@ class PrompterBase(ABC):
 
         self.mp_obj = MotionPrimitiveDescription()
 
-        self.LLM = LLM(self.gpt_version, self.api_key)
+        self.HEURISTIC_FUNCTION = "improved_heuristic_function"
+        self.MOTION_PRIMITIVES = "motion_primitives"
+        self.EXTRA_INFORMATION = "extra_information"
+        self.llm_function = LLMFunction()
+        self.llm_function.add_code_parameter(
+            self.HEURISTIC_FUNCTION, "updated heuristic function"
+        )
+        self.llm_function.add_string_parameter(
+            self.MOTION_PRIMITIVES, "name of the new motion primitives"
+        )
+        self.llm_function.add_string_parameter(
+            self.EXTRA_INFORMATION, "extra information"
+        )
+        self.LLM = LLM(self.gpt_version, self.api_key, self.llm_function)
 
         script_dir = os.path.dirname(os.path.abspath(__file__))
         with open(os.path.join(script_dir, "system.txt"), "r") as file:
@@ -86,7 +99,7 @@ class PrompterBase(ABC):
 
     def reload_LLM(self):
         print("*\t <LLM> The LLM is reloaded")
-        self.LLM = LLM(self.gpt_version, self.api_key)
+        self.LLM = LLM(self.gpt_version, self.api_key, self.llm_function)
 
     def generate_planner_description(
         self, motion_planner_obj: Union[object, AStarSearch], motion_primitives_id: str

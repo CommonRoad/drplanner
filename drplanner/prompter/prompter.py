@@ -107,11 +107,6 @@ class PrompterBase(ABC):
             self.astar_base + hf_code + heuristic_function_des + motion_primitives_des
         )
 
-    def generate_reactive_planner_description(
-        self, motion_planner_obj: Union[object, DefaultCostFunction]
-    ) -> str:
-        pass
-
     @staticmethod
     def generate_cost_description(
         cost_evaluation: PlanningProblemCostResult, desired_cost: float

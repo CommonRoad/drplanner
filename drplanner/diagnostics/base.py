@@ -60,6 +60,7 @@ class DrPlannerBase(ABC):
             os.path.dirname(self.dir_output), exist_ok=True
         )  # Ensure the directory exists
 
+        # initialize prompter
         self.prompter = PrompterBase(
             self.scenario,
             self.planning_problem,

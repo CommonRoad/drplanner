@@ -1,47 +1,29 @@
 # for dynamically construct the import statement
 import os
 from typing import Union
-from abc import ABC, abstractmethod
 import inspect
 
 from commonroad.scenario.scenario import Scenario
 from commonroad.planning.planning_problem import PlanningProblem
-from commonroad_rp.cost_function import DefaultCostFunction
+from commonroad_rp.cost_function import DefaultCostFunction, CostFunction
 
 from drplanner.describer.planner_description import (
-    HeuristicDescription,
-    MotionPrimitiveDescription,
+    CostFunctionDescription,
 )
 from drplanner.prompter.llm import LLM
 from drplanner.describer.trajectory_description import TrajectoryCostDescription
 
-# make sure the SMP has been installed successfully
-try:
-    import SMP
-
-    print("[DrPlanner] Installed SMP module is called.")
-except ImportError as e:
-    import sys
-    import os
-
-    current_file_dir = os.path.dirname(os.path.abspath(__file__))
-    smp_path = os.path.join(current_file_dir, "../../commonroad-search/")
-    sys.path.append(smp_path)
-    print(f"[DrPlanner] Use the external submodule SMP under {smp_path}.")
-
-from SMP.motion_planner.search_algorithms.best_first_search import AStarSearch
-
 from commonroad_dc.costs.evaluation import PlanningProblemCostResult
 
 
-class PrompterBase(ABC):
+class PrompterSampling:
     def __init__(
         self,
         scenario: Scenario,
         planning_problem: PlanningProblem,
         api_key: str,
         gpt_version: str = "gpt-4-1106-preview",  # gpt-3.5-turbo, text-davinci-002, gpt-4-1106-preview
-        prompts_folder_name: str = "astar/",
+        prompts_folder_name: str = "reactive-planner/",
     ):
         self.api_key = api_key
         self.gpt_version = gpt_version
@@ -50,8 +32,6 @@ class PrompterBase(ABC):
         self.planning_problem = planning_problem
 
         self.iteration_count = 0  # no iteration is used for the default one
-
-        self.mp_obj = MotionPrimitiveDescription()
 
         self.LLM = LLM(self.gpt_version, self.api_key)
 
@@ -89,23 +69,19 @@ class PrompterBase(ABC):
         self.LLM = LLM(self.gpt_version, self.api_key)
 
     def generate_planner_description(
-        self, motion_planner_obj: Union[object, AStarSearch], motion_primitives_id: str
+        self, cost_function_obj: Union[object, CostFunction]
     ) -> str:
         hf_code = (
-            "This is the code of the heuristic function: ```"
-            + inspect.getsource(motion_planner_obj.heuristic_function)
+            "This is the code of the cost function: ```"
+            + inspect.getsource(cost_function_obj.evaluate)
             + "```"
         )
 
         # generate heuristic function's description
-        hf_obj = HeuristicDescription(motion_planner_obj.heuristic_function)
-        heuristic_function_des = hf_obj.generate(motion_planner_obj)
+        hf_obj = CostFunctionDescription(cost_function_obj.evaluate)
+        heuristic_function_des = hf_obj.generate(cost_function_obj)
 
-        # generate motion primitives' description
-        motion_primitives_des = self.mp_obj.generate(motion_primitives_id)
-        return (
-            self.astar_base + hf_code + heuristic_function_des + motion_primitives_des
-        )
+        return self.astar_base + hf_code + heuristic_function_des
 
     def generate_reactive_planner_description(
         self, motion_planner_obj: Union[object, DefaultCostFunction]

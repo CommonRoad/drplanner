@@ -134,6 +134,7 @@ class DrSearchPlanner(DrPlannerBase):
         planner_description = self.prompter.generate_planner_description(
             self.StudentMotionPlanner, self.motion_primitives_id
         )
+
         template = template.replace("[PLANNER]", planner_description)
 
         if planned_trajectory:

@@ -97,7 +97,7 @@ class LLM:
         if api_key is None:
             raise ValueError("*\t <LLM> OpenAI API key is not provided.")
         else:
-            is_valid = check_openai_api_key(api_key, mockup=False)
+            is_valid = check_openai_api_key(api_key, mockup=True)
             if is_valid:
                 openai.api_key = api_key
             else:

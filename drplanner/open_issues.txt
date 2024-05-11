@@ -1,9 +1,9 @@
-1. implement all abstract methods in sampling.py --- in process
+1. implement all abstract methods in sampling.py --- done, not tested
     repair --- done, not tested
-    describe --- in process
-    add_feedback --- todo
-    plan --- todo
-    evaluate_trajectory --- todo
+    describe --- done, not tested
+    add_feedback --- done, nothing changed
+    plan --- done, not tested
+    evaluate_trajectory --- done, nothing changed
 
 2. add prompt template for reactive planner in prompter.py --- todo
    add function generate_reactive_planner_description to prompter.py --- todo

@@ -1,6 +1,7 @@
 # for dynamically construct the import statement
 import os
 from typing import Union
+from abc import ABC, abstractmethod
 import inspect
 
 from commonroad.scenario.scenario import Scenario
@@ -19,13 +20,14 @@ from SMP.motion_planner.search_algorithms.best_first_search import AStarSearch
 from commonroad_dc.costs.evaluation import PlanningProblemCostResult
 
 
-class Prompter:
+class PrompterBase(ABC):
     def __init__(
         self,
         scenario: Scenario,
         planning_problem: PlanningProblem,
         api_key: str,
         gpt_version: str = "gpt-4-1106-preview",  # gpt-3.5-turbo, text-davinci-002, gpt-4-1106-preview
+        prompts_folder_name: str = "astar/",
     ):
         self.api_key = api_key
         self.gpt_version = gpt_version
@@ -43,20 +45,28 @@ class Prompter:
         with open(os.path.join(script_dir, "system.txt"), "r") as file:
             self.prompt_system = file.read()
 
-        with open(os.path.join(script_dir, "astar/template.txt"), "r") as file:
-            self.astar_template = file.read()
+        with open(
+            os.path.join(script_dir, prompts_folder_name + "template.txt"), "r"
+        ) as file:
+            self.algorithm_template = file.read()
 
-        with open(os.path.join(script_dir, "astar/constraints.txt"), "r") as file:
+        with open(
+            os.path.join(script_dir, prompts_folder_name + "constraints.txt"), "r"
+        ) as file:
             self.astar_constraints = file.read()
 
-        with open(os.path.join(script_dir, "astar/few_shots.txt"), "r") as file:
+        with open(
+            os.path.join(script_dir, prompts_folder_name + "few_shots.txt"), "r"
+        ) as file:
             self.astar_few_shots = file.read()
 
-        with open(os.path.join(script_dir, "astar/astar.txt"), "r") as file:
+        with open(
+            os.path.join(script_dir, prompts_folder_name + "algorithm.txt"), "r"
+        ) as file:
             self.astar_base = file.read()
 
         # replace the unchanged parts
-        self.astar_template = self.astar_template.replace(
+        self.algorithm_template = self.algorithm_template.replace(
             "[CONSTRAINTS]", self.astar_constraints
         ).replace("[FEW_SHOTS]", self.astar_few_shots)
 

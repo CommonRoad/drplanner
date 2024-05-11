@@ -11,10 +11,13 @@ from commonroad.common.solution import VehicleType, VehicleModel, CostFunction
 from commonroad.scenario.scenario import Scenario
 from commonroad.planning.planning_problem import PlanningProblemSet
 from commonroad.scenario.trajectory import Trajectory
-from commonroad_dc.costs.evaluation import PlanningProblemCostResult, CostFunctionEvaluator
+from commonroad_dc.costs.evaluation import (
+    PlanningProblemCostResult,
+    CostFunctionEvaluator,
+)
 
 from drplanner.utils.config import DrPlannerConfiguration
-from drplanner.prompter.prompter import Prompter
+from drplanner.prompter.prompter import PrompterBase
 from drplanner.utils.gpt import num_tokens_from_messages
 
 
@@ -57,7 +60,7 @@ class DrPlannerBase(ABC):
             os.path.dirname(self.dir_output), exist_ok=True
         )  # Ensure the directory exists
 
-        self.prompter = Prompter(
+        self.prompter = PrompterBase(
             self.scenario,
             self.planning_problem,
             self.config.openai_api_key,
@@ -169,7 +172,7 @@ class DrPlannerBase(ABC):
                 message,
                 nr_iter=nr_iteration,
                 save_dir=self.dir_output + "prompts/",
-                # mockup=nr_iteration
+                mockup=nr_iteration,
             )
             self.prompter.reload_LLM()
             # add nr of iteration

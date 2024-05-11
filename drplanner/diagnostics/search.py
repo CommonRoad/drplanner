@@ -11,7 +11,6 @@ from commonroad.common.solution import (
     PlanningProblemSolution,
 )
 
-
 # make sure the SMP has been installed successfully
 try:
     import SMP
@@ -134,7 +133,7 @@ class DrSearchPlanner(DrPlannerBase):
     def describe(
         self, planned_trajectory: Union[Trajectory, None]
     ) -> (str, PlanningProblemCostResult):
-        template = self.prompter.astar_template
+        template = self.prompter.algorithm_template
 
         planner_description = self.prompter.generate_planner_description(
             self.StudentMotionPlanner, self.motion_primitives_id

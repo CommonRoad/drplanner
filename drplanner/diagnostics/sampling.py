@@ -77,12 +77,12 @@ def run_planner(planner, config):
 
 class DrSamplingPlanner(DrPlannerBase):
     def __init__(
-            self,
-            scenario: Scenario,
-            scenario_path: str,
-            planning_problem_set: PlanningProblemSet,
-            config: DrPlannerConfiguration,
-            cost_function_id: str,
+        self,
+        scenario: Scenario,
+        scenario_path: str,
+        planning_problem_set: PlanningProblemSet,
+        config: DrPlannerConfiguration,
+        cost_function_id: str,
     ):
         super().__init__(scenario, planning_problem_set, config, cost_function_id)
 
@@ -132,12 +132,14 @@ class DrSamplingPlanner(DrPlannerBase):
         self.cost_function.evaluate = MethodType(new_heuristic, self.cost_function)
 
     def describe(
-            self, planned_trajectory: Union[Trajectory, None]
+        self, planned_trajectory: Union[Trajectory, None]
     ) -> (str, PlanningProblemCostResult):
 
-        template = self.prompter.reactive_template
+        template = self.prompter.algorithm_template
 
-        planner_description = self.prompter.generate_reactive_planner_description(self.DefaultCostFunction)
+        planner_description = self.prompter.generate_reactive_planner_description(
+            self.DefaultCostFunction
+        )
 
         template = template.replace("[PLANNER]", planner_description)
 

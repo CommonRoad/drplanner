@@ -8,6 +8,8 @@ from datetime import datetime
 
 
 def check_openai_api_key(api_key, mockup=False):
+    if mockup:
+        return True
     openai.api_key = api_key
     try:
         openai.models.list()

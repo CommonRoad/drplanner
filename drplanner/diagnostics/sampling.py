@@ -16,12 +16,15 @@ from commonroad_rp.utility.config import ReactivePlannerConfiguration
 from commonroad_rp.utility.evaluation import run_evaluation
 
 from drplanner.diagnostics.base import DrPlannerBase
+from drplanner.prompter.sampling import PrompterSampling
 from drplanner.utils.config import DrPlannerConfiguration
 
 
 def get_planner(filename) -> Tuple[ReactivePlannerConfiguration, ReactivePlanner]:
     # Build config object
-    config = ReactivePlannerConfiguration.load(f"standard-config.yaml", filename)
+    config = ReactivePlannerConfiguration.load(
+        f"drplanner/planners/standard-config.yaml", filename
+    )
     config.update()
     # run route planner and add reference path to config
     route_planner = RoutePlanner(config.scenario, config.planning_problem)
@@ -85,9 +88,18 @@ class DrSamplingPlanner(DrPlannerBase):
         cost_function_id: str,
     ):
         super().__init__(scenario, planning_problem_set, config, cost_function_id)
-
+        print(scenario_path)
         # initialize the motion planner
         self.motion_planner_config, self.motion_planner = get_planner(scenario_path)
+
+        # initialize prompter
+        self.prompter = PrompterSampling(
+            self.scenario,
+            self.planning_problem,
+            self.config.openai_api_key,
+            self.config.gpt_version,
+        )
+        self.prompter.LLM.temperature = self.config.temperature
 
         # import the cost function
         cost_function_name = f"drplanner.planners.student_{cost_function_id}"

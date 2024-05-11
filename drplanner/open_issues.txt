@@ -9,4 +9,5 @@
    add function generate_reactive_planner_description to prompter.py --- todo
 
 3. add CostFunctionDescription in planner_description.py --- todo
+   abstract HeuristicDescription --- todo
 

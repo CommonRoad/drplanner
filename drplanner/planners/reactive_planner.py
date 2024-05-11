@@ -12,7 +12,7 @@ from commonroad_rp.utility.evaluation import run_evaluation
 from commonroad_rp.utility.config import ReactivePlannerConfiguration
 
 
-#def get_planner(filename) -> Tuple[ReactivePlannerConfiguration, ReactivePlanner]:
+# def get_planner(filename) -> Tuple[ReactivePlannerConfiguration, ReactivePlanner]:
 #    # Build config object
 #    config = ReactivePlannerConfiguration.load(f"standard-config.yaml", filename)
 #    config.update()
@@ -28,9 +28,9 @@ from commonroad_rp.utility.config import ReactivePlannerConfiguration
 #    return config, planner
 #
 #
-#def run_planner(
+# def run_planner(
 #    planner: ReactivePlanner, config: ReactivePlannerConfiguration
-#) -> Tuple[Solution, list[bool]]:
+# ) -> Tuple[Solution, list[bool]]:
 #    # Add first state to recorded state and input list
 #    planner.record_state_and_input(planner.x_0)
 #

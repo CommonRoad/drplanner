@@ -1,19 +1,16 @@
 # for dynamically construct the import statement
-import os
 from typing import Union
-from abc import ABC, abstractmethod
 import inspect
 
 from commonroad.scenario.scenario import Scenario
 from commonroad.planning.planning_problem import PlanningProblem
-from commonroad_rp.cost_function import DefaultCostFunction
 
 from drplanner.describer.planner_description import (
     HeuristicDescription,
     MotionPrimitiveDescription,
 )
-from drplanner.prompter.llm import LLM, LLMFunction
-from drplanner.describer.trajectory_description import TrajectoryCostDescription
+from drplanner.prompter.base import PrompterBase
+from drplanner.prompter.llm import LLMFunction
 
 # make sure the SMP has been installed successfully
 try:
@@ -31,75 +28,36 @@ except ImportError as e:
 
 from SMP.motion_planner.search_algorithms.best_first_search import AStarSearch
 
-from commonroad_dc.costs.evaluation import PlanningProblemCostResult
 
-
-class PrompterSearch(ABC):
+class PrompterSearch(PrompterBase):
     def __init__(
         self,
         scenario: Scenario,
         planning_problem: PlanningProblem,
         api_key: str,
-        gpt_version: str = "gpt-4-1106-preview",  # gpt-3.5-turbo, text-davinci-002, gpt-4-1106-preview
+        gpt_version: str = "gpt-4-1106-preview",
         prompts_folder_name: str = "astar/",
     ):
-        self.api_key = api_key
-        self.gpt_version = gpt_version
-
-        self.scenario = scenario
-        self.planning_problem = planning_problem
-
-        self.iteration_count = 0  # no iteration is used for the default one
-
-        self.mp_obj = MotionPrimitiveDescription()
 
         self.HEURISTIC_FUNCTION = "improved_heuristic_function"
         self.MOTION_PRIMITIVES = "motion_primitives"
         self.EXTRA_INFORMATION = "extra_information"
-        self.llm_function = LLMFunction()
-        self.llm_function.add_code_parameter(
+        super().__init__(
+            scenario, planning_problem, api_key, gpt_version, prompts_folder_name
+        )
+
+        self.mp_obj = MotionPrimitiveDescription()
+
+    def init_LLM(self) -> LLMFunction:
+        llm_function = LLMFunction()
+        llm_function.add_code_parameter(
             self.HEURISTIC_FUNCTION, "updated heuristic function"
         )
-        self.llm_function.add_string_parameter(
+        llm_function.add_string_parameter(
             self.MOTION_PRIMITIVES, "name of the new motion primitives"
         )
-        self.llm_function.add_string_parameter(
-            self.EXTRA_INFORMATION, "extra information"
-        )
-        self.LLM = LLM(self.gpt_version, self.api_key, self.llm_function)
-
-        script_dir = os.path.dirname(os.path.abspath(__file__))
-        with open(os.path.join(script_dir, "system.txt"), "r") as file:
-            self.prompt_system = file.read()
-
-        with open(
-            os.path.join(script_dir, prompts_folder_name + "template.txt"), "r"
-        ) as file:
-            self.algorithm_template = file.read()
-
-        with open(
-            os.path.join(script_dir, prompts_folder_name + "constraints.txt"), "r"
-        ) as file:
-            self.astar_constraints = file.read()
-
-        with open(
-            os.path.join(script_dir, prompts_folder_name + "few_shots.txt"), "r"
-        ) as file:
-            self.astar_few_shots = file.read()
-
-        with open(
-            os.path.join(script_dir, prompts_folder_name + "algorithm.txt"), "r"
-        ) as file:
-            self.astar_base = file.read()
-
-        # replace the unchanged parts
-        self.algorithm_template = self.algorithm_template.replace(
-            "[CONSTRAINTS]", self.astar_constraints
-        ).replace("[FEW_SHOTS]", self.astar_few_shots)
-
-    def reload_LLM(self):
-        print("*\t <LLM> The LLM is reloaded")
-        self.LLM = LLM(self.gpt_version, self.api_key, self.llm_function)
+        llm_function.add_string_parameter(self.EXTRA_INFORMATION, "extra information")
+        return llm_function
 
     def generate_planner_description(
         self, motion_planner_obj: Union[object, AStarSearch], motion_primitives_id: str
@@ -119,15 +77,3 @@ class PrompterSearch(ABC):
         return (
             self.astar_base + hf_code + heuristic_function_des + motion_primitives_des
         )
-
-    @staticmethod
-    def generate_cost_description(
-        cost_evaluation: PlanningProblemCostResult, desired_cost: float
-    ):
-        traj_des = TrajectoryCostDescription(cost_evaluation)
-        return traj_des.generate(desired_value=desired_cost)
-
-    @staticmethod
-    def update_cost_description(cost_evaluation: PlanningProblemCostResult):
-        traj_des = TrajectoryCostDescription(cost_evaluation)
-        return traj_des.update()

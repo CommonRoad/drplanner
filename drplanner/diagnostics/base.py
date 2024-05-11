@@ -173,7 +173,7 @@ class DrPlannerBase(ABC):
                 message,
                 nr_iter=nr_iteration,
                 save_dir=self.dir_output + "prompts/",
-                # mockup=nr_iteration,
+                mockup=nr_iteration,
             )
             self.prompter.reload_LLM()
             # add nr of iteration

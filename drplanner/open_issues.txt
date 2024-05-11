@@ -1,13 +1,8 @@
-1. implement all abstract methods in sampling.py --- done, not tested
-    repair --- done, not tested
-    describe --- done, not tested
-    add_feedback --- done, nothing changed
-    plan --- done, not tested
-    evaluate_trajectory --- done, nothing changed
+1  todo --- abstract the describe method to diagnostics.base.py
 
-2. add prompt template for reactive planner in prompter.py --- todo
-   add function generate_reactive_planner_description to prompter.py --- todo
+2. done --- add prompt template for reactive planner in prompter.py
+   todo --- add new prompts to prompter/reactive-planner
 
-3. add CostFunctionDescription in planner_description.py --- todo
-   abstract HeuristicDescription --- todo
+3. done --- add CostFunctionDescription in planner_description.py
+   done --- abstract HeuristicDescription
 

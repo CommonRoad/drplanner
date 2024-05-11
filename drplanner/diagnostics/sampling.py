@@ -3,6 +3,7 @@ import os
 from types import MethodType
 from typing import Union, Optional, Tuple
 
+import commonroad_rp
 import numpy as np
 from commonroad.common.solution import CommonRoadSolutionWriter
 from commonroad.planning.planning_problem import PlanningProblemSet
@@ -38,7 +39,9 @@ def get_planner(filename) -> Tuple[ReactivePlannerConfiguration, ReactivePlanner
     return config, planner
 
 
-def run_planner(planner, config):
+def run_planner(planner, config, cost_function):
+    # update cost function
+    planner.set_cost_function(cost_function)
     # Add first state to recorded state and input list
     planner.record_state_and_input(planner.x_0)
 
@@ -119,6 +122,7 @@ class DrSamplingPlanner(DrPlannerBase):
         function_namespace.update(self.motion_planner.__dict__)
         # initialize imports:
         function_namespace["np"] = np
+        function_namespace["commonroad_rp"] = commonroad_rp
         function_namespace["Optional"] = Optional
         function_namespace["TrajectorySample"] = TrajectorySample
 
@@ -130,18 +134,18 @@ class DrSamplingPlanner(DrPlannerBase):
             raise RuntimeError(f"Error compiling heuristic function: {e}")
 
         # Extract the new function
-        new_heuristic = function_namespace["evaluate"]
-        if not callable(new_heuristic):
+        new_cost_function = function_namespace["evaluate"]
+        if not callable(new_cost_function):
             raise ValueError("No valid 'heuristic_function' found after execution")
 
         # Bind the function to the StudentMotionPlanner instance
-        self.cost_function.evaluate = new_heuristic.__get__(self.cost_function)
+        self.cost_function.evaluate = new_cost_function.__get__(self.cost_function)
 
         self.cost_function = self.DefaultCostFunction(
             self.motion_planner.x_0.velocity, desired_d=0.0, desired_s=None
         )
 
-        self.cost_function.evaluate = MethodType(new_heuristic, self.cost_function)
+        self.cost_function.evaluate = MethodType(new_cost_function, self.cost_function)
 
     def describe(
         self, planned_trajectory: Union[Trajectory, None]
@@ -168,7 +172,7 @@ class DrSamplingPlanner(DrPlannerBase):
         return template, evaluation_trajectory
 
     def plan(self, nr_iter: int) -> Trajectory:
-        solution = run_planner(self.motion_planner, self.motion_planner_config)
+        solution = run_planner(self.motion_planner, self.motion_planner_config, self.cost_function)
         planning_problem_solution = solution.planning_problem_solutions[0]
         trajectory_solution = planning_problem_solution.trajectory
 

@@ -28,7 +28,7 @@ def mockup_query(iteration, save_dir, scenario_id):
     ]
     index = iteration % len(filenames)
     filename_result = filenames[index]
-    path = os.path.join(save_dir, scenario_id, "mockup", filename_result)
+    path = os.path.join(save_dir, scenario_id, "sampling_mockup", filename_result)
     with open(path) as f:
         # Load the JSON data into a Python data structure
         return json.load(f)

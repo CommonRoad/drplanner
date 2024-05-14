@@ -48,4 +48,4 @@ class PrompterSampling(PrompterBase):
         hf_obj = CostFunctionDescription(cost_function_obj.evaluate)
         heuristic_function_des = hf_obj.generate(cost_function_obj)
 
-        return self.astar_base + hf_code + heuristic_function_des
+        return self.astar_base + '\n' + hf_code + '\n' + heuristic_function_des

@@ -1,4 +1,5 @@
 import importlib
+import inspect
 import os
 from types import MethodType
 from typing import Union, Optional, Tuple
@@ -11,6 +12,7 @@ from commonroad.scenario.scenario import Scenario
 from commonroad.scenario.trajectory import Trajectory
 from commonroad_dc.costs.evaluation import PlanningProblemCostResult
 from commonroad_route_planner.route_planner import RoutePlanner
+from commonroad_rp.cost_function import CostFunction
 from commonroad_rp.reactive_planner import ReactivePlanner
 from commonroad_rp.trajectories import TrajectorySample
 from commonroad_rp.utility.config import ReactivePlannerConfiguration
@@ -39,9 +41,12 @@ def get_planner(filename) -> Tuple[ReactivePlannerConfiguration, ReactivePlanner
     return config, planner
 
 
-def run_planner(planner, config, cost_function):
+def run_planner(planner: ReactivePlanner, config: ReactivePlannerConfiguration, cost_function: CostFunction):
     # update cost function
     planner.set_cost_function(cost_function)
+
+    # Get the source code of the function
+    # source_code = inspect.getsource(planner.cost_function.evaluate)
     # Add first state to recorded state and input list
     planner.record_state_and_input(planner.x_0)
 
@@ -133,6 +138,7 @@ class DrSamplingPlanner(DrPlannerBase):
 
         # Extract the new function
         new_cost_function = function_namespace["evaluate"]
+
         if not callable(new_cost_function):
             raise ValueError("No valid 'heuristic_function' found after execution")
 

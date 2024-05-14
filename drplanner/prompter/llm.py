@@ -20,16 +20,25 @@ def check_openai_api_key(api_key, mockup=False):
         return True
 
 
-def mockup_query(iteration, save_dir, scenario_id):
+def write_prompt_to(filename, messages: List[Dict[str, str]]):
+    with open(filename, "w") as file:
+        for m in messages:
+            for key, value in m.items():
+                file.write(value + '\n')
+
+
+def mockup_query(iteration, save_dir, scenario_id, messages, folder="sampling_mockup"):
     filenames = [
-        "iter-0.json",
         "iter-1.json",
+        "iter-0.json",
         "iter-2.json",
         "iter-3.json",
     ]
     index = iteration % len(filenames)
     filename_result = filenames[index]
-    path = os.path.join(save_dir, scenario_id, "sampling_mockup", filename_result)
+    filename_prompt = os.path.join(save_dir, scenario_id, folder, f"prompt_{index}.txt")
+    write_prompt_to(filename_prompt, messages)
+    path = os.path.join(save_dir, scenario_id, folder, filename_result)
     with open(path) as f:
         # Load the JSON data into a Python data structure
         return json.load(f)
@@ -91,7 +100,7 @@ class LLMFunction:
 
 class LLM:
     def __init__(
-        self, gpt_version, api_key, llm_function: LLMFunction, temperature=0.2
+            self, gpt_version, api_key, llm_function: LLMFunction, temperature=0.2
     ) -> None:
         self.gpt_version = gpt_version
         if api_key is None:
@@ -111,16 +120,16 @@ class LLM:
         self._save = True
 
     def query(
-        self,
-        scenario_id: str,
-        planner_id: str,
-        messages: List[Dict[str, str]],
-        nr_iter: int = 1,
-        save_dir: str = "../outputs/",
-        mockup=-1,
+            self,
+            scenario_id: str,
+            planner_id: str,
+            messages: List[Dict[str, str]],
+            nr_iter: int = 1,
+            save_dir: str = "../outputs/",
+            mockup=-1,
     ):
         if mockup > -1:
-            return mockup_query(mockup, save_dir, scenario_id)
+            return mockup_query(mockup, save_dir, scenario_id, messages)
 
         functions = self.llm_function.get_functions()
         response = openai.chat.completions.create(

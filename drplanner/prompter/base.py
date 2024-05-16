@@ -30,7 +30,9 @@ class PrompterBase(ABC):
 
         self.mockup = mockup
         self.llm_function = self.init_LLM()
-        self.LLM = LLM(self.gpt_version, self.api_key, self.llm_function, mockup=self.mockup)
+        self.LLM = LLM(
+            self.gpt_version, self.api_key, self.llm_function, mockup=self.mockup
+        )
 
         script_dir = os.path.dirname(os.path.abspath(__file__))
         with open(os.path.join(script_dir, "system.txt"), "r") as file:
@@ -63,7 +65,9 @@ class PrompterBase(ABC):
 
     def reload_LLM(self):
         print("*\t <LLM> The LLM is reloaded")
-        self.LLM = LLM(self.gpt_version, self.api_key, self.llm_function, mockup=self.mockup)
+        self.LLM = LLM(
+            self.gpt_version, self.api_key, self.llm_function, mockup=self.mockup
+        )
 
     @abstractmethod
     def init_LLM(self) -> LLMFunction:

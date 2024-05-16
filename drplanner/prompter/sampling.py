@@ -27,7 +27,12 @@ class PrompterSampling(PrompterBase):
         self.EXTRA_INFORMATION = "extra_information"
 
         super().__init__(
-            scenario, planning_problem, api_key, gpt_version, prompts_folder_name, mockup=mockup
+            scenario,
+            planning_problem,
+            api_key,
+            gpt_version,
+            prompts_folder_name,
+            mockup=mockup,
         )
 
     def init_LLM(self) -> LLMFunction:
@@ -49,4 +54,4 @@ class PrompterSampling(PrompterBase):
         hf_obj = CostFunctionDescription(cost_function_obj.evaluate)
         heuristic_function_des = hf_obj.generate(cost_function_obj)
 
-        return self.astar_base + '\n' + hf_code + '\n' + heuristic_function_des
+        return self.astar_base + "\n" + hf_code + "\n" + heuristic_function_des

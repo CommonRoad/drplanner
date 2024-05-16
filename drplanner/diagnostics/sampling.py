@@ -42,7 +42,11 @@ def get_planner(filename) -> Tuple[ReactivePlannerConfiguration, ReactivePlanner
     return config, planner
 
 
-def run_planner(planner: ReactivePlanner, config: ReactivePlannerConfiguration, cost_function: CostFunction):
+def run_planner(
+    planner: ReactivePlanner,
+    config: ReactivePlannerConfiguration,
+    cost_function: CostFunction,
+):
     # update cost function
     planner.set_cost_function(cost_function)
 

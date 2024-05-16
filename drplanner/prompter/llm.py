@@ -24,7 +24,7 @@ def write_prompt_to(filename, messages: List[Dict[str, str]]):
     with open(filename, "w") as file:
         for m in messages:
             for key, value in m.items():
-                file.write(value + '\n')
+                file.write(value + "\n")
 
 
 def mockup_query(iteration, save_dir, scenario_id, messages, folder="sampling_mockup"):
@@ -100,7 +100,12 @@ class LLMFunction:
 
 class LLM:
     def __init__(
-            self, gpt_version, api_key, llm_function: LLMFunction, temperature=0.2, mockup=False
+        self,
+        gpt_version,
+        api_key,
+        llm_function: LLMFunction,
+        temperature=0.2,
+        mockup=False,
     ) -> None:
         self.gpt_version = gpt_version
         if api_key is None:
@@ -120,14 +125,14 @@ class LLM:
         self._save = True
 
     def query(
-            self,
-            scenario_id: str,
-            planner_id: str,
-            messages: List[Dict[str, str]],
-            start_time: str,
-            nr_iter: int = 1,
-            save_dir: str = "../outputs/",
-            mockup: int = -1,
+        self,
+        scenario_id: str,
+        planner_id: str,
+        messages: List[Dict[str, str]],
+        start_time: str,
+        nr_iter: int = 1,
+        save_dir: str = "../outputs/",
+        mockup: int = -1,
     ):
         if mockup > -1:
             return mockup_query(mockup, save_dir, scenario_id, messages)
@@ -141,7 +146,6 @@ class LLM:
             temperature=self.temperature,
         )
 
-        print("RESPONSE: ", response)
         if self._save and response:
             content = response.choices[0].message.function_call.arguments
             content_json = json.loads(content)
@@ -155,17 +159,20 @@ class LLM:
             filename_prompt = (
                 f"prompt_{planner_id}_{scenario_id}_iter-{nr_iter}_{start_time}.json"
             )
-            text_filename_result = (
-                f"result_iter-{nr_iter}.txt"
-            )
-            text_filename_prompt = (
-                f"prompt_iter-{nr_iter}.txt"
-            )
+            text_filename_result = f"result_iter-{nr_iter}.txt"
+            text_filename_prompt = f"prompt_iter-{nr_iter}.txt"
             # Save the content to a JSON file
             json_save_dir = os.path.dirname(
-                os.path.join(save_dir, planner_id, scenario_id, start_time, "jsons", filename_result)
+                os.path.join(
+                    save_dir,
+                    planner_id,
+                    scenario_id,
+                    start_time,
+                    "jsons",
+                    filename_result,
+                )
             )
-            print("SAVEDIR: ", json_save_dir)
+
             if not os.path.exists(json_save_dir):
                 os.makedirs(json_save_dir, exist_ok=True)
             # save the prompt
@@ -177,12 +184,21 @@ class LLM:
 
             # Parse the saved content into a txt file
             txt_save_dir = os.path.dirname(
-                os.path.join(save_dir, planner_id, scenario_id, start_time, "texts", text_filename_result)
+                os.path.join(
+                    save_dir,
+                    planner_id,
+                    scenario_id,
+                    start_time,
+                    "texts",
+                    text_filename_result,
+                )
             )
             print("SAVEDIR: ", txt_save_dir)
             if not os.path.exists(txt_save_dir):
                 os.makedirs(txt_save_dir, exist_ok=True)
-            with open(os.path.join(txt_save_dir, text_filename_result), 'w') as txt_file:
+            with open(
+                os.path.join(txt_save_dir, text_filename_result), "w"
+            ) as txt_file:
                 for value in content_json.values():
                     if isinstance(value, str):
                         txt_file.write(value + "\n")
@@ -190,7 +206,9 @@ class LLM:
                         for item in value:
                             txt_file.write(json.dumps(item) + "\n")
 
-            with open(os.path.join(txt_save_dir, text_filename_prompt), 'w') as txt_file:
+            with open(
+                os.path.join(txt_save_dir, text_filename_prompt), "w"
+            ) as txt_file:
                 for d in messages:
                     for value in d.values():
                         if type(value) is str:

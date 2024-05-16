@@ -142,7 +142,9 @@ class DrPlannerBase(ABC):
         nr_iteration = 0
         run_start_time = datetime.now().strftime("%Y%m%d-%H%M%S")
         save_dir = "/home/sebastian/Documents/Uni/Bachelorarbeit/DrPlanner_Data/"
-        print(f"[DrPlanner] Starts the diagnosis and repair process at {run_start_time}.")
+        print(
+            f"[DrPlanner] Starts the diagnosis and repair process at {run_start_time}."
+        )
         try:
             planned_trajectory = self.plan(nr_iteration)
             prompt_planner, evaluation_trajectory = self.describe(planned_trajectory)
@@ -169,7 +171,9 @@ class DrPlannerBase(ABC):
             # count the used token
             # todo: get the token from the openai interface
             self.token_count += num_tokens_from_messages(
-                message, self.prompter.LLM.gpt_version, mockup=self.config.mockup_tiktoken
+                message,
+                self.prompter.LLM.gpt_version,
+                mockup=self.config.mockup_tiktoken,
             )
 
             mockup_nr_iteration = -1

@@ -44,7 +44,12 @@ class PrompterSearch(PrompterBase):
         self.MOTION_PRIMITIVES = "motion_primitives"
         self.EXTRA_INFORMATION = "extra_information"
         super().__init__(
-            scenario, planning_problem, api_key, gpt_version, prompts_folder_name, mockup=mockup
+            scenario,
+            planning_problem,
+            api_key,
+            gpt_version,
+            prompts_folder_name,
+            mockup=mockup,
         )
 
         self.mp_obj = MotionPrimitiveDescription()

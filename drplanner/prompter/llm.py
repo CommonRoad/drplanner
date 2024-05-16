@@ -100,13 +100,13 @@ class LLMFunction:
 
 class LLM:
     def __init__(
-            self, gpt_version, api_key, llm_function: LLMFunction, temperature=0.2
+            self, gpt_version, api_key, llm_function: LLMFunction, temperature=0.2, mockup=False
     ) -> None:
         self.gpt_version = gpt_version
         if api_key is None:
             raise ValueError("*\t <LLM> OpenAI API key is not provided.")
         else:
-            is_valid = check_openai_api_key(api_key, mockup=True)
+            is_valid = check_openai_api_key(api_key, mockup=mockup)
             if is_valid:
                 openai.api_key = api_key
             else:

@@ -1,6 +1,7 @@
 import importlib
 import inspect
 import os
+import textwrap
 from types import MethodType
 from typing import Union, Optional, Tuple
 
@@ -105,6 +106,7 @@ class DrSamplingPlanner(DrPlannerBase):
             self.scenario,
             self.planning_problem,
             self.config.openai_api_key,
+            self.config.mockup_openAI,
             self.config.gpt_version,
         )
         self.prompter.LLM.temperature = self.config.temperature
@@ -120,6 +122,7 @@ class DrSamplingPlanner(DrPlannerBase):
     def repair(self, diagnosis_result: Union[str, None]):
         # ----- heuristic function -----
         updated_cost_function = diagnosis_result[self.prompter.COST_FUNCTION]
+        updated_cost_function = textwrap.dedent(updated_cost_function)
         # Create a namespace dictionary to hold the compiled function
         function_namespace = {}
         function_namespace.update(self.motion_planner.__dict__)
@@ -187,7 +190,7 @@ class DrSamplingPlanner(DrPlannerBase):
         if self._save_solution:
             # write solution to a CommonRoad XML file
             csw = CommonRoadSolutionWriter(solution)
-            target_folder = self.dir_output + "search/solutions/"
+            target_folder = self.dir_output + "sampling/solutions/"
             os.makedirs(
                 os.path.dirname(target_folder), exist_ok=True
             )  # Ensure the directory exists

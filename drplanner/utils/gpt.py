@@ -1,7 +1,7 @@
 import tiktoken
 
 
-def num_tokens_from_messages(messages, model: str, mockup=True):
+def num_tokens_from_messages(messages, model: str, mockup=False):
     """Return the number of tokens used by a list of messages.
     based on the OpenAI Cookbook."""
     if mockup:

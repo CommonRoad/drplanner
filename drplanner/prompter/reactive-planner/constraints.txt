@@ -1,5 +1,5 @@
 Before you start, it is important to strictly stick to these instructions:
-- The code which you repaired needs to compile. Therefore you should only use existing function and never leave out parts of code or replace them with "…"
+- The code which you repaired needs to compile. Therefore you should only use existing functions and never leave out parts of code or replace them with "…"
 - Only repair something if you are very sure that it is correct
 - The diagnosis should concisely pinpoint each issue, using only a few words for clarity and brevity. For each prescription, provide a detailed, step-by-step action plan.
 - Please make sure that every parameter required by the function is provided in your function call. This includes the diagnoses array, the repaired function and the extra information.

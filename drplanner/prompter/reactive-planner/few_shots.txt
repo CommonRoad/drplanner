@@ -1,4 +1,4 @@
-There are some pre-defined static helper methods of the DefaultCostFunction class which can be called in the heuristic function:
+There are some pre-defined static helper methods of the CostFunction class which can be called in the heuristic function:
 ```def acceleration_costs(trajectory: TrajectorySample) -> float:```,
 ```def jerk_costs(trajectory: TrajectorySample) -> float:```,
 ```def lateral_jerk_costs(trajectory: TrajectorySample) -> float:```,
@@ -11,25 +11,11 @@ Example:
 ```
     def heuristic_function(self, node_current: PriorityNode) -> float:
 
-        # velocity costs
-        if self.desired_speed is not None:
-            costs += (
-                np.sum((5 * (trajectory.cartesian.v - self.desired_speed)) ** 2)
-                + (50 * (trajectory.cartesian.v[-1] - self.desired_speed) ** 2)
-                + (
-                    100
-                    * (
-                        trajectory.cartesian.v[int(len(trajectory.cartesian.v) / 2)]
-                        - self.desired_speed
-                    )
-                    ** 2
-                )
-            )
-        if self.desired_s is not None:
-            costs += (
-                np.sum((0.25 * (self.desired_s - trajectory.curvilinear.s)) ** 2)
-                + (20 * (self.desired_s - trajectory.curvilinear.s[-1])) ** 2
-            )
+        # distance costs
+        costs += (
+            np.sum((0.25 * (self.desired_d - trajectory.curvilinear.d)) ** 2)
+            + (20 * (self.desired_d - trajectory.curvilinear.d[-1])) ** 2
+        )
 
         return cost
 ```
@@ -44,27 +30,13 @@ Prescription: add a local variable "costs"
 
         costs = 0.0
         # acceleration costs
-        costs += DefaultCostFunction.acceleration_costs(trajectory)
+        costs += CostFunction.acceleration_costs(trajectory)
 
-        # velocity costs
-        if self.desired_speed is not None:
-            costs += (
-                np.sum((5 * (trajectory.cartesian.v - self.desired_speed)) ** 2)
-                + (50 * (trajectory.cartesian.v[-1] - self.desired_speed) ** 2)
-                + (
-                    100
-                    * (
-                        trajectory.cartesian.v[int(len(trajectory.cartesian.v) / 2)]
-                        - self.desired_speed
-                    )
-                    ** 2
-                )
-            )
-        if self.desired_s is not None:
-            costs += (
-                np.sum((0.25 * (self.desired_s - trajectory.curvilinear.s)) ** 2)
-                + (20 * (self.desired_s - trajectory.curvilinear.s[-1])) ** 2
-            )
+        # distance costs
+        costs += (
+            np.sum((0.25 * (self.desired_d - trajectory.curvilinear.d)) ** 2)
+            + (20 * (self.desired_d - trajectory.curvilinear.d[-1])) ** 2
+        )
 
         return cost
 ```

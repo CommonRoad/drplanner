@@ -2,6 +2,7 @@ import math
 import copy
 import os
 import traceback
+from datetime import datetime
 from typing import Union
 
 import numpy as np
@@ -139,7 +140,9 @@ class DrPlannerBase(ABC):
         until the patient is cured, or the doctor runs out of tokens/time
         """
         nr_iteration = 0
-        print("[DrPlanner] Starts the diagnosis and repair process.")
+        run_start_time = datetime.now().strftime("%Y%m%d-%H%M%S")
+        save_dir = "/home/sebastian/Documents/Uni/Bachelorarbeit/DrPlanner_Data/"
+        print(f"[DrPlanner] Starts the diagnosis and repair process at {run_start_time}.")
         try:
             planned_trajectory = self.plan(nr_iteration)
             prompt_planner, evaluation_trajectory = self.describe(planned_trajectory)
@@ -177,8 +180,10 @@ class DrPlannerBase(ABC):
                 str(self.scenario.scenario_id),
                 str(self.planner_id),
                 message,
+                run_start_time,
                 nr_iter=nr_iteration,
-                save_dir=self.dir_output + "prompts/",
+                save_dir=save_dir,
+                # save_dir=self.dir_output + "prompts/",
                 mockup=mockup_nr_iteration,
             )
             self.prompter.reload_LLM()

@@ -19,6 +19,7 @@ class PrompterSampling(PrompterBase):
         scenario: Scenario,
         planning_problem: PlanningProblem,
         api_key: str,
+        mockup: bool,
         gpt_version: str = "gpt-4-1106-preview",
         prompts_folder_name: str = "reactive-planner/",
     ):
@@ -26,7 +27,7 @@ class PrompterSampling(PrompterBase):
         self.EXTRA_INFORMATION = "extra_information"
 
         super().__init__(
-            scenario, planning_problem, api_key, gpt_version, prompts_folder_name
+            scenario, planning_problem, api_key, gpt_version, prompts_folder_name, mockup=mockup
         )
 
     def init_LLM(self) -> LLMFunction:

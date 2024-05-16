@@ -65,6 +65,7 @@ class DrPlannerBase(ABC):
             self.scenario,
             self.planning_problem,
             self.config.openai_api_key,
+            self.config.mockup_openAI,
             self.config.gpt_version,
         )
         self.prompter.LLM.temperature = self.config.temperature
@@ -165,15 +166,20 @@ class DrPlannerBase(ABC):
             # count the used token
             # todo: get the token from the openai interface
             self.token_count += num_tokens_from_messages(
-                message, self.prompter.LLM.gpt_version
+                message, self.prompter.LLM.gpt_version, mockup=self.config.mockup_tiktoken
             )
+
+            mockup_nr_iteration = -1
+            if self.config.mockup_openAI:
+                mockup_nr_iteration = nr_iteration
+
             result = self.prompter.LLM.query(
                 str(self.scenario.scenario_id),
                 str(self.planner_id),
                 message,
                 nr_iter=nr_iteration,
                 save_dir=self.dir_output + "prompts/",
-                mockup=nr_iteration,
+                mockup=mockup_nr_iteration,
             )
             self.prompter.reload_LLM()
             # add nr of iteration

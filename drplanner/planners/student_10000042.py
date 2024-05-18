@@ -5,7 +5,6 @@ import numpy as np
 
 from commonroad_rp.trajectories import TrajectorySample
 from commonroad_rp.cost_function import CostFunction
-from scipy.integrate import simps
 
 
 class DefaultCostFunction(CostFunction):

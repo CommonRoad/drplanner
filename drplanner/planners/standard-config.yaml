@@ -12,6 +12,7 @@ sampling:
 
 debug:
   show_plots: False
+  show_evaluation_plots: False
   save_plots: False
   draw_traj_set: False
   draw_icons: True

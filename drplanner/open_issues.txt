@@ -1,9 +1,1 @@
 1  todo --- abstract the describe method to diagnostics.base.py
-
-2. done --- add prompt template for reactive planner in prompter.py
-   todo --- add new prompts to prompter/reactive-planner
-
-3. done --- add CostFunctionDescription in planner_description.py
-   done --- abstract HeuristicDescription
-
-4. todo --- add new cost helper functions

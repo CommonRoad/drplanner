@@ -88,7 +88,9 @@ class DrPlannerBase(ABC):
 
     @abstractmethod
     def describe(
-        self, planned_trajectory: Union[Trajectory, None]
+        self,
+        planned_trajectory: Union[Trajectory, None],
+        diagnosis_result: Union[str, None],
     ) -> (str, PlanningProblemCostResult):
         """
         Describes the current state of the planner to DrPlanner
@@ -147,10 +149,12 @@ class DrPlannerBase(ABC):
         )
         try:
             planned_trajectory = self.plan(nr_iteration)
-            prompt_planner, evaluation_trajectory = self.describe(planned_trajectory)
+            prompt_planner, evaluation_trajectory = self.describe(
+                planned_trajectory, None
+            )
             self.current_cost = evaluation_trajectory.total_costs
         except:
-            prompt_planner, _ = self.describe(None)
+            prompt_planner, _ = self.describe(None, None)
             self.current_cost = np.inf
         result = None
         self.initial_cost = self.current_cost
@@ -188,11 +192,12 @@ class DrPlannerBase(ABC):
                 nr_iter=nr_iteration,
                 save_dir=save_dir,
                 # save_dir=self.dir_output + "prompts/",
-                mockup=mockup_nr_iteration,
+                mockup_nr_iter=mockup_nr_iteration,
             )
             self.prompter.reload_LLM()
             # add nr of iteration
             nr_iteration += 1
+
             prompt_planner += (
                 f"*\t Diagnoses and prescriptions from the iteration {nr_iteration}:"
             )

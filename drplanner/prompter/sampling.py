@@ -42,16 +42,20 @@ class PrompterSampling(PrompterBase):
         return llm_function
 
     def generate_planner_description(
-        self, cost_function_obj: Union[object, CostFunction]
+        self, cost_function_obj: Union[object, CostFunction], hf_code: str
     ) -> str:
-        hf_code = (
-            "This is the code of the cost function: ```"
-            + inspect.getsource(cost_function_obj.evaluate)
-            + "```"
-        )
 
-        # generate heuristic function's description
-        hf_obj = CostFunctionDescription(cost_function_obj.evaluate)
-        heuristic_function_des = hf_obj.generate(cost_function_obj)
+        if cost_function_obj is None:
+            return self.astar_base + "\n" + hf_code
+        else:
+            hf_code = (
+                "This is the code of the cost function: ```"
+                + inspect.getsource(cost_function_obj.evaluate)
+                + "```"
+            )
 
-        return self.astar_base + "\n" + hf_code + "\n" + heuristic_function_des
+            # generate heuristic function's description
+            hf_obj = CostFunctionDescription(cost_function_obj.evaluate)
+            heuristic_function_des = hf_obj.generate(cost_function_obj)
+
+            return self.astar_base + "\n" + hf_code + "\n" + heuristic_function_des

@@ -1,11 +1,9 @@
 # adapt from https://github.com/real-stanford/reflect
-from enum import Enum
 from typing import List, Dict
 
 import os
 import openai
 import json
-from datetime import datetime
 
 
 def check_openai_api_key(api_key, mockup=False):
@@ -20,26 +18,22 @@ def check_openai_api_key(api_key, mockup=False):
         return True
 
 
-def write_prompt_to(filename, messages: List[Dict[str, str]]):
-    with open(filename, "w") as file:
-        for m in messages:
-            for key, value in m.items():
-                file.write(value + "\n")
+def mockup_query(
+    iteration,
+    directory="/home/sebastian/Documents/Uni/Bachelorarbeit/DrPlanner_Data/10000042/DEU_Guetersloh-15_2_T-1/mockup",
+):
+    filenames = []
+    for file_name in os.listdir(directory):
+        # Check if the file is a JSON file
+        if file_name.endswith(".json"):
+            # Construct the full file path
+            file_path = os.path.join(directory, file_name)
+            filenames.append(file_path)
 
-
-def mockup_query(iteration, save_dir, scenario_id, messages, folder="sampling_mockup"):
-    filenames = [
-        "iter-1.json",
-        "iter-0.json",
-        "iter-2.json",
-        "iter-3.json",
-    ]
     index = iteration % len(filenames)
-    filename_result = filenames[index]
-    filename_prompt = os.path.join(save_dir, scenario_id, folder, f"prompt_{index}.txt")
-    write_prompt_to(filename_prompt, messages)
-    path = os.path.join(save_dir, scenario_id, folder, filename_result)
-    with open(path) as f:
+    filename_response = filenames[index]
+
+    with open(filename_response) as f:
         # Load the JSON data into a Python data structure
         return json.load(f)
 
@@ -124,6 +118,73 @@ class LLM:
 
         self._save = True
 
+    @staticmethod
+    def _save_results_as_txt(
+        save_dir, planner_id, scenario_id, messages, nr_iter, start_time, content_json
+    ):
+        text_filename_result = f"result_iter-{nr_iter}.txt"
+        text_filename_prompt = f"prompt_iter-{nr_iter}.txt"
+        # Parse the saved content into a txt file
+        txt_save_dir = os.path.dirname(
+            os.path.join(
+                save_dir,
+                planner_id,
+                scenario_id,
+                start_time,
+                "texts",
+                text_filename_result,
+            )
+        )
+
+        if not os.path.exists(txt_save_dir):
+            os.makedirs(txt_save_dir, exist_ok=True)
+        with open(os.path.join(txt_save_dir, text_filename_result), "w") as txt_file:
+            for value in content_json.values():
+                if isinstance(value, str):
+                    txt_file.write(value + "\n")
+                elif isinstance(value, list):
+                    for item in value:
+                        txt_file.write(json.dumps(item) + "\n")
+
+        with open(os.path.join(txt_save_dir, text_filename_prompt), "w") as txt_file:
+            for d in messages:
+                for value in d.values():
+                    if type(value) is str:
+                        txt_file.write(value + "\n")
+                    elif type(value) is list:
+                        for item in value:
+                            txt_file.write(json.dumps(item))
+
+    @staticmethod
+    def _save_results_as_json(
+        save_dir, planner_id, scenario_id, messages, nr_iter, start_time, content_json
+    ):
+        filename_result = (
+            f"result_{planner_id}_{scenario_id}_iter-{nr_iter}_{start_time}.json"
+        )
+        filename_prompt = (
+            f"prompt_{planner_id}_{scenario_id}_iter-{nr_iter}_{start_time}.json"
+        )
+        # Save the content to a JSON file
+        json_save_dir = os.path.dirname(
+            os.path.join(
+                save_dir,
+                planner_id,
+                scenario_id,
+                start_time,
+                "jsons",
+                filename_result,
+            )
+        )
+        if not os.path.exists(json_save_dir):
+            os.makedirs(json_save_dir, exist_ok=True)
+        # save the prompt
+        with open(os.path.join(json_save_dir, filename_prompt), "w") as file:
+            json.dump(messages, file)
+        # save the result
+        with open(os.path.join(json_save_dir, filename_result), "w") as file:
+            json.dump(content_json, file)
+
     def query(
         self,
         scenario_id: str,
@@ -132,90 +193,48 @@ class LLM:
         start_time: str,
         nr_iter: int = 1,
         save_dir: str = "../outputs/",
-        mockup: int = -1,
+        mockup_nr_iter: int = -1,
     ):
-        if mockup > -1:
-            return mockup_query(mockup, save_dir, scenario_id, messages)
-
-        functions = self.llm_function.get_functions()
-        response = openai.chat.completions.create(
-            model=self.gpt_version,
-            messages=messages,
-            functions=functions,
-            function_call={"name": functions[0]["name"]},
-            temperature=self.temperature,
-        )
-
+        if mockup_nr_iter > -1:
+            response = mockup_query(mockup_nr_iter)
+        else:
+            functions = self.llm_function.get_functions()
+            response = openai.chat.completions.create(
+                model=self.gpt_version,
+                messages=messages,
+                functions=functions,
+                function_call={"name": functions[0]["name"]},
+                temperature=self.temperature,
+            )
+        print("RESPONSE: ", response)
         if self._save and response:
-            content = response.choices[0].message.function_call.arguments
-            content_json = json.loads(content)
-            print(
-                f"*\t <Prompt> Iteration {nr_iter} succeeds, "
-                f"{response.usage.total_tokens} tokens are used"
-            )
-            filename_result = (
-                f"result_{planner_id}_{scenario_id}_iter-{nr_iter}_{start_time}.json"
-            )
-            filename_prompt = (
-                f"prompt_{planner_id}_{scenario_id}_iter-{nr_iter}_{start_time}.json"
-            )
-            text_filename_result = f"result_iter-{nr_iter}.txt"
-            text_filename_prompt = f"prompt_iter-{nr_iter}.txt"
-            # Save the content to a JSON file
-            json_save_dir = os.path.dirname(
-                os.path.join(
-                    save_dir,
-                    planner_id,
-                    scenario_id,
-                    start_time,
-                    "jsons",
-                    filename_result,
+            if mockup_nr_iter > -1:
+                content_json = response
+            else:
+                content = response.choices[0].message.function_call.arguments
+                content_json = json.loads(content)
+                print(
+                    f"*\t <Prompt> Iteration {nr_iter} succeeds, "
+                    f"{response.usage.total_tokens} tokens are used"
                 )
+            LLM._save_results_as_json(
+                save_dir,
+                planner_id,
+                scenario_id,
+                messages,
+                nr_iter,
+                start_time,
+                content_json,
             )
-
-            if not os.path.exists(json_save_dir):
-                os.makedirs(json_save_dir, exist_ok=True)
-            # save the prompt
-            with open(os.path.join(json_save_dir, filename_prompt), "w") as file:
-                json.dump(messages, file)
-            # save the result
-            with open(os.path.join(json_save_dir, filename_result), "w") as file:
-                json.dump(content_json, file)
-
-            # Parse the saved content into a txt file
-            txt_save_dir = os.path.dirname(
-                os.path.join(
-                    save_dir,
-                    planner_id,
-                    scenario_id,
-                    start_time,
-                    "texts",
-                    text_filename_result,
-                )
+            LLM._save_results_as_txt(
+                save_dir,
+                planner_id,
+                scenario_id,
+                messages,
+                nr_iter,
+                start_time,
+                content_json,
             )
-            print("SAVEDIR: ", txt_save_dir)
-            if not os.path.exists(txt_save_dir):
-                os.makedirs(txt_save_dir, exist_ok=True)
-            with open(
-                os.path.join(txt_save_dir, text_filename_result), "w"
-            ) as txt_file:
-                for value in content_json.values():
-                    if isinstance(value, str):
-                        txt_file.write(value + "\n")
-                    elif isinstance(value, list):
-                        for item in value:
-                            txt_file.write(json.dumps(item) + "\n")
-
-            with open(
-                os.path.join(txt_save_dir, text_filename_prompt), "w"
-            ) as txt_file:
-                for d in messages:
-                    for value in d.values():
-                        if type(value) is str:
-                            txt_file.write(value + "\n")
-                        elif type(value) is list:
-                            for item in value:
-                                txt_file.write(json.dumps(item))
             return content_json
         else:
             print(f"*\t <Prompt> Iteration {nr_iter} failed, no response is generated")

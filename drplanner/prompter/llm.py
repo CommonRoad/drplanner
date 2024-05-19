@@ -118,9 +118,8 @@ class LLM:
 
         self._save = True
 
-    @staticmethod
     def _save_results_as_txt(
-        save_dir, planner_id, scenario_id, messages, nr_iter, start_time, content_json
+        self, save_dir, planner_id, scenario_id, messages, nr_iter, start_time, content_json
     ):
         text_filename_result = f"result_iter-{nr_iter}.txt"
         text_filename_prompt = f"prompt_iter-{nr_iter}.txt"
@@ -130,6 +129,7 @@ class LLM:
                 save_dir,
                 planner_id,
                 scenario_id,
+                self.gpt_version,
                 start_time,
                 "texts",
                 text_filename_result,
@@ -155,15 +155,14 @@ class LLM:
                         for item in value:
                             txt_file.write(json.dumps(item))
 
-    @staticmethod
     def _save_results_as_json(
-        save_dir, planner_id, scenario_id, messages, nr_iter, start_time, content_json
+        self, save_dir, planner_id, scenario_id, messages, nr_iter, start_time, content_json
     ):
         filename_result = (
-            f"result_{planner_id}_{scenario_id}_iter-{nr_iter}_{start_time}.json"
+            f"result_iter-{nr_iter}.json"
         )
         filename_prompt = (
-            f"prompt_{planner_id}_{scenario_id}_iter-{nr_iter}_{start_time}.json"
+            f"prompt_iter-{nr_iter}.json"
         )
         # Save the content to a JSON file
         json_save_dir = os.path.dirname(
@@ -171,6 +170,7 @@ class LLM:
                 save_dir,
                 planner_id,
                 scenario_id,
+                self.gpt_version,
                 start_time,
                 "jsons",
                 filename_result,
@@ -217,7 +217,7 @@ class LLM:
                     f"*\t <Prompt> Iteration {nr_iter} succeeds, "
                     f"{response.usage.total_tokens} tokens are used"
                 )
-            LLM._save_results_as_json(
+            self._save_results_as_json(
                 save_dir,
                 planner_id,
                 scenario_id,
@@ -226,7 +226,7 @@ class LLM:
                 start_time,
                 content_json,
             )
-            LLM._save_results_as_txt(
+            self._save_results_as_txt(
                 save_dir,
                 planner_id,
                 scenario_id,

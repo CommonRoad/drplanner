@@ -1,14 +1,7 @@
-# for dynamically construct the import statement
-from typing import Union
 import inspect
 
 from commonroad.scenario.scenario import Scenario
 from commonroad.planning.planning_problem import PlanningProblem
-from commonroad_rp.cost_function import CostFunction
-
-from drplanner.describer.planner_description import (
-    CostFunctionDescription,
-)
 from drplanner.prompter.base import PrompterBase
 from drplanner.prompter.llm import LLMFunction
 
@@ -19,9 +12,9 @@ class PrompterSampling(PrompterBase):
         scenario: Scenario,
         planning_problem: PlanningProblem,
         api_key: str,
-        mockup: bool,
         gpt_version: str = "gpt-4-1106-preview",
         prompts_folder_name: str = "reactive-planner/",
+        mockup: bool = False,
     ):
         self.COST_FUNCTION = "improved_cost_function"
         self.EXTRA_INFORMATION = "extra_information"
@@ -41,21 +34,16 @@ class PrompterSampling(PrompterBase):
         llm_function.add_string_parameter(self.EXTRA_INFORMATION, "extra information")
         return llm_function
 
-    def generate_planner_description(
-        self, cost_function_obj: Union[object, CostFunction], hf_code: str
-    ) -> str:
-
-        if cost_function_obj is None:
-            return self.astar_base + "\n" + hf_code
+    def generate_planner_description(self, cost_function) -> str:
+        # todo: evaluate whether any more detailed description is necessary
+        # if code is directly provided
+        if isinstance(cost_function, str):
+            return self.astar_base + "\n" + cost_function
+        # otherwise access it using "inspect"
         else:
-            hf_code = (
+            cf_code = (
                 "This is the code of the cost function: ```"
-                + inspect.getsource(cost_function_obj.evaluate)
+                + inspect.getsource(cost_function.evaluate)
                 + "```"
             )
-
-            # generate heuristic function's description
-            hf_obj = CostFunctionDescription(cost_function_obj.evaluate)
-            heuristic_function_des = hf_obj.generate(cost_function_obj)
-
-            return self.astar_base + "\n" + hf_code + "\n" + heuristic_function_des
+            return self.astar_base + "\n" + cf_code + "\n"

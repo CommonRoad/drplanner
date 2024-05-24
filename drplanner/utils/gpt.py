@@ -1,11 +1,9 @@
 import tiktoken
 
 
-def num_tokens_from_messages(messages, model: str, mockup=False):
+def num_tokens_from_messages(messages, model: str):
     """Return the number of tokens used by a list of messages.
     based on the OpenAI Cookbook."""
-    if mockup:
-        return 0
     try:
         encoding = tiktoken.encoding_for_model(model)
     except KeyError:

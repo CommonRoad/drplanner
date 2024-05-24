@@ -35,11 +35,11 @@ class PrompterSearch(PrompterBase):
         scenario: Scenario,
         planning_problem: PlanningProblem,
         api_key: str,
-        mockup: bool,
         gpt_version: str = "gpt-4-1106-preview",
         prompts_folder_name: str = "astar/",
+        mockup: bool = False,
     ):
-
+        # the parameters which the llm has to provide in a response
         self.HEURISTIC_FUNCTION = "improved_heuristic_function"
         self.MOTION_PRIMITIVES = "motion_primitives"
         self.EXTRA_INFORMATION = "extra_information"

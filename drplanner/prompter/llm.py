@@ -12,7 +12,7 @@ def check_openai_api_key(api_key, mockup=False):
     openai.api_key = api_key
     try:
         openai.models.list()
-    except openai.AuthenticationError as e:
+    except openai.AuthenticationError as _:
         return False
     else:
         return True
@@ -23,8 +23,8 @@ def mockup_query(
     directory="/home/sebastian/Documents/Uni/Bachelorarbeit/DrPlanner_Data/10000042/DEU_Guetersloh-15_2_T-1/mockup",
 ):
     filenames = []
+    # finds all .jsons in the directory and assumes them to be mockup responses
     for file_name in os.listdir(directory):
-        # Check if the file is a JSON file
         if file_name.endswith(".json"):
             # Construct the full file path
             file_path = os.path.join(directory, file_name)
@@ -34,29 +34,30 @@ def mockup_query(
     filename_response = filenames[index]
 
     with open(filename_response) as f:
-        # Load the JSON data into a Python data structure
         return json.load(f)
 
 
+# A class representing an OpenAI api function call
 class LLMFunction:
     def __init__(self):
-        # define summary object
-        summary_object = {
+        # define content of summary object
+        summary_dict = {
             "diagnosis": LLMFunction._string_parameter("diagnosis"),
             "prescription": LLMFunction._string_parameter("prescription"),
         }
 
-        # initialize parameters with summary
-        parameters_object = {
+        # initialize function parameters with summary array
+        function_parameters_dict = {
             "summary": LLMFunction._add_array_parameter(
-                LLMFunction._object_parameter(summary_object),
+                LLMFunction._object_parameter(summary_dict),
                 "Diagnostic and prescriptive summary",
             )
         }
 
-        self.parameters: dict = LLMFunction._object_parameter(parameters_object)
+        self.parameters: dict = LLMFunction._object_parameter(function_parameters_dict)
 
-    def get_functions(self):
+    # transforms the function into a form required by the OpenAI api
+    def get_function_as_list(self):
         return [
             {
                 "name": "planner_diagnosis",
@@ -92,6 +93,7 @@ class LLMFunction:
         return {"type": "array", "items": items, "description": description}
 
 
+# interface class managing communication with OpenAI api through query method
 class LLM:
     def __init__(
         self,
@@ -101,7 +103,10 @@ class LLM:
         temperature=0.2,
         mockup=False,
     ) -> None:
+
         self.gpt_version = gpt_version
+
+        # make sure the api key is provided and valid
         if api_key is None:
             raise ValueError("*\t <LLM> OpenAI API key is not provided.")
         else:
@@ -118,9 +123,74 @@ class LLM:
 
         self._save = True
 
-    def _save_results_as_txt(
-        self, save_dir, planner_id, scenario_id, messages, nr_iter, start_time, content_json
+    # send <messages> to the OpenAI api
+    def query(
+        self,
+        scenario_id: str,
+        planner_id: str,
+        messages: List[Dict[str, str]],
+        start_time: str,
+        nr_iter: int = 1,
+        save_dir: str = "../outputs/",
+        mockup_nr_iter: int = -1,
     ):
+        # check whether this is a mockup run
+        if mockup_nr_iter > -1:
+            response = mockup_query(mockup_nr_iter)
+        # otherwise send the query
+        else:
+            functions = self.llm_function.get_function_as_list()
+            response = openai.chat.completions.create(
+                model=self.gpt_version,
+                messages=messages,
+                functions=functions,
+                function_call={"name": functions[0]["name"]},
+                temperature=self.temperature,
+            )
+
+        print("RESPONSE: ", response)
+
+        # save the result to save_dir with a structure specified by the input parameters:
+        # planner_id/scenario_id/gpt_version/start_time
+        if self._save and response:
+            if mockup_nr_iter > -1:
+                content_json = response
+            else:
+                content = response.choices[0].message.function_call.arguments
+                content_json = json.loads(content)
+                print(
+                    f"*\t <Prompt> Iteration {nr_iter} succeeds, "
+                    f"{response.usage.total_tokens} tokens are used"
+                )
+
+            params = (
+                save_dir,
+                planner_id,
+                scenario_id,
+                messages,
+                nr_iter,
+                start_time,
+                content_json,
+            )
+
+            self._save_results_as_json(params)
+            self._save_results_as_txt(params)
+            return content_json
+        else:
+            print(f"*\t <Prompt> Iteration {nr_iter} failed, no response is generated")
+            return None
+
+    # helper function to save both prompts and responses in a human-readable form
+    def _save_results_as_txt(self, params):
+        (
+            save_dir,
+            planner_id,
+            scenario_id,
+            messages,
+            nr_iter,
+            start_time,
+            content_json,
+        ) = params
         text_filename_result = f"result_iter-{nr_iter}.txt"
         text_filename_prompt = f"prompt_iter-{nr_iter}.txt"
         # Parse the saved content into a txt file
@@ -155,15 +225,19 @@ class LLM:
                         for item in value:
                             txt_file.write(json.dumps(item))
 
-    def _save_results_as_json(
-        self, save_dir, planner_id, scenario_id, messages, nr_iter, start_time, content_json
-    ):
-        filename_result = (
-            f"result_iter-{nr_iter}.json"
-        )
-        filename_prompt = (
-            f"prompt_iter-{nr_iter}.json"
-        )
+    # helper function to save both prompts and responses as parsable json
+    def _save_results_as_json(self, params):
+        (
+            save_dir,
+            planner_id,
+            scenario_id,
+            messages,
+            nr_iter,
+            start_time,
+            content_json,
+        ) = params
+        filename_result = f"result_iter-{nr_iter}.json"
+        filename_prompt = f"prompt_iter-{nr_iter}.json"
         # Save the content to a JSON file
         json_save_dir = os.path.dirname(
             os.path.join(
@@ -184,58 +258,3 @@ class LLM:
         # save the result
         with open(os.path.join(json_save_dir, filename_result), "w") as file:
             json.dump(content_json, file)
-
-    def query(
-        self,
-        scenario_id: str,
-        planner_id: str,
-        messages: List[Dict[str, str]],
-        start_time: str,
-        nr_iter: int = 1,
-        save_dir: str = "../outputs/",
-        mockup_nr_iter: int = -1,
-    ):
-        if mockup_nr_iter > -1:
-            response = mockup_query(mockup_nr_iter)
-        else:
-            functions = self.llm_function.get_functions()
-            response = openai.chat.completions.create(
-                model=self.gpt_version,
-                messages=messages,
-                functions=functions,
-                function_call={"name": functions[0]["name"]},
-                temperature=self.temperature,
-            )
-        print("RESPONSE: ", response)
-        if self._save and response:
-            if mockup_nr_iter > -1:
-                content_json = response
-            else:
-                content = response.choices[0].message.function_call.arguments
-                content_json = json.loads(content)
-                print(
-                    f"*\t <Prompt> Iteration {nr_iter} succeeds, "
-                    f"{response.usage.total_tokens} tokens are used"
-                )
-            self._save_results_as_json(
-                save_dir,
-                planner_id,
-                scenario_id,
-                messages,
-                nr_iter,
-                start_time,
-                content_json,
-            )
-            self._save_results_as_txt(
-                save_dir,
-                planner_id,
-                scenario_id,
-                messages,
-                nr_iter,
-                start_time,
-                content_json,
-            )
-            return content_json
-        else:
-            print(f"*\t <Prompt> Iteration {nr_iter} failed, no response is generated")
-            return None

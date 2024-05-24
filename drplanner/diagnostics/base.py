@@ -24,11 +24,11 @@ from drplanner.utils.gpt import num_tokens_from_messages
 
 class DrPlannerBase(ABC):
     def __init__(
-        self,
-        scenario: Scenario,
-        planning_problem_set: PlanningProblemSet,
-        config: DrPlannerConfiguration,
-        planner_id: str,
+            self,
+            scenario: Scenario,
+            planning_problem_set: PlanningProblemSet,
+            config: DrPlannerConfiguration,
+            planner_id: str,
     ):
 
         self.scenario = scenario
@@ -88,9 +88,9 @@ class DrPlannerBase(ABC):
 
     @abstractmethod
     def describe(
-        self,
-        planned_trajectory: Union[Trajectory, None],
-        diagnosis_result: Union[str, None],
+            self,
+            planned_trajectory: Union[Trajectory, None],
+            diagnosis_result: Union[str, None],
     ) -> (str, PlanningProblemCostResult):
         """
         Describes the current state of the planner to DrPlanner
@@ -159,9 +159,9 @@ class DrPlannerBase(ABC):
         result = None
         self.initial_cost = self.current_cost
         while (
-            abs(self.current_cost - self.desired_cost) > self.THRESHOLD
-            and self.token_count < self.TOKEN_LIMIT
-            and nr_iteration < self.ITERATION_MAX
+                abs(self.current_cost - self.desired_cost) > self.THRESHOLD
+                and self.token_count < self.TOKEN_LIMIT
+                and nr_iteration < self.ITERATION_MAX
         ):
             print(f"*\t -----------iteration {nr_iteration}-----------")
             print(
@@ -206,7 +206,7 @@ class DrPlannerBase(ABC):
                 planned_trajectory = self.plan(nr_iteration)
                 # add feedback
                 prompt_planner += (
-                    self.add_feedback(planned_trajectory, nr_iteration) + "\n"
+                        self.add_feedback(planned_trajectory, nr_iteration) + "\n"
                 )
             except Exception as e:
                 error_traceback = (
@@ -222,113 +222,101 @@ class DrPlannerBase(ABC):
         print("[DrPlanner] Ends.")
         return result
 
-
-#    def diagnose_repair_version2(self):
-#        """
-#        Full DrPlanner session:
-#        It first describes the current state of the patient.
-#        After that it runs an iterative repairing cycle:
-#        Plan. Describe. Repair. Evaluate.
-#        until the patient is cured, or the doctor runs out of tokens/time
-#        """
-#        nr_iteration = 0
-#        run_start_time = datetime.now().strftime("%Y%m%d-%H%M%S")
-#        save_dir = "/home/sebastian/Documents/Uni/Bachelorarbeit/DrPlanner_Data/"
-#        self.current_cost = math.inf
-#        repair_error_message = None
-#        result = None
-#
-#        print(
-#            f"[DrPlanner] Starts the diagnosis and repair process at {run_start_time}."
-#        )
-#
-#        while (
-#            abs(self.current_cost - self.desired_cost) > self.THRESHOLD
-#            and self.token_count < self.TOKEN_LIMIT
-#            and nr_iteration < self.ITERATION_MAX
-#        ):
-#            # --- log current session data ---
-#            print(f"*\t -----------iteration {nr_iteration}-----------")
-#            print(
-#                f"*\t <{nr_iteration}>: total cost {self.current_cost} (desired: {self.desired_cost})\n"
-#                f"*\t used tokens {self.token_count} (limit: {self.TOKEN_LIMIT})"
-#            )
-#
-#            # --- add a short summary of the last session ---
-#            prompt_evaluation = ""
-#            prompt_evaluation += (
-#                f"*\t Diagnoses and prescriptions from the previous iteration:\n"
-#            )
-#            if result is None:
-#                prompt_evaluation += "There was no previous iteration...\n"
-#            else:
-#                prompt_evaluation += f" {result['summary']}\n"
-#
-#            # --- try to run the planner with the current cost function and describe the result ---
-#            prompt_evaluation += "Currently this happens if you run the planner: "
-#            try:
-#                planned_trajectory = self.plan(nr_iteration)
-#                prompt_system, evaluation_trajectory = self.describe(
-#                    planned_trajectory, result
-#                )
-#                self.current_cost = evaluation_trajectory.total_costs
-#                # add feedback
-#                prompt_evaluation += (
-#                    self.add_feedback(planned_trajectory, nr_iteration) + "\n"
-#                )
-#            except Exception as e:
-#                prompt_system, _ = self.describe(None, result)
-#                self.current_cost = np.inf
-#                # This gets the traceback as a string
-#                error_traceback = traceback.format_exc()
-#                print("*\t !! Errors during planning: ", error_traceback)
-#
-#                if repair_error_message is None:
-#                    prompt_evaluation += f"The cost function compiles but throws this exception when used in the planning process: {repair_error_message}"
-#                else:
-#                    prompt_evaluation += f"Unfortunately the repaired cost function did not compile: {error_traceback}"
-#
-#            # --- create the message for the LLM and count its tokens ---
-#            message = [
-#                {"role": "system", "content": self.prompter.prompt_system},
-#                {"role": "user", "content": prompt_system + prompt_evaluation},
-#            ]
-#            self.token_count += num_tokens_from_messages(
-#                message,
-#                self.prompter.LLM.gpt_version,
-#            )
-#
-#            # --- in case the LLM should not actually be contacted for debugging purposes ---
-#            mockup_nr_iteration = -1
-#            if self.config.mockup_openAI:
-#                mockup_nr_iteration = nr_iteration
-#
-#            # --- run a LLM query with all gathered information (and save its message, results) ---
-#            result = self.prompter.LLM.query(
-#                str(self.scenario.scenario_id),
-#                str(self.planner_id),
-#                message,
-#                run_start_time,
-#                nr_iter=nr_iteration,
-#                save_dir=save_dir,
-#                mockup_nr_iter=mockup_nr_iteration,
-#            )
-#            # todo: why is this needed?
-#            self.prompter.reload_LLM()
-#            nr_iteration += 1
-#
-#            # --- try to exec the repaired cost function ---
-#            try:
-#                self.repair(result)
-#                repair_error_message = None
-#            except Exception as e:
-#                error_traceback = (
-#                    traceback.format_exc()
-#                )  # This gets the traceback as a string
-#                print("*\t !! Errors while repairing: ", error_traceback)
-#                repair_error_message = error_traceback
-#
-#            self.cost_list.append(self.current_cost)
-#        print("[DrPlanner] Ends.")
-#        return result
-#
+    def diagnose_repair_version2(self):
+        """
+        Full DrPlanner session:
+        It first describes the current state of the patient.
+        After that it runs an iterative repairing cycle:
+        Plan. Describe. Repair. Evaluate.
+        until the patient is cured, or the doctor runs out of tokens/time
+        """
+        nr_iteration = 0
+        run_start_time = datetime.now().strftime("%Y%m%d-%H%M%S")
+        save_dir = "/home/sebastian/Documents/Uni/Bachelorarbeit/DrPlanner_Data/"
+        self.current_cost = math.inf
+        repair_error_message = None
+        result = None  #
+        print(
+            f"[DrPlanner] Starts the diagnosis and repair process at {run_start_time}."
+        )  #
+        while (
+                abs(self.current_cost - self.desired_cost) > self.THRESHOLD
+                and self.token_count < self.TOKEN_LIMIT
+                and nr_iteration < self.ITERATION_MAX
+        ):
+            # --- log current session data ---
+            print(f"*\t -----------iteration {nr_iteration}-----------")
+            print(
+                f"*\t <{nr_iteration}>: total cost {self.current_cost} (desired: {self.desired_cost})\n"
+                f"*\t used tokens {self.token_count} (limit: {self.TOKEN_LIMIT})"
+            )  #
+            # --- add a short summary of the last session ---
+            prompt_evaluation = ""
+            prompt_evaluation += (
+                f"*\t Diagnoses and prescriptions from the previous iteration:\n"
+            )
+            if result is None:
+                prompt_evaluation += "There was no previous iteration...\n"
+            else:
+                prompt_evaluation += f" {result['summary']}\n"  #
+            # --- try to run the planner with the current cost function and describe the result ---
+            prompt_evaluation += "Currently this happens if you run the planner: "
+            try:
+                planned_trajectory = self.plan(nr_iteration)
+                prompt_system, evaluation_trajectory = self.describe(
+                    planned_trajectory, result
+                )
+                self.current_cost = evaluation_trajectory.total_costs
+                # add feedback
+                prompt_evaluation += (
+                        self.add_feedback(planned_trajectory, nr_iteration) + "\n"
+                )
+            except Exception as e:
+                prompt_system, _ = self.describe(None, result)
+                self.current_cost = np.inf
+                # This gets the traceback as a string
+                error_traceback = traceback.format_exc()
+                print("*\t !! Errors during planning: ", error_traceback)  #
+                if repair_error_message is None:
+                    prompt_evaluation += f"The cost function compiles but throws this exception when used in the planning process: {repair_error_message}"
+                else:
+                    prompt_evaluation += f"Unfortunately the repaired cost function did not compile: {error_traceback}"  #
+            # --- create the message for the LLM and count its tokens ---
+            message = [
+                {"role": "system", "content": self.prompter.prompt_system},
+                {"role": "user", "content": prompt_system + prompt_evaluation},
+            ]
+            self.token_count += num_tokens_from_messages(
+                message,
+                self.prompter.LLM.gpt_version,
+            )  #
+            # --- in case the LLM should not actually be contacted for debugging purposes ---
+            mockup_nr_iteration = -1
+            if self.config.mockup_openAI:
+                mockup_nr_iteration = nr_iteration  #
+            # --- run a LLM query with all gathered information (and save its message, results) ---
+            result = self.prompter.LLM.query(
+                str(self.scenario.scenario_id),
+                str(self.planner_id),
+                message,
+                run_start_time,
+                nr_iter=nr_iteration,
+                save_dir=save_dir,
+                mockup_nr_iter=mockup_nr_iteration,
+            )
+            # todo: why is this needed?
+            self.prompter.reload_LLM()
+            nr_iteration += 1  #
+            # --- try to exec the repaired cost function ---
+            try:
+                self.repair(result)
+                repair_error_message = None
+            except Exception as e:
+                error_traceback = (
+                    traceback.format_exc()
+                )  # This gets the traceback as a string
+                print("*\t !! Errors while repairing: ", error_traceback)
+                repair_error_message = error_traceback  #
+            self.cost_list.append(self.current_cost)
+        print("[DrPlanner] Ends.")
+        return result  #

@@ -2,6 +2,8 @@ import inspect
 
 from commonroad.scenario.scenario import Scenario
 from commonroad.planning.planning_problem import PlanningProblem
+from drplanner.describer.planner_description import CostFunctionDescription
+
 from drplanner.prompter.base import PrompterBase
 from drplanner.prompter.llm import LLMFunction
 
@@ -46,4 +48,7 @@ class PrompterSampling(PrompterBase):
                 + inspect.getsource(cost_function.evaluate)
                 + "```"
             )
-            return self.astar_base + "\n" + cf_code + "\n"
+            # generate heuristic function's description
+            hf_obj = CostFunctionDescription(cost_function.evaluate)
+            heuristic_function_des = hf_obj.generate(cost_function)
+            return self.astar_base + "\n" + cf_code + "\n" + heuristic_function_des

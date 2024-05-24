@@ -119,7 +119,7 @@ class FunctionDescriptionBase(DescriptionBase, ABC):
         self, class_or_instance, function_description: str
     ):
         description = (
-            f"In " + function_description + ", the following functions are " f"called: "
+            "In " + function_description + ", the following functions are called:"
         )
         for func_name in self.called_functions:
             func = getattr(

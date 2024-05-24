@@ -11,7 +11,7 @@ from commonroad.scenario.scenario import Scenario
 from commonroad.scenario.trajectory import Trajectory
 from commonroad_dc.costs.evaluation import PlanningProblemCostResult
 from commonroad_route_planner.route_planner import RoutePlanner
-from commonroad_rp.cost_function import CostFunction
+from commonroad_rp.cost_function import CostFunction, DefaultCostFunction
 from commonroad_rp.reactive_planner import ReactivePlanner
 from commonroad_rp.trajectories import TrajectorySample
 from commonroad_rp.utility.config import ReactivePlannerConfiguration
@@ -116,12 +116,13 @@ class DrSamplingPlanner(DrPlannerBase):
         self.prompter.LLM.temperature = self.config.temperature
 
         # import the cost function
-        cost_function_name = f"drplanner.planners.student_{cost_function_id}"
-        cost_function_module = importlib.import_module(cost_function_name)
-        self.DefaultCostFunction = getattr(cost_function_module, "DefaultCostFunction")
-        self.cost_function = self.DefaultCostFunction(
-            self.motion_planner.x_0.velocity, desired_d=0.0, desired_s=None
-        )
+        #cost_function_name = f"drplanner.planners.student_{cost_function_id}"
+        #cost_function_module = importlib.import_module(cost_function_name)
+        #self.DefaultCostFunction = getattr(cost_function_module, "DefaultCostFunction")
+        #self.cost_function = self.DefaultCostFunction(
+        #    self.motion_planner.x_0.velocity, desired_d=0.0, desired_s=None
+        #)
+        self.cost_function = self.motion_planner.cost_function
 
     def repair(self, diagnosis_result: Union[str, None]):
         # ----- heuristic function -----
@@ -151,7 +152,7 @@ class DrSamplingPlanner(DrPlannerBase):
         # Bind the function to the StudentMotionPlanner instance
         self.cost_function.evaluate = new_cost_function.__get__(self.cost_function)
 
-        self.cost_function = self.DefaultCostFunction(
+        self.cost_function = DefaultCostFunction(
             self.motion_planner.x_0.velocity, desired_d=0.0, desired_s=None
         )
 

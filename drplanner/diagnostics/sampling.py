@@ -1,11 +1,8 @@
 import importlib
-import math
 import os
 import textwrap
-import traceback
-from datetime import datetime
 from types import MethodType
-from typing import Union, Optional, Tuple
+from typing import Union, Optional, Tuple, Type
 
 import numpy as np
 from commonroad.common.solution import CommonRoadSolutionWriter
@@ -23,9 +20,9 @@ from commonroad_rp.utility.evaluation import run_evaluation
 from drplanner.diagnostics.base import DrPlannerBase
 from drplanner.prompter.sampling import PrompterSampling
 from drplanner.utils.config import DrPlannerConfiguration
-from utils.gpt import num_tokens_from_messages
 
 
+# helper function to create a ReactivePlanner object
 def get_planner(filename) -> Tuple[ReactivePlannerConfiguration, ReactivePlanner]:
     # Build config object
     config = ReactivePlannerConfiguration.load(
@@ -44,10 +41,11 @@ def get_planner(filename) -> Tuple[ReactivePlannerConfiguration, ReactivePlanner
     return config, planner
 
 
+# helper function to run a ReactivePlanner with a given CostFunction
 def run_planner(
     planner: ReactivePlanner,
     config: ReactivePlannerConfiguration,
-    cost_function: CostFunction,
+    cost_function: Type[CostFunction | None],
 ):
     # update cost function
     planner.set_cost_function(cost_function)
@@ -62,6 +60,7 @@ def run_planner(
 
         # check if planning cycle or not
         plan_new_trajectory = current_count % config.planning.replanning_frequency == 0
+
         if plan_new_trajectory:
             # new planning cycle -> plan a new optimal trajectory
             planner.set_desired_velocity(current_speed=planner.x_0.velocity)
@@ -103,8 +102,7 @@ class DrSamplingPlanner(DrPlannerBase):
         cost_function_id: str,
     ):
         super().__init__(scenario, planning_problem_set, config, cost_function_id)
-        print(scenario_path)
-        # initialize the motion planner
+        # initialize motion planner
         self.motion_planner_config, self.motion_planner = get_planner(scenario_path)
 
         # initialize prompter
@@ -112,8 +110,8 @@ class DrSamplingPlanner(DrPlannerBase):
             self.scenario,
             self.planning_problem,
             self.config.openai_api_key,
-            self.config.mockup_openAI,
             self.config.gpt_version,
+            mockup=self.config.mockup_openAI,
         )
         self.prompter.LLM.temperature = self.config.temperature
 
@@ -124,116 +122,6 @@ class DrSamplingPlanner(DrPlannerBase):
         self.cost_function = self.DefaultCostFunction(
             self.motion_planner.x_0.velocity, desired_d=0.0, desired_s=None
         )
-
-    def diagnose_repair_version2(self):
-        """
-        Full DrPlanner session:
-        It first describes the current state of the patient.
-        After that it runs an iterative repairing cycle:
-        Plan. Describe. Repair. Evaluate.
-        until the patient is cured, or the doctor runs out of tokens/time
-        """
-        nr_iteration = 0
-        run_start_time = datetime.now().strftime("%Y%m%d-%H%M%S")
-        save_dir = "/home/sebastian/Documents/Uni/Bachelorarbeit/DrPlanner_Data/"
-        self.current_cost = math.inf
-        repair_error_message = None
-        result = None
-
-        print(
-            f"[DrPlanner] Starts the diagnosis and repair process at {run_start_time}."
-        )
-
-        while (
-            abs(self.current_cost - self.desired_cost) > self.THRESHOLD
-            and self.token_count < self.TOKEN_LIMIT
-            and nr_iteration < self.ITERATION_MAX
-        ):
-            # --- log current session data ---
-            print(f"*\t -----------iteration {nr_iteration}-----------")
-            print(
-                f"*\t <{nr_iteration}>: total cost {self.current_cost} (desired: {self.desired_cost})\n"
-                f"*\t used tokens {self.token_count} (limit: {self.TOKEN_LIMIT})"
-            )
-
-            # --- add a short summary of the last session ---
-            prompt_evaluation = ""
-            prompt_evaluation += (
-                f"*\t Diagnoses and prescriptions from the previous iteration:\n"
-            )
-            if result is None:
-                prompt_evaluation += "There was no previous iteration...\n"
-            else:
-                prompt_evaluation += f" {result['summary']}\n"
-
-            # --- try to run the planner with the current cost function and describe the result ---
-            prompt_evaluation += "Currently this happens if you run the planner: "
-            try:
-                planned_trajectory = self.plan(nr_iteration)
-                prompt_system, evaluation_trajectory = self.describe(
-                    planned_trajectory, result
-                )
-                self.current_cost = evaluation_trajectory.total_costs
-                # add feedback
-                prompt_evaluation += (
-                    self.add_feedback(planned_trajectory, nr_iteration) + "\n"
-                )
-            except Exception as e:
-                prompt_system, _ = self.describe(None, result)
-                self.current_cost = np.inf
-                # This gets the traceback as a string
-                error_traceback = traceback.format_exc()
-                print("*\t !! Errors during planning: ", error_traceback)
-
-                if repair_error_message is None:
-                    prompt_evaluation += f"The cost function compiles but throws this exception when used in the planning process: {repair_error_message}"
-                else:
-                    prompt_evaluation += f"Unfortunately the repaired cost function did not compile: {error_traceback}"
-
-            # --- create the message for the LLM and count its tokens ---
-            message = [
-                {"role": "system", "content": self.prompter.prompt_system},
-                {"role": "user", "content": prompt_system + prompt_evaluation},
-            ]
-            self.token_count += num_tokens_from_messages(
-                message,
-                self.prompter.LLM.gpt_version,
-                mockup=self.config.mockup_tiktoken,
-            )
-
-            # --- in case the LLM should not actually be contacted for debugging purposes ---
-            mockup_nr_iteration = -1
-            if self.config.mockup_openAI:
-                mockup_nr_iteration = nr_iteration
-
-            # --- run a LLM query with all gathered information (and save its message, results) ---
-            result = self.prompter.LLM.query(
-                str(self.scenario.scenario_id),
-                str(self.planner_id),
-                message,
-                run_start_time,
-                nr_iter=nr_iteration,
-                save_dir=save_dir,
-                mockup_nr_iter=mockup_nr_iteration,
-            )
-            # todo: why is this needed?
-            self.prompter.reload_LLM()
-            nr_iteration += 1
-
-            # --- try to exec the repaired cost function ---
-            try:
-                self.repair(result)
-                repair_error_message = None
-            except Exception as e:
-                error_traceback = (
-                    traceback.format_exc()
-                )  # This gets the traceback as a string
-                print("*\t !! Errors while repairing: ", error_traceback)
-                repair_error_message = error_traceback
-
-            self.cost_list.append(self.current_cost)
-        print("[DrPlanner] Ends.")
-        return result
 
     def repair(self, diagnosis_result: Union[str, None]):
         # ----- heuristic function -----
@@ -277,15 +165,17 @@ class DrSamplingPlanner(DrPlannerBase):
 
         template = self.prompter.algorithm_template
 
+        # if there was no diagnosis provided describe starting cost function
         if diagnosis_result is None:
             planner_description = self.prompter.generate_planner_description(
-                self.cost_function, None
+                self.cost_function
             )
+        # otherwise describe the repaired version of the cost function
         else:
             updated_cost_function = diagnosis_result[self.prompter.COST_FUNCTION]
             updated_cost_function = textwrap.dedent(updated_cost_function)
             planner_description = self.prompter.generate_planner_description(
-                None, updated_cost_function
+                updated_cost_function
             )
 
         template = template.replace("[PLANNER]", planner_description)

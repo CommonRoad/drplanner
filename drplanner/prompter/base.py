@@ -16,7 +16,7 @@ class PrompterBase(ABC):
         scenario: Scenario,
         planning_problem: PlanningProblem,
         api_key: str,
-        gpt_version: str = "gpt-4-1106-preview",  # gpt-3.5-turbo, text-davinci-002, gpt-4-1106-preview
+        gpt_version: str = "gpt-3.5-turbo",  # gpt-3.5-turbo, text-davinci-002, gpt-4-1106-preview
         prompts_folder_name: str = "astar/",
         mockup=False,
     ):

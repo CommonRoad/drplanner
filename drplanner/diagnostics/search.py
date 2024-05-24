@@ -1,6 +1,9 @@
+import textwrap
 from typing import Union
 import importlib
 import copy
+import sys
+import os
 from types import MethodType
 from commonroad.scenario.scenario import Scenario
 from commonroad.planning.planning_problem import PlanningProblemSet
@@ -17,8 +20,6 @@ try:
 
     print("[DrPlanner] Installed SMP module is called.")
 except ImportError as e:
-    import sys
-    import os
 
     current_file_dir = os.path.dirname(os.path.abspath(__file__))
     smp_path = os.path.join(current_file_dir, "../../commonroad-search/")
@@ -70,6 +71,7 @@ class DrSearchPlanner(DrPlannerBase):
     def repair(self, diagnosis_result: Union[str, None]):
         # ----- heuristic function -----
         updated_heuristic_function = diagnosis_result[self.prompter.HEURISTIC_FUNCTION]
+        updated_heuristic_function = textwrap.dedent(updated_heuristic_function)
         # Create a namespace dictionary to hold the compiled function
         function_namespace = {}
         function_namespace.update(self.motion_planner.__dict__)
@@ -127,7 +129,9 @@ class DrSearchPlanner(DrPlannerBase):
         self.motion_planner.frontier = PriorityQueue()
 
     def describe(
-        self, planned_trajectory: Union[Trajectory, None]
+        self,
+        planned_trajectory: Union[Trajectory, None],
+        diagnosis_result: Union[str, None],
     ) -> (str, PlanningProblemCostResult):
         template = self.prompter.algorithm_template
 

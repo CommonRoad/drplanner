@@ -27,7 +27,7 @@ class DefaultCostFunction(CostFunction):
         # weights
         self.w_a = 5  # acceleration weight
 
-    def evaluate(self, trajectory: TrajectorySample):
+    def evaluate(self, trajectory: TrajectorySample) -> float:
         costs = 0.0
         # velocity costs
         if self.desired_speed is not None:

@@ -1,1 +1,13 @@
-1  todo --- abstract the describe method to diagnostics.base.py
+1   todo: clean up the codebase to have a clean version to branch of
+    a) run_drplanner.py
+    b) utils/
+    c) promper/
+    d) diagnostics/
+2   todo: reconsider the current diagnose-repair cycle issue
+3   todo: delete path_length cost and add velocity + distance cost
+4   todo: add descriptions detailing a typical partial cost function application situation
+4b  todo: do not require extra information anymore
+5   todo: provide error handling if no optimal trajectory was found
+6   todo: think of how to implement modular error handling to dr. planner
+7   todo: add "time_steps" from planner.config as a tunable parameter to the repair
+8   todo: add plots as visual input to the evaluation feedback

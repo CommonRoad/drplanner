@@ -1,15 +1,31 @@
+The packages which you can access include:
+```numpy as np```,
+
 There are some pre-defined static helper methods of the CostFunction class which can be called in the heuristic function:
-```def acceleration_costs(trajectory: TrajectorySample) -> float:```,
-```def jerk_costs(trajectory: TrajectorySample) -> float:```,
-```def lateral_jerk_costs(trajectory: TrajectorySample) -> float:```,
-```def longitudinal_jerk_costs(trajectory: TrajectorySample) -> float:```,
-```def orientation_offset_costs(trajectory: TrajectorySample) -> float:```,
-```def distance_to_reference_path_costs(trajectory: TrajectorySample) -> float:```,
-```def path_length_costs(trajectory: TrajectorySample) -> float:```
+```acceleration_costs(trajectory: TrajectorySample) -> float```,
+```jerk_costs(trajectory: TrajectorySample) -> float```,
+```lateral_jerk_costs(trajectory: TrajectorySample) -> float```,
+```longitudinal_jerk_costs(trajectory: TrajectorySample) -> float```,
+```orientation_offset_costs(trajectory: TrajectorySample) -> float```,
+```distance_to_reference_path_costs(trajectory: TrajectorySample) -> float```,
+```path_length_costs(trajectory: TrajectorySample) -> float```
+
+These are the getter functions for the TrajectorySample class:
+```trajectory_long(self) -> PolynomialTrajectory```,
+```trajectory_lat(self) -> PolynomialTrajectory```,
+amount of states:
+```length(self) -> int```,
+
+These are the functions for the PolynomialTrajectory class where a state is represented as numpy array of floats of the form [p, p_dot, p_ddot]:
+```evaluate_state_at_tau(self, tau: float)```,
+goal state:
+```x_d(self) -> np.ndarray```,
+start state:
+```x_0(self) -> np.ndarray```,
 
 Example:
 ```
-    def heuristic_function(self, node_current: PriorityNode) -> float:
+    def evaluate(self, trajectory: TrajectorySample) -> float:
 
         # distance costs
         costs += (
@@ -20,13 +36,8 @@ Example:
         return cost
 ```
 Improved result:
-
-Diagnosis: the acceleration is not considered
-Prescription: add acceleration cost to the heuristic function
-Diagnosis: the variable "costs" is never initialized
-Prescription: add a local variable "costs"
 ```
-    def heuristic_function(self, node_current: PriorityNode) -> float:
+    def evaluate(self, trajectory: TrajectorySample) -> float:
 
         costs = 0.0
         # acceleration costs

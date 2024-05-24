@@ -1,6 +1,5 @@
 import ast
 import re
-import warnings
 from typing import Callable
 
 from drplanner.describer.base import DescriptionBase, FunctionDescriptionBase

@@ -1,10 +1,6 @@
-1   todo: clean up the codebase to have a clean version to branch of
-    a) run_drplanner.py
-    b) utils/
-    c) promper/
-    d) diagnostics/
+1   clean up the codebase to have a clean version to branch off
 2   todo: reconsider the current diagnose-repair cycle issue
-3   todo: delete path_length cost and add velocity + distance cost
+3   delete path_length cost and add velocity + distance cost
 4   todo: add descriptions detailing a typical partial cost function application situation
 4b  todo: do not require extra information anymore
 5   todo: provide error handling if no optimal trajectory was found

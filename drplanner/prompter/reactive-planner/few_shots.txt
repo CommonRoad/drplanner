@@ -1,6 +1,3 @@
-The packages which you can access include:
-```numpy as np```,
-
 In addition to the non-static methods described above, there are some pre-defined static helper methods of the CostFunction class:
 ```acceleration_costs(trajectory: TrajectorySample) -> float```,
 ```jerk_costs(trajectory: TrajectorySample) -> float```,
@@ -33,3 +30,6 @@ Improved result:
         )
         return cost
 ```
+
+In addition to modifying the cost function, you can also modify the current planning horizon length by increasing the amount of discrete timesteps.
+Long planning horizons are particularly useful when driving long, straight paths

@@ -1,7 +1,12 @@
 import inspect
+from typing import Union
 
 from commonroad.scenario.scenario import Scenario
 from commonroad.planning.planning_problem import PlanningProblem
+from commonroad_rp.utility.config import ReactivePlannerConfiguration
+
+from commonroad_rp.cost_function import CostFunction
+
 from drplanner.describer.planner_description import CostFunctionDescription
 
 from drplanner.prompter.base import PrompterBase
@@ -19,6 +24,7 @@ class PrompterSampling(PrompterBase):
         mockup: bool = False,
     ):
         self.COST_FUNCTION = "improved_cost_function"
+        self.PLANNER_CONFIG = "planner_config"
         self.EXTRA_INFORMATION = "extra_information"
 
         super().__init__(
@@ -33,15 +39,18 @@ class PrompterSampling(PrompterBase):
     def init_LLM(self) -> LLMFunction:
         llm_function = LLMFunction()
         llm_function.add_code_parameter(self.COST_FUNCTION, "updated cost function")
+        llm_function.add_number_parameter(self.PLANNER_CONFIG, "time step amount")
         llm_function.add_string_parameter(self.EXTRA_INFORMATION, "extra information")
         return llm_function
 
-    def generate_planner_description(self, cost_function) -> str:
-        # todo: evaluate whether any more detailed description is necessary
+    def generate_planner_description(self, cost_function, config: ReactivePlannerConfiguration):
+        # describe the current planning horizon
+        config_description = f"The current planning horizon length in time-steps is {config.planning.time_steps_computation}"
+
         # if code is directly provided
         if isinstance(cost_function, str):
             return self.astar_base + "\n" + cost_function
-        # otherwise access it using "inspect"
+        # otherwise access it using "inspect" and describe its used methods
         else:
             cf_code = (
                 "This is the code of the cost function: ```"
@@ -51,4 +60,4 @@ class PrompterSampling(PrompterBase):
             # generate heuristic function's description
             hf_obj = CostFunctionDescription(cost_function.evaluate)
             heuristic_function_des = hf_obj.generate(cost_function)
-            return self.astar_base + "\n" + cf_code + "\n" + heuristic_function_des
+            return self.astar_base + "\n" + cf_code + "\n" + heuristic_function_des + "\n" + config_description

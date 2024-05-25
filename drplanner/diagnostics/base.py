@@ -89,7 +89,7 @@ class DrPlannerBase(ABC):
     @abstractmethod
     def describe(
             self,
-            planned_trajectory: Union[Trajectory, None],
+            planned_trajectory: Union[Trajectory, str],
             diagnosis_result: Union[str, None],
     ) -> (str, PlanningProblemCostResult):
         """
@@ -147,14 +147,20 @@ class DrPlannerBase(ABC):
         print(
             f"[DrPlanner] Starts the diagnosis and repair process at {run_start_time}."
         )
+        history = ""
         try:
             planned_trajectory = self.plan(nr_iteration)
             prompt_planner, evaluation_trajectory = self.describe(
                 planned_trajectory, None
             )
             self.current_cost = evaluation_trajectory.total_costs
-        except:
-            prompt_planner, _ = self.describe(None, None)
+        except Exception as e:
+            error_traceback = (
+                traceback.format_exc()
+            )  # This gets the traceback as a string
+            print("*\t !! Errors: ", error_traceback)
+            # Catching the exception and extracting error information
+            prompt_planner, _ = self.describe(error_traceback, None)
             self.current_cost = np.inf
         result = None
         self.initial_cost = self.current_cost
@@ -170,8 +176,10 @@ class DrPlannerBase(ABC):
             )
             message = [
                 {"role": "system", "content": self.prompter.prompt_system},
-                {"role": "user", "content": prompt_planner},
+                {"role": "user", "content": prompt_planner + history},
             ]
+            # reset history
+            history = ""
             # count the used token
             # todo: get the token from the openai interface
             self.token_count += num_tokens_from_messages(
@@ -197,15 +205,15 @@ class DrPlannerBase(ABC):
             # add nr of iteration
             nr_iteration += 1
 
-            prompt_planner += (
-                f"*\t Diagnoses and prescriptions from the iteration {nr_iteration}:"
+            history += (
+                f"*\t Diagnoses and prescriptions from the last iteration:"
             )
             try:
-                prompt_planner += f" {result['summary']}"
+                history += f" {result['summary']}"
                 self.repair(result)
                 planned_trajectory = self.plan(nr_iteration)
                 # add feedback
-                prompt_planner += (
+                history += (
                         self.add_feedback(planned_trajectory, nr_iteration) + "\n"
                 )
             except Exception as e:
@@ -214,7 +222,7 @@ class DrPlannerBase(ABC):
                 )  # This gets the traceback as a string
                 print("*\t !! Errors: ", error_traceback)
                 # Catching the exception and extracting error information
-                prompt_planner += (
+                history += (
                     f" But they cause the error message: {error_traceback}"
                 )
                 self.current_cost = np.inf

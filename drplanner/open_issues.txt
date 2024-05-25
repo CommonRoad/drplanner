@@ -1,8 +1,10 @@
 1   clean up the codebase to have a clean version to branch off
 2   todo: reconsider the current diagnose-repair cycle issue
+    -> Maybe add constraint to consider the past advice and not to resend anything etc...#
+    -> Decouple the function description and the planner description
+        FD: Used methods, PD: current code, base
 3   delete path_length cost and add velocity + distance cost
-4   todo: add descriptions detailing a typical partial cost function application situation
-4b  todo: do not require extra information anymore
+4   do not require extra information anymore - works semi-well
 5   todo: provide error handling if no optimal trajectory was found
 6   todo: think of how to implement modular error handling to dr. planner
 7   todo: add "time_steps" from planner.config as a tunable parameter to the repair

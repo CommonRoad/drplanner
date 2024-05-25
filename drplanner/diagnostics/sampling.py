@@ -22,6 +22,12 @@ from drplanner.prompter.sampling import PrompterSampling
 from drplanner.utils.config import DrPlannerConfiguration
 
 
+# Custom Exception if no optimal Trajectory was found
+class PlanningException(Exception):
+    def __init__(self):
+        super().__init__("The planner failed: No optimal trajectory could be found!")
+
+
 # helper function to create a ReactivePlanner object
 def get_planner(filename) -> Tuple[ReactivePlannerConfiguration, ReactivePlanner]:
     # Build config object
@@ -54,7 +60,7 @@ def run_planner(
     # source_code = inspect.getsource(planner.cost_function.evaluate)
     # Add first state to recorded state and input list
     planner.record_state_and_input(planner.x_0)
-
+    optimal = None
     while not planner.goal_reached():
         current_count = len(planner.record_state_list) - 1
 
@@ -65,8 +71,9 @@ def run_planner(
             # new planning cycle -> plan a new optimal trajectory
             planner.set_desired_velocity(current_speed=planner.x_0.velocity)
             optimal = planner.plan()
+
             if not optimal:
-                break
+                raise PlanningException
 
             planner.record_state_and_input(optimal[0].state_list[1])
             planner.reset(
@@ -78,6 +85,9 @@ def run_planner(
         else:
             # continue on optimal trajectory
             temp = current_count % config.planning.replanning_frequency
+
+            if not optimal:
+                raise PlanningException
 
             planner.record_state_and_input(optimal[0].state_list[1 + temp])
             planner.reset(
@@ -160,7 +170,7 @@ class DrSamplingPlanner(DrPlannerBase):
 
     def describe(
         self,
-        planned_trajectory: Union[Trajectory, None],
+        planned_trajectory: Union[Trajectory, str],
         diagnosis_result: Union[str, None],
     ) -> (str, PlanningProblemCostResult):
 
@@ -181,14 +191,14 @@ class DrSamplingPlanner(DrPlannerBase):
 
         template = template.replace("[PLANNER]", planner_description)
 
-        if planned_trajectory:
+        if isinstance(planned_trajectory, Trajectory):
             evaluation_trajectory = self.evaluate_trajectory(planned_trajectory)
 
             traj_description = self.prompter.generate_cost_description(
                 evaluation_trajectory, self.desired_cost
             )
         else:
-            traj_description = "*\t no trajectory is generated"
+            traj_description = f" The planner failed: {planned_trajectory}"
             evaluation_trajectory = None
         template = template.replace("[PLANNED_TRAJECTORY]", traj_description)
         return template, evaluation_trajectory

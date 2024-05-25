@@ -28,23 +28,15 @@ class PlanningException(Exception):
         super().__init__("The planner failed: No optimal trajectory could be found!")
 
 
-# helper function to create a ReactivePlanner object
-def get_planner(filename) -> Tuple[ReactivePlannerConfiguration, ReactivePlanner]:
-    # Build config object
-    config = ReactivePlannerConfiguration.load(
-        f"drplanner/planners/standard-config.yaml", filename
-    )
-    config.update()
+def get_planner(config: ReactivePlannerConfiguration) -> ReactivePlanner:
     # run route planner and add reference path to config
     route_planner = RoutePlanner(config.scenario, config.planning_problem)
     route = route_planner.plan_routes().retrieve_first_route()
-
     # initialize reactive planner
     planner = ReactivePlanner(config)
-
     # set reference path for curvilinear coordinate system
     planner.set_reference_path(route.reference_path)
-    return config, planner
+    return planner
 
 
 # helper function to run a ReactivePlanner with a given CostFunction
@@ -56,6 +48,7 @@ def run_planner(
     # update cost function
     planner.set_cost_function(cost_function)
 
+    print(f"The current planning horizon is {planner.horizon}!")
     # Get the source code of the function
     # source_code = inspect.getsource(planner.cost_function.evaluate)
     # Add first state to recorded state and input list
@@ -112,8 +105,13 @@ class DrSamplingPlanner(DrPlannerBase):
         cost_function_id: str,
     ):
         super().__init__(scenario, planning_problem_set, config, cost_function_id)
+        # Build config object
+        self.motion_planner_config = ReactivePlannerConfiguration.load(
+            f"drplanner/planners/standard-config.yaml", scenario_path
+        )
+        self.motion_planner_config.update()
         # initialize motion planner
-        self.motion_planner_config, self.motion_planner = get_planner(scenario_path)
+        self.motion_planner = get_planner(self.motion_planner_config)
 
         # initialize prompter
         self.prompter = PrompterSampling(
@@ -124,17 +122,18 @@ class DrSamplingPlanner(DrPlannerBase):
             mockup=self.config.mockup_openAI,
         )
         self.prompter.LLM.temperature = self.config.temperature
-
-        # import the cost function
-        #cost_function_name = f"drplanner.planners.student_{cost_function_id}"
-        #cost_function_module = importlib.import_module(cost_function_name)
-        #self.DefaultCostFunction = getattr(cost_function_module, "DefaultCostFunction")
-        #self.cost_function = self.DefaultCostFunction(
-        #    self.motion_planner.x_0.velocity, desired_d=0.0, desired_s=None
-        #)
         self.cost_function = self.motion_planner.cost_function
 
     def repair(self, diagnosis_result: Union[str, None]):
+        # ----- planner configuration -----
+        updated_time_step_amount = diagnosis_result[self.prompter.PLANNER_CONFIG]
+        if updated_time_step_amount:
+            try:
+                self.motion_planner_config.planning.time_steps_computation = int(updated_time_step_amount)
+                self.motion_planner = get_planner(self.motion_planner_config)
+            except Exception as e:
+                raise RuntimeError(f"Could not convert time steps into an int: {e}")
+
         # ----- heuristic function -----
         updated_cost_function = diagnosis_result[self.prompter.COST_FUNCTION]
         updated_cost_function = textwrap.dedent(updated_cost_function)
@@ -175,11 +174,11 @@ class DrSamplingPlanner(DrPlannerBase):
     ) -> (str, PlanningProblemCostResult):
 
         template = self.prompter.algorithm_template
-
+        # --- GENERATE PLANNER DESCRIPTION ---
         # if there was no diagnosis provided describe starting cost function
         if diagnosis_result is None:
             planner_description = self.prompter.generate_planner_description(
-                self.cost_function
+                self.cost_function, self.motion_planner_config,
             )
         # otherwise describe the repaired version of the cost function
         else:
@@ -188,9 +187,9 @@ class DrSamplingPlanner(DrPlannerBase):
             planner_description = self.prompter.generate_planner_description(
                 updated_cost_function
             )
-
         template = template.replace("[PLANNER]", planner_description)
 
+        # --- GENERATE TRAJECTORY DESCRIPTION ---
         if isinstance(planned_trajectory, Trajectory):
             evaluation_trajectory = self.evaluate_trajectory(planned_trajectory)
 

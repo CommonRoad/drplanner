@@ -76,6 +76,15 @@ class LLMFunction:
             parameter_description
         )
 
+    def add_number_parameter(self, parameter_name: str, parameter_description: str):
+        self.parameters["properties"][parameter_name] = LLMFunction._number_parameter(
+            parameter_description
+        )
+
+    @staticmethod
+    def _number_parameter(description: str) -> dict:
+        return {"type": "number", "description": description}
+
     @staticmethod
     def _string_parameter(description: str) -> dict:
         return {"type": "string", "description": description}

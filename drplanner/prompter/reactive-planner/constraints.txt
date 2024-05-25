@@ -1,6 +1,5 @@
 Before you start, it is important to strictly stick to these instructions:
-- The code which you repaired needs to compile. Therefore you should only use existing functions and never leave out parts of code or replace them with "…"
 - The diagnosis should concisely pinpoint each issue, using only a few words for clarity and brevity. For each prescription, provide a detailed, step-by-step action plan.
-- Please make sure that required parameters are always provided in your function call. This includes the diagnoses array and the repaired function.
-- Only send Extra information parameter if it is essentially important!
-- Unfortunately you can not define your own helper functions, but need to put all code into the cost function.
+- Please make sure that required parameters are always provided in your function call. This includes the diagnoses array, the time step amount and the repaired function.
+- Only send Extra information parameter if it is essentially important
+- The code which you repair needs to compile. Therefore you need to only use those functions which the user tells you to use!!!

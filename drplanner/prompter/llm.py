@@ -30,6 +30,7 @@ def mockup_query(
             file_path = os.path.join(directory, file_name)
             filenames.append(file_path)
 
+    filenames.sort()
     index = iteration % len(filenames)
     filename_response = filenames[index]
 

@@ -5,11 +5,12 @@ from types import MethodType
 from typing import Union, Optional, Tuple, Type
 
 import numpy as np
-from commonroad.common.solution import CommonRoadSolutionWriter
+from commonroad.common.solution import CostFunction as CF
+from commonroad.common.solution import CommonRoadSolutionWriter, VehicleType
 from commonroad.planning.planning_problem import PlanningProblemSet
 from commonroad.scenario.scenario import Scenario
 from commonroad.scenario.trajectory import Trajectory
-from commonroad_dc.costs.evaluation import PlanningProblemCostResult
+from commonroad_dc.costs.evaluation import PlanningProblemCostResult, CostFunctionEvaluator
 from commonroad_route_planner.route_planner import RoutePlanner
 from commonroad_rp.cost_function import CostFunction, DefaultCostFunction
 from commonroad_rp.reactive_planner import ReactivePlanner
@@ -49,8 +50,6 @@ def run_planner(
     planner.set_cost_function(cost_function)
 
     print(f"The current planning horizon is {planner.horizon}!")
-    # Get the source code of the function
-    # source_code = inspect.getsource(planner.cost_function.evaluate)
     # Add first state to recorded state and input list
     planner.record_state_and_input(planner.x_0)
     optimal = None
@@ -129,6 +128,10 @@ class DrSamplingPlanner(DrPlannerBase):
         updated_time_step_amount = diagnosis_result[self.prompter.PLANNER_CONFIG]
         if updated_time_step_amount:
             try:
+                self.motion_planner_config = ReactivePlannerConfiguration.load(
+                    f"drplanner/planners/standard-config.yaml", '/home/sebastian/Documents/Uni/Bachelorarbeit/Repos/drplanner/scenarios/DEU_Guetersloh-15_2_T-1.xml'
+                )
+                self.motion_planner_config.update()
                 self.motion_planner_config.planning.time_steps_computation = int(updated_time_step_amount)
                 self.motion_planner = get_planner(self.motion_planner_config)
             except Exception as e:

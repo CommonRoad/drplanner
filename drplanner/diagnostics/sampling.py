@@ -105,8 +105,9 @@ class DrSamplingPlanner(DrPlannerBase):
     ):
         super().__init__(scenario, planning_problem_set, config, cost_function_id)
         # Build config object
+        self.scenario_path = scenario_path
         self.motion_planner_config = ReactivePlannerConfiguration.load(
-            f"drplanner/planners/standard-config.yaml", scenario_path
+            f"drplanner/planners/standard-config.yaml", self.scenario_path
         )
         self.motion_planner_config.update()
         # initialize motion planner
@@ -129,7 +130,7 @@ class DrSamplingPlanner(DrPlannerBase):
         if updated_time_step_amount:
             try:
                 self.motion_planner_config = ReactivePlannerConfiguration.load(
-                    f"drplanner/planners/standard-config.yaml", '/home/sebastian/Documents/Uni/Bachelorarbeit/Repos/drplanner/scenarios/DEU_Guetersloh-15_2_T-1.xml'
+                    f"drplanner/planners/standard-config.yaml", self.scenario_path
                 )
                 self.motion_planner_config.update()
                 self.motion_planner_config.planning.time_steps_computation = int(updated_time_step_amount)

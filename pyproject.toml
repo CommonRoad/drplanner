@@ -20,8 +20,9 @@ classifiers = [
 python = "^3.10"  # Adjust according to your project's needs
 openai = ">=1.13.3"
 tiktoken = ">=0.5.2"
-commonroad-io = ">=2023.1"
+commonroad-io = ">=2024.1"
 commonroad-drivability-checker = ">=2023.1"
+python-dotenv = ">=1.0.1"
 # commonroad-search = { git = "https://gitlab.lrz.de/tum-cps/commonroad-search.git", rev = "be2df4a5b2a0077c85178520dae6aab60030c209" }
 
 [build-system]

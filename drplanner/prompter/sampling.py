@@ -43,7 +43,9 @@ class PrompterSampling(PrompterBase):
         llm_function.add_string_parameter(self.EXTRA_INFORMATION, "extra information")
         return llm_function
 
-    def generate_planner_description(self, cost_function, config: ReactivePlannerConfiguration):
+    def generate_planner_description(
+        self, cost_function, config: ReactivePlannerConfiguration
+    ):
         # describe the current planning horizon
         config_description = f"The current planning horizon length in time-steps is {config.planning.time_steps_computation}"
 
@@ -60,4 +62,12 @@ class PrompterSampling(PrompterBase):
             # generate heuristic function's description
             hf_obj = CostFunctionDescription(cost_function.evaluate)
             heuristic_function_des = hf_obj.generate(cost_function)
-            return self.astar_base + "\n" + cf_code + "\n" + heuristic_function_des + "\n" + config_description
+            return (
+                self.astar_base
+                + "\n"
+                + cf_code
+                + "\n"
+                + heuristic_function_des
+                + "\n"
+                + config_description
+            )

@@ -24,11 +24,11 @@ from drplanner.utils.gpt import num_tokens_from_messages
 
 class DrPlannerBase(ABC):
     def __init__(
-            self,
-            scenario: Scenario,
-            planning_problem_set: PlanningProblemSet,
-            config: DrPlannerConfiguration,
-            planner_id: str,
+        self,
+        scenario: Scenario,
+        planning_problem_set: PlanningProblemSet,
+        config: DrPlannerConfiguration,
+        planner_id: str,
     ):
 
         self.scenario = scenario
@@ -88,9 +88,9 @@ class DrPlannerBase(ABC):
 
     @abstractmethod
     def describe(
-            self,
-            planned_trajectory: Union[Trajectory, str],
-            diagnosis_result: Union[str, None],
+        self,
+        planned_trajectory: Union[Trajectory, str],
+        diagnosis_result: Union[str, None],
     ) -> (str, PlanningProblemCostResult):
         """
         Describes the current state of the planner to DrPlanner
@@ -143,7 +143,6 @@ class DrPlannerBase(ABC):
         """
         nr_iteration = 0
         run_start_time = datetime.now().strftime("%Y%m%d-%H%M%S")
-        save_dir = "/home/sebastian/Documents/Uni/Bachelorarbeit/DrPlanner_Data/"
         print(
             f"[DrPlanner] Starts the diagnosis and repair process at {run_start_time}."
         )
@@ -165,9 +164,9 @@ class DrPlannerBase(ABC):
         result = None
         self.initial_cost = self.current_cost
         while (
-                abs(self.current_cost - self.desired_cost) > self.THRESHOLD
-                and self.token_count < self.TOKEN_LIMIT
-                and nr_iteration < self.ITERATION_MAX
+            abs(self.current_cost - self.desired_cost) > self.THRESHOLD
+            and self.token_count < self.TOKEN_LIMIT
+            and nr_iteration < self.ITERATION_MAX
         ):
             print(f"*\t -----------iteration {nr_iteration}-----------")
             print(
@@ -197,7 +196,7 @@ class DrPlannerBase(ABC):
                 message,
                 run_start_time,
                 nr_iter=nr_iteration,
-                save_dir=save_dir,
+                save_dir=self.config.save_dir,
                 # save_dir=self.dir_output + "prompts/",
                 mockup_nr_iter=mockup_nr_iteration,
             )
@@ -205,26 +204,20 @@ class DrPlannerBase(ABC):
             # add nr of iteration
             nr_iteration += 1
 
-            history += (
-                f"*\t Diagnoses and prescriptions from the last iteration:"
-            )
+            history += f"*\t Diagnoses and prescriptions from the last iteration:"
             try:
                 history += f" {result['summary']}"
                 self.repair(result)
                 planned_trajectory = self.plan(nr_iteration)
                 # add feedback
-                history += (
-                        self.add_feedback(planned_trajectory, nr_iteration) + "\n"
-                )
+                history += self.add_feedback(planned_trajectory, nr_iteration) + "\n"
             except Exception as e:
                 error_traceback = (
                     traceback.format_exc()
                 )  # This gets the traceback as a string
                 print("*\t !! Errors: ", error_traceback)
                 # Catching the exception and extracting error information
-                history += (
-                    f" But they cause the error message: {error_traceback}"
-                )
+                history += f" But they cause the error message: {error_traceback}"
                 self.current_cost = np.inf
             self.cost_list.append(self.current_cost)
         print("[DrPlanner] Ends.")
@@ -248,9 +241,9 @@ class DrPlannerBase(ABC):
             f"[DrPlanner] Starts the diagnosis and repair process at {run_start_time}."
         )  #
         while (
-                abs(self.current_cost - self.desired_cost) > self.THRESHOLD
-                and self.token_count < self.TOKEN_LIMIT
-                and nr_iteration < self.ITERATION_MAX
+            abs(self.current_cost - self.desired_cost) > self.THRESHOLD
+            and self.token_count < self.TOKEN_LIMIT
+            and nr_iteration < self.ITERATION_MAX
         ):
             # --- log current session data ---
             print(f"*\t -----------iteration {nr_iteration}-----------")
@@ -277,7 +270,7 @@ class DrPlannerBase(ABC):
                 self.current_cost = evaluation_trajectory.total_costs
                 # add feedback
                 prompt_evaluation += (
-                        self.add_feedback(planned_trajectory, nr_iteration) + "\n"
+                    self.add_feedback(planned_trajectory, nr_iteration) + "\n"
                 )
             except Exception as e:
                 prompt_system, _ = self.describe(None, result)

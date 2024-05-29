@@ -10,7 +10,10 @@ from commonroad.common.solution import CommonRoadSolutionWriter, VehicleType
 from commonroad.planning.planning_problem import PlanningProblemSet
 from commonroad.scenario.scenario import Scenario
 from commonroad.scenario.trajectory import Trajectory
-from commonroad_dc.costs.evaluation import PlanningProblemCostResult, CostFunctionEvaluator
+from commonroad_dc.costs.evaluation import (
+    PlanningProblemCostResult,
+    CostFunctionEvaluator,
+)
 from commonroad_route_planner.route_planner import RoutePlanner
 from commonroad_rp.cost_function import CostFunction, DefaultCostFunction
 from commonroad_rp.reactive_planner import ReactivePlanner
@@ -31,7 +34,9 @@ class PlanningException(Exception):
 
 def get_planner(config: ReactivePlannerConfiguration) -> ReactivePlanner:
     # run route planner and add reference path to config
-    route_planner = RoutePlanner(config.scenario, config.planning_problem)
+    route_planner = RoutePlanner(
+        config.scenario.lanelet_network, config.planning_problem
+    )
     route = route_planner.plan_routes().retrieve_first_route()
     # initialize reactive planner
     planner = ReactivePlanner(config)
@@ -133,7 +138,9 @@ class DrSamplingPlanner(DrPlannerBase):
                     f"drplanner/planners/standard-config.yaml", self.scenario_path
                 )
                 self.motion_planner_config.update()
-                self.motion_planner_config.planning.time_steps_computation = int(updated_time_step_amount)
+                self.motion_planner_config.planning.time_steps_computation = int(
+                    updated_time_step_amount
+                )
                 self.motion_planner = get_planner(self.motion_planner_config)
             except Exception as e:
                 raise RuntimeError(f"Could not convert time steps into an int: {e}")
@@ -182,7 +189,8 @@ class DrSamplingPlanner(DrPlannerBase):
         # if there was no diagnosis provided describe starting cost function
         if diagnosis_result is None:
             planner_description = self.prompter.generate_planner_description(
-                self.cost_function, self.motion_planner_config,
+                self.cost_function,
+                self.motion_planner_config,
             )
         # otherwise describe the repaired version of the cost function
         else:

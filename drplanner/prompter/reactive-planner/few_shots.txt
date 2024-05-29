@@ -5,6 +5,8 @@ In addition to the non-static methods described above, there are some pre-define
 ```longitudinal_jerk_costs(trajectory: TrajectorySample) -> float```,
 # Prefers trajectories where the car does not use the steering wheel a lot
 ```orientation_offset_costs(trajectory: TrajectorySample) -> float```,
+```steering_angle_costs(trajectory: TrajectorySample) -> float```,
+```steering_velocity_costs(trajectory: TrajectorySample) -> float```,
 # Prefers trajectories which follow a straight line
 ```distance_to_reference_path_costs(trajectory: TrajectorySample) -> float```,
 # Prefers short trajectories (similar to distance_to_reference_path)

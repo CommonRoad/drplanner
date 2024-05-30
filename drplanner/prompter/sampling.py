@@ -1,11 +1,8 @@
 import inspect
-from typing import Union
 
 from commonroad.scenario.scenario import Scenario
 from commonroad.planning.planning_problem import PlanningProblem
 from commonroad_rp.utility.config import ReactivePlannerConfiguration
-
-from commonroad_rp.cost_function import CostFunction
 
 from drplanner.describer.planner_description import CostFunctionDescription
 
@@ -68,6 +65,6 @@ class PrompterSampling(PrompterBase):
                 + cf_code
                 + "\n"
                 + heuristic_function_des
-                + "\n"
-                + config_description
+                # + "\n"
+                # + config_description
             )

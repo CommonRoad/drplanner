@@ -5,7 +5,6 @@ from types import MethodType
 from typing import Union, Optional, Tuple, Type
 
 import numpy as np
-from commonroad.common.solution import CostFunction as CF
 from commonroad.common.solution import CommonRoadSolutionWriter, VehicleType
 from commonroad.planning.planning_problem import PlanningProblemSet
 from commonroad.scenario.scenario import Scenario
@@ -20,16 +19,11 @@ from commonroad_rp.reactive_planner import ReactivePlanner
 from commonroad_rp.trajectories import TrajectorySample
 from commonroad_rp.utility.config import ReactivePlannerConfiguration
 from commonroad_rp.utility.evaluation import run_evaluation
+from describer.base import PlanningException, CompilerException, MissingParameterException
 
 from drplanner.diagnostics.base import DrPlannerBase
 from drplanner.prompter.sampling import PrompterSampling
 from drplanner.utils.config import DrPlannerConfiguration
-
-
-# Custom Exception if no optimal Trajectory was found
-class PlanningException(Exception):
-    def __init__(self):
-        super().__init__("The planner failed: No optimal trajectory could be found!")
 
 
 def get_planner(config: ReactivePlannerConfiguration) -> ReactivePlanner:
@@ -70,7 +64,7 @@ def run_planner(
             optimal = planner.plan()
 
             if not optimal:
-                raise PlanningException
+                raise PlanningException("No optimal trajectory could be found!")
 
             planner.record_state_and_input(optimal[0].state_list[1])
             planner.reset(
@@ -84,7 +78,7 @@ def run_planner(
             temp = current_count % config.planning.replanning_frequency
 
             if not optimal:
-                raise PlanningException
+                raise PlanningException("No optimal trajectory could be found!")
 
             planner.record_state_and_input(optimal[0].state_list[1 + temp])
             planner.reset(
@@ -150,7 +144,11 @@ class DrSamplingPlanner(DrPlannerBase):
         self.motion_planner = get_planner(self.motion_planner_config)
 
         # ----- heuristic function -----
-        updated_cost_function = diagnosis_result[self.prompter.COST_FUNCTION]
+        try:
+            updated_cost_function = diagnosis_result[self.prompter.COST_FUNCTION]
+        except Exception as e:
+            raise MissingParameterException(self.prompter.COST_FUNCTION)
+
         updated_cost_function = textwrap.dedent(updated_cost_function)
         # Create a namespace dictionary to hold the compiled function
         function_namespace = {}
@@ -162,10 +160,11 @@ class DrSamplingPlanner(DrPlannerBase):
 
         # Execute the updated heuristic function string
         try:
+            # TODO: compile function first
             exec(updated_cost_function, globals(), function_namespace)
         except Exception as e:
             # Handle exceptions (e.g., compilation errors)
-            raise RuntimeError(f"Error compiling heuristic function: {e}")
+            raise CompilerException(e)
 
         # Extract the new function
         new_cost_function = function_namespace["evaluate"]

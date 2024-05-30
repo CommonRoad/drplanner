@@ -2,6 +2,7 @@ import ast
 import inspect
 import re
 import textwrap
+import traceback
 import warnings
 from abc import ABC, abstractmethod
 import os
@@ -139,5 +140,37 @@ class FunctionDescriptionBase(DescriptionBase, ABC):
 
 
 class ExceptionDescription(DescriptionBase):
-    def generate(self, traceback: str):
-        return traceback
+    def __init__(self, exception: Exception):
+        super().__init__()
+        self.exception = exception
+
+    def generate(self):
+        tb = traceback.extract_tb(self.exception.__traceback__)  # Extract the traceback
+        frame = None
+        for frame_summary in tb:
+            if "drplanner" in frame_summary.filename:
+                frame = frame_summary
+
+        if not frame:
+            frame = tb[-1]
+
+        summary = f"TYPE: {type(self.exception)} METHOD: {frame.name} LINE: {frame.line}"
+        return summary
+
+
+class PlanningException(Exception):
+    def __init__(self, cause: str):
+        super().__init__()
+        self.description = f"The planner failed: {cause}"
+
+
+class CompilerException(Exception):
+    def __init__(self, cause: Exception):
+        super().__init__("The python code provided by the LLM could not be compiled")
+        self.cause = cause
+
+
+class MissingParameterException(Exception):
+    def __init__(self, parameter: str):
+        super().__init__()
+        self.description = f"The LLM did not provide the essential parameter <{parameter}>"

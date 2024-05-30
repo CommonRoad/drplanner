@@ -136,3 +136,8 @@ class FunctionDescriptionBase(DescriptionBase, ABC):
                 description += f"{func_name} not found; "
         self.description = description.replace("\n", "").replace("\t", "")
         return self.description
+
+
+class ExceptionDescription(DescriptionBase):
+    def generate(self, traceback: str):
+        return traceback

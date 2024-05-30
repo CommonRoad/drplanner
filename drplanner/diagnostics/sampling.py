@@ -1,6 +1,7 @@
 import importlib
 import os
 import textwrap
+import time
 from types import MethodType
 from typing import Union, Optional, Tuple, Type
 
@@ -49,10 +50,14 @@ def run_planner(
     planner.set_cost_function(cost_function)
 
     print(f"The current planning horizon is {planner.horizon}!")
+    max_planning_time = 100
+    current_time = time.time()
     # Add first state to recorded state and input list
     planner.record_state_and_input(planner.x_0)
     optimal = None
     while not planner.goal_reached():
+        if time.time() - current_time > max_planning_time:
+            raise PlanningException("Timeout because planning took to long!")
         current_count = len(planner.record_state_list) - 1
 
         # check if planning cycle or not

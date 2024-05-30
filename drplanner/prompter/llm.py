@@ -20,7 +20,7 @@ def check_openai_api_key(api_key, mockup=False):
 
 def mockup_query(
     iteration,
-    directory="/home/sebastian/Documents/Uni/Bachelorarbeit/DrPlanner_Data/10000042/DEU_Guetersloh-15_2_T-1/mockup",
+    directory="/home/sebastian/Documents/Uni/Bachelorarbeit/DrPlanner_Data/mockup/error_runs",
 ):
     filenames = []
     # finds all .jsons in the directory and assumes them to be mockup responses

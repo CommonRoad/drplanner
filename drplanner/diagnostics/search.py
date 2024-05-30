@@ -128,30 +128,13 @@ class DrSearchPlanner(DrPlannerBase):
         )
         self.motion_planner.frontier = PriorityQueue()
 
-    def describe(
+    def describe_planner(
         self,
-        planned_trajectory: Union[Trajectory, str],
         diagnosis_result: Union[str, None],
     ) -> (str, PlanningProblemCostResult):
-        template = self.prompter.algorithm_template
-
-        planner_description = self.prompter.generate_planner_description(
+        return self.prompter.generate_planner_description(
             self.StudentMotionPlanner, self.motion_primitives_id
         )
-
-        template = template.replace("[PLANNER]", planner_description)
-
-        if isinstance(planned_trajectory, Trajectory):
-            evaluation_trajectory = self.evaluate_trajectory(planned_trajectory)
-
-            traj_description = self.prompter.generate_cost_description(
-                evaluation_trajectory, self.desired_cost
-            )
-        else:
-            traj_description = f" The planner failed: {planned_trajectory}"
-            evaluation_trajectory = None
-        template = template.replace("[PLANNED_TRAJECTORY]", traj_description)
-        return template, evaluation_trajectory
 
     def plan(self, nr_iter: int) -> Trajectory:
         list_paths_primitives, _, _ = self.motion_planner.execute_search()

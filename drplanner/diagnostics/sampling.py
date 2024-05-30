@@ -178,17 +178,13 @@ class DrSamplingPlanner(DrPlannerBase):
 
         self.cost_function.evaluate = MethodType(new_cost_function, self.cost_function)
 
-    def describe(
+    def describe_planner(
         self,
-        planned_trajectory: Union[Trajectory, str],
         diagnosis_result: Union[str, None],
-    ) -> (str, PlanningProblemCostResult):
-
-        template = self.prompter.algorithm_template
-        # --- GENERATE PLANNER DESCRIPTION ---
+    ) -> str:
         # if there was no diagnosis provided describe starting cost function
         if diagnosis_result is None:
-            planner_description = self.prompter.generate_planner_description(
+            return self.prompter.generate_planner_description(
                 self.cost_function,
                 self.motion_planner_config,
             )
@@ -196,23 +192,10 @@ class DrSamplingPlanner(DrPlannerBase):
         else:
             updated_cost_function = diagnosis_result[self.prompter.COST_FUNCTION]
             updated_cost_function = textwrap.dedent(updated_cost_function)
-            planner_description = self.prompter.generate_planner_description(
-                updated_cost_function
+            return self.prompter.generate_planner_description(
+                updated_cost_function,
+                self.motion_planner_config,
             )
-        template = template.replace("[PLANNER]", planner_description)
-
-        # --- GENERATE TRAJECTORY DESCRIPTION ---
-        if isinstance(planned_trajectory, Trajectory):
-            evaluation_trajectory = self.evaluate_trajectory(planned_trajectory)
-
-            traj_description = self.prompter.generate_cost_description(
-                evaluation_trajectory, self.desired_cost
-            )
-        else:
-            traj_description = f" The planner failed: {planned_trajectory}"
-            evaluation_trajectory = None
-        template = template.replace("[PLANNED_TRAJECTORY]", traj_description)
-        return template, evaluation_trajectory
 
     def plan(self, nr_iter: int) -> Trajectory:
         solution = run_planner(

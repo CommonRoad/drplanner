@@ -4,6 +4,8 @@ from abc import ABC, abstractmethod
 
 from commonroad.scenario.scenario import Scenario
 from commonroad.planning.planning_problem import PlanningProblem
+
+from describer.base import ExceptionDescription
 from drplanner.prompter.llm import LLM, LLMFunction
 from drplanner.describer.trajectory_description import TrajectoryCostDescription
 
@@ -63,6 +65,8 @@ class PrompterBase(ABC):
             "[CONSTRAINTS]", self.astar_constraints
         ).replace("[FEW_SHOTS]", self.astar_few_shots)
 
+        self.trajectory_description = None
+
     def reload_LLM(self):
         print("*\t <LLM> The LLM is reloaded")
         self.LLM = LLM(
@@ -77,14 +81,20 @@ class PrompterBase(ABC):
     def generate_planner_description(self, *args, **kwargs) -> str:
         pass
 
-    @staticmethod
     def generate_cost_description(
-        cost_evaluation: PlanningProblemCostResult, desired_cost: float
+        self, cost_evaluation: PlanningProblemCostResult, desired_cost: float
     ):
-        traj_des = TrajectoryCostDescription(cost_evaluation)
-        return traj_des.generate(desired_value=desired_cost)
+        if not self.trajectory_description:
+            self.trajectory_description = TrajectoryCostDescription(cost_evaluation)
+        return self.trajectory_description.generate(desired_value=desired_cost)
 
     @staticmethod
     def update_cost_description(cost_evaluation: PlanningProblemCostResult):
         traj_des = TrajectoryCostDescription(cost_evaluation)
         return traj_des.update()
+
+    @staticmethod
+    def generate_exception_description(traceback: str):
+        print("*\t !! Errors: ", traceback)
+        exp_des = ExceptionDescription()
+        return f" The planner failed: {exp_des.generate(traceback)}"

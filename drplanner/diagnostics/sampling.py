@@ -130,20 +130,24 @@ class DrSamplingPlanner(DrPlannerBase):
         self.cost_function = self.motion_planner.cost_function
 
     def repair(self, diagnosis_result: Union[str, None]):
+        # reset configuration
+        self.motion_planner_config = ReactivePlannerConfiguration.load(
+            f"drplanner/planners/standard-config.yaml", self.scenario_path
+        )
+        self.motion_planner_config.update()
+
         # ----- planner configuration -----
         updated_time_step_amount = diagnosis_result[self.prompter.PLANNER_CONFIG]
         if updated_time_step_amount:
             try:
-                self.motion_planner_config = ReactivePlannerConfiguration.load(
-                    f"drplanner/planners/standard-config.yaml", self.scenario_path
-                )
-                self.motion_planner_config.update()
                 self.motion_planner_config.planning.time_steps_computation = int(
                     updated_time_step_amount
                 )
-                self.motion_planner = get_planner(self.motion_planner_config)
             except Exception as e:
                 raise RuntimeError(f"Could not convert time steps into an int: {e}")
+
+        # reset planner
+        self.motion_planner = get_planner(self.motion_planner_config)
 
         # ----- heuristic function -----
         updated_cost_function = diagnosis_result[self.prompter.COST_FUNCTION]

@@ -1,4 +1,3 @@
-import importlib
 import os
 import textwrap
 import time
@@ -10,6 +9,7 @@ from commonroad.common.solution import CommonRoadSolutionWriter
 from commonroad.planning.planning_problem import PlanningProblemSet
 from commonroad.scenario.scenario import Scenario
 from commonroad.scenario.trajectory import Trajectory
+from commonroad_dc.feasibility.vehicle_dynamics import StateException
 from commonroad_route_planner.route_planner import RoutePlanner
 from commonroad_rp.cost_function import CostFunction, DefaultCostFunction
 from commonroad_rp.reactive_planner import ReactivePlanner
@@ -104,9 +104,19 @@ def run_planner(
                 collision_checker=planner.collision_checker,
                 coordinate_system=planner.coordinate_system,
             )
-    solution, _ = run_evaluation(
-        planner.config, planner.record_state_list, planner.record_input_list
-    )
+    try:
+        solution, _ = run_evaluation(
+            planner.config, planner.record_state_list, planner.record_input_list
+        )
+    except StateException as _:
+        cause = (
+            "The final trajectory was generated but driving it is impossible. Either the vehicle can not "
+            "accelerate that fast or the input violates the friction circle!"
+        )
+        solution = ("The cost function generates trajectories which are unstable and extreme. Try to be more "
+                    "conservative.")
+        raise PlanningException(cause, solution)
+
     return solution
 
 
@@ -163,7 +173,7 @@ class DrSamplingPlanner(DrPlannerBase):
         # ----- heuristic function -----
         try:
             updated_cost_function = diagnosis_result[self.prompter.COST_FUNCTION]
-        except Exception as e:
+        except Exception as _:
             raise MissingParameterException(self.prompter.COST_FUNCTION)
 
         updated_cost_function = textwrap.dedent(updated_cost_function)

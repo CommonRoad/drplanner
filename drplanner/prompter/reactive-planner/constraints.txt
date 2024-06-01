@@ -1,5 +1,5 @@
 Before you start, it is important to strictly stick to these instructions:
+- Sometimes a good cost function is one which uses only a few lines of code. It is better to start of basic and increase complexity later on.
 - The diagnosis should concisely pinpoint each issue, using only a few words for clarity and brevity. For each prescription, provide a detailed, step-by-step action plan.
-- Please make sure that required parameters are always provided in your function call. This includes the diagnoses array, the time step amount and the repaired function.
-- Only send Extra information parameter if it is essentially important
-- The code which you repair needs to compile. Therefore you need to only use those functions which the user tells you to use!!!
+- The code which you repair needs to compile. Therefore, you need to only use those functions which the user tells you to use.
+- Please make ABSOLUTELY sure that required parameters are always provided in your function call!! This includes the DIAGNOSES ARRAY, the TIME STEP AMOUNT and the REPAIRED FUNCTION!!

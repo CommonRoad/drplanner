@@ -16,6 +16,7 @@ from commonroad_dc.costs.evaluation import (
     CostFunctionEvaluator,
 )
 
+from describer.trajectory_description import get_infinite_cost_result
 from drplanner.utils.config import DrPlannerConfiguration
 from drplanner.prompter.search import PrompterSearch
 from drplanner.utils.gpt import num_tokens_from_messages
@@ -77,6 +78,7 @@ class DrPlannerBase(ABC):
         self.cost_evaluator = CostFunctionEvaluator(
             self.cost_type, VehicleType.BMW_320i
         )
+        self.evaluation_trajectory = None
 
     @abstractmethod
     def repair(self, diagnosis_result: Union[str, None]):
@@ -106,7 +108,7 @@ class DrPlannerBase(ABC):
         self,
         planned_trajectory: Union[Trajectory, Exception],
         diagnosis_result: Union[str, None],
-    ) -> (str, PlanningProblemCostResult):
+    ) -> str:
         template = self.prompter.algorithm_template
         prompt_planner = self.describe_planner(diagnosis_result)
         prompt_trajectory, evaluation_trajectory = self.describe_trajectory(
@@ -114,7 +116,8 @@ class DrPlannerBase(ABC):
         )
         template = template.replace("[PLANNER]", prompt_planner)
         template = template.replace("[PLANNED_TRAJECTORY]", prompt_trajectory)
-        return template, evaluation_trajectory
+        self.evaluation_trajectory = evaluation_trajectory
+        return template
 
     def describe_trajectory(
         self, planned_trajectory: Union[Trajectory, Exception]
@@ -123,10 +126,11 @@ class DrPlannerBase(ABC):
             evaluation_trajectory = self.cost_evaluator.evaluate_pp_solution(
                 self.scenario, self.planning_problem, planned_trajectory
             )
-
-            description = self.prompter.generate_cost_description(
-                evaluation_trajectory, self.desired_cost
+            description = (
+                f"The objective is to adjust the total cost of the planned trajectory to closely "
+                f"align with the desired value {self.desired_cost}. "
             )
+            description += self.prompter.generate_cost_description(evaluation_trajectory)
             return description, evaluation_trajectory
         else:
             description = "Usually here would be an evaluation of the motion planning result, but..."
@@ -135,33 +139,20 @@ class DrPlannerBase(ABC):
             )
             return description, None
 
-    def evaluate_trajectory(self, trajectory: Trajectory) -> PlanningProblemCostResult:
-        return self.cost_evaluator.evaluate_pp_solution(
-            self.scenario, self.planning_problem, trajectory
-        )
-
-    def add_feedback(self, updated_trajectory: Trajectory, iteration: int):
+    def add_feedback(self, updated_trajectory: Trajectory):
         """
         Evaluates the result of the repair process
         """
-        feedback = "After applying this diagnostic result,"
-        evaluation_trajectory = self.evaluate_trajectory(updated_trajectory)
-        feedback += self.prompter.update_cost_description(evaluation_trajectory)
-        if evaluation_trajectory.total_costs > self.current_cost:
-            feedback += (
-                f" the performance of the motion planner ({evaluation_trajectory.total_costs})"
-                f" is getting worse than iteration {iteration - 1} ({self.current_cost}). "
-                f"Please continue output the improved heuristic function and motion primitives."
-            )
-        else:
-            feedback += (
-                f" the performance of the motion planner ({evaluation_trajectory.total_costs})"
-                f" is getting better than iteration {iteration - 1} ({self.current_cost})."
-                " Please continue output the improved heuristic function and motion primitives."
-            )
+        # set last cost result
+        self.prompter.update_cost_description(self.evaluation_trajectory)
+        # retrieve current cost result
+        self.evaluation_trajectory = self.cost_evaluator.evaluate_pp_solution(
+            self.scenario, self.planning_problem, updated_trajectory
+        )
+        feedback = self.prompter.generate_cost_description(self.evaluation_trajectory)
         print(f"*\t Feedback: {feedback}")
         # update the current cost
-        self.current_cost = evaluation_trajectory.total_costs
+        self.current_cost = self.evaluation_trajectory.total_costs
         return feedback
 
     def diagnose_repair(self):
@@ -177,21 +168,22 @@ class DrPlannerBase(ABC):
         print(
             f"[DrPlanner] Starts the diagnosis and repair process at {run_start_time}."
         )
-        history = ""
         result = None
 
         # test the initial motion planner once
         try:
             planned_trajectory = self.plan(nr_iteration)
-            prompt_planner, evaluation_trajectory = self.describe(
+            prompt_planner = self.describe(
                 planned_trajectory, None
             )
-            self.current_cost = evaluation_trajectory.total_costs
+            self.current_cost = self.evaluation_trajectory.total_costs
         except Exception as e:
-            prompt_planner, _ = self.describe(e, None)
+            prompt_planner = self.describe(e, None)
+            self.evaluation_trajectory = get_infinite_cost_result(self.cost_type)
             self.current_cost = np.inf
         self.initial_cost = self.current_cost
-
+        # history = self.prompter.generate_cost_description(self.evaluation_trajectory)
+        history = ""
         # start the repairing process
         while (
             abs(self.current_cost - self.desired_cost) > self.THRESHOLD
@@ -232,19 +224,20 @@ class DrPlannerBase(ABC):
 
             # reset some variables
             self.prompter.reload_LLM()
-            history = "Diagnoses and prescriptions from the last iteration:"
+            history = "Diagnoses and prescriptions from the last iteration:\n"
             nr_iteration += 1
 
             # repair the motion planner and test the result
             try:
-                history += f" {result['summary']}"
+                history += f" {result['summary']}\n"
                 self.repair(result)
                 planned_trajectory = self.plan(nr_iteration)
                 # add feedback
-                history += self.add_feedback(planned_trajectory, nr_iteration) + "\n"
+                history += self.add_feedback(planned_trajectory)
             except Exception as e:
                 history += "Usually here would be an evaluation of the repair, but..."
                 history += self.prompter.generate_exception_description(e)
+                self.evaluation_trajectory = get_infinite_cost_result(self.cost_type)
                 self.current_cost = np.inf
             self.cost_list.append(self.current_cost)
 

@@ -154,23 +154,37 @@ class ExceptionDescription(DescriptionBase):
         if not frame:
             frame = tb[-1]
 
-        summary = f"TYPE: {type(self.exception)} METHOD: {frame.name} LINE: {frame.line}"
+        summary = (
+            f"TYPE: {type(self.exception)} METHOD: {frame.name} LINE: {frame.line}"
+        )
         return summary
 
 
-class PlanningException(Exception):
-    def __init__(self, cause: str):
+class DrPlannerException(Exception):
+    def __init__(self, illness: str, remedy: str):
         super().__init__()
-        self.description = f"The planner failed: {cause}"
+        self.illness = illness
+        self.remedy = remedy
+
+    def describe(self) -> str:
+        return f"{self.illness} {self.remedy}"
 
 
-class CompilerException(Exception):
+class PlanningException(DrPlannerException):
+    def __init__(self, cause: str, solution: str):
+        super().__init__(f"The planner failed: {cause}", solution)
+
+
+class CompilerException(DrPlannerException):
     def __init__(self, cause: Exception):
-        super().__init__("The python code provided by the LLM could not be compiled")
-        self.cause = cause
+        exp_des = ExceptionDescription(cause)
+        problem = f"The compilation of the repaired python code failed:\n {exp_des.generate()}"
+        solution = "Next time please make sure that the python code you send is actually compilable"
+        super().__init__(problem, solution)
 
 
-class MissingParameterException(Exception):
+class MissingParameterException(DrPlannerException):
     def __init__(self, parameter: str):
-        super().__init__()
-        self.description = f"The LLM did not provide the essential parameter <{parameter}>"
+        problem = f"The LLM did not provide the essential parameter <{parameter}>"
+        solution = "To fix this you need to send the required parameter next time!"
+        super().__init__(problem, solution)

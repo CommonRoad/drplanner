@@ -3,24 +3,24 @@ import os
 import textwrap
 import time
 from types import MethodType
-from typing import Union, Optional, Tuple, Type
+from typing import Union, Optional, Type
 
 import numpy as np
-from commonroad.common.solution import CommonRoadSolutionWriter, VehicleType
+from commonroad.common.solution import CommonRoadSolutionWriter
 from commonroad.planning.planning_problem import PlanningProblemSet
 from commonroad.scenario.scenario import Scenario
 from commonroad.scenario.trajectory import Trajectory
-from commonroad_dc.costs.evaluation import (
-    PlanningProblemCostResult,
-    CostFunctionEvaluator,
-)
 from commonroad_route_planner.route_planner import RoutePlanner
 from commonroad_rp.cost_function import CostFunction, DefaultCostFunction
 from commonroad_rp.reactive_planner import ReactivePlanner
 from commonroad_rp.trajectories import TrajectorySample
 from commonroad_rp.utility.config import ReactivePlannerConfiguration
 from commonroad_rp.utility.evaluation import run_evaluation
-from describer.base import PlanningException, CompilerException, MissingParameterException
+from describer.base import (
+    PlanningException,
+    CompilerException,
+    MissingParameterException,
+)
 
 from drplanner.diagnostics.base import DrPlannerBase
 from drplanner.prompter.sampling import PrompterSampling
@@ -57,7 +57,11 @@ def run_planner(
     optimal = None
     while not planner.goal_reached():
         if time.time() - current_time > max_planning_time:
-            raise PlanningException("Timeout because planning took to long!")
+            cause = "Planning took too much time and was terminated!"
+            solution = (
+                "The vehicle might be driving to slow or is stuck without moving."
+            )
+            raise PlanningException(cause, solution)
         current_count = len(planner.record_state_list) - 1
 
         # check if planning cycle or not
@@ -69,7 +73,11 @@ def run_planner(
             optimal = planner.plan()
 
             if not optimal:
-                raise PlanningException("No optimal trajectory could be found!")
+                cause = "No optimal trajectory could be found!"
+                solution = (
+                    "Redefine the cost function or adjust the configuration parameters."
+                )
+                raise PlanningException(cause, solution)
 
             planner.record_state_and_input(optimal[0].state_list[1])
             planner.reset(
@@ -83,7 +91,11 @@ def run_planner(
             temp = current_count % config.planning.replanning_frequency
 
             if not optimal:
-                raise PlanningException("No optimal trajectory could be found!")
+                cause = "No optimal trajectory could be found!"
+                solution = (
+                    "Redefine the cost function or adjust the configuration parameters."
+                )
+                raise PlanningException(cause, solution)
 
             planner.record_state_and_input(optimal[0].state_list[1 + temp])
             planner.reset(

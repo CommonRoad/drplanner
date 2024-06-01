@@ -1,7 +1,6 @@
 import math
 import copy
 import os
-import traceback
 from datetime import datetime
 from typing import Union
 
@@ -131,7 +130,9 @@ class DrPlannerBase(ABC):
             return description, evaluation_trajectory
         else:
             description = "Usually here would be an evaluation of the motion planning result, but..."
-            description += self.prompter.generate_exception_description(planned_trajectory)
+            description += self.prompter.generate_exception_description(
+                planned_trajectory
+            )
             return description, None
 
     def evaluate_trajectory(self, trajectory: Trajectory) -> PlanningProblemCostResult:

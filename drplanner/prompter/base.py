@@ -97,7 +97,6 @@ class PrompterBase(ABC):
 
     @staticmethod
     def generate_exception_description(e: Exception):
-        print("*\t !! Errors: ", str(e))
         description = "\n"
         description += "!AN EXCEPTION OCCURRED!\n"
 
@@ -108,4 +107,5 @@ class PrompterBase(ABC):
             description += str(e) + "\n"
             description += exp_des.generate()
 
+        print(description)
         return description

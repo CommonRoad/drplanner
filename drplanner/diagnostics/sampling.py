@@ -50,7 +50,7 @@ def run_planner(
     planner.set_cost_function(cost_function)
 
     print(f"The current planning horizon is {planner.horizon}!")
-    max_planning_time = 100
+    max_planning_time = 60
     current_time = time.time()
     # Add first state to recorded state and input list
     planner.record_state_and_input(planner.x_0)

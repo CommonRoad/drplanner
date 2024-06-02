@@ -133,11 +133,13 @@ class DrPlannerBase(ABC):
             description += self.prompter.generate_cost_description(evaluation_trajectory)
             return description, evaluation_trajectory
         else:
+            evaluation_trajectory = get_infinite_cost_result(self.cost_type)
+            self.prompter.generate_cost_description(evaluation_trajectory)
             description = "Usually here would be an evaluation of the motion planning result, but..."
             description += self.prompter.generate_exception_description(
                 planned_trajectory
             )
-            return description, None
+            return description, evaluation_trajectory
 
     def add_feedback(self, updated_trajectory: Trajectory):
         """
@@ -212,13 +214,12 @@ class DrPlannerBase(ABC):
 
             # send request and receive response
             result = self.prompter.LLM.query(
-                str(self.scenario.scenario_id),
-                str(self.planner_id),
                 message,
-                run_start_time,
-                nr_iter=nr_iteration,
+                scenario_id=str(self.scenario.scenario_id),
+                #planner_id=str(self.planner_id),
+                #start_time=run_start_time,
                 save_dir=self.config.save_dir,
-                # save_dir=self.dir_output + "prompts/",
+                nr_iter=nr_iteration,
                 mockup_nr_iter=mockup_nr_iteration,
             )
 
@@ -237,7 +238,6 @@ class DrPlannerBase(ABC):
             except Exception as e:
                 history += "Usually here would be an evaluation of the repair, but..."
                 history += self.prompter.generate_exception_description(e)
-                self.evaluation_trajectory = get_infinite_cost_result(self.cost_type)
                 self.current_cost = np.inf
             self.cost_list.append(self.current_cost)
 

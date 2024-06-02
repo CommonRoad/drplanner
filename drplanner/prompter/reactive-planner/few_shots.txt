@@ -17,8 +17,9 @@ Example:
     def evaluate(self, trajectory: TrajectorySample) -> float:
         return 0.0
 ```
-Improved result:
+Improved code as LLM response to parameter "improved_cost_function":
 ```
+    # you also need to include the function definition
     def evaluate(self, trajectory: TrajectorySample) -> float:
         cost = 0.0
         # own method

@@ -11,8 +11,9 @@ In addition to the methods described above, there are some pre-defined helper me
 ```distance_to_reference_path_costs(trajectory: TrajectorySample) -> float```,
 # Prefers short trajectories (similar to distance_to_reference_path)
 ```path_length_costs(trajectory: TrajectorySample) -> float```
-
-When generating the cost function it is of utmost importance that a proper python method including signature and return statement is generated.
+When choosing from the pool of helper methods or adjusting their weights it is helpful to look at the cost evaluation as a reference.
+Also keep in mind that the helper methods do not return normalized values and their return values can vary greatly in size.
+When generating the cost function it is of utmost importance that a proper python method including signature and return statement is generated!
 
 This is correct:
 '''

@@ -181,7 +181,9 @@ class LLM:
             ]
             path_variables = [x for x in path_variables if x is not None]
 
-            self._save_iteration_as_json(messages, content_json, nr_iter, path_variables)
+            self._save_iteration_as_json(
+                messages, content_json, nr_iter, path_variables
+            )
             self._save_iteration_as_txt(messages, content_json, nr_iter, path_variables)
             return content_json
         else:

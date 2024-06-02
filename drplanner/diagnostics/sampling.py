@@ -19,7 +19,8 @@ from commonroad_rp.utility.evaluation import run_evaluation
 from describer.base import (
     PlanningException,
     CompilerException,
-    MissingParameterException, MissingSignatureException,
+    MissingParameterException,
+    MissingSignatureException,
 )
 
 from drplanner.diagnostics.base import DrPlannerBase
@@ -113,8 +114,10 @@ def run_planner(
             "The final trajectory was generated but driving it is impossible. Either the vehicle can not "
             "accelerate that fast or the input violates the friction circle!"
         )
-        solution = ("The cost function generates trajectories which are unstable and extreme. Try to be more "
-                    "conservative.")
+        solution = (
+            "The cost function generates trajectories which are unstable and extreme. Try to be more "
+            "conservative."
+        )
         raise PlanningException(cause, solution)
 
     return solution

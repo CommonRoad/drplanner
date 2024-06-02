@@ -183,6 +183,14 @@ class CompilerException(DrPlannerException):
         super().__init__(problem, solution)
 
 
+class MissingSignatureException(DrPlannerException):
+    def __init__(self):
+        problem = "The method signature and the return statement are missing in the provided python code."
+        solution = ("Add \"def evaluate(self, trajectory: TrajectorySample):\" at the beginning, add a return "
+                    "statement at the end and ensure proper indentation!")
+        super().__init__(problem, solution)
+
+
 class MissingParameterException(DrPlannerException):
     def __init__(self, parameter: str):
         problem = f"The LLM did not provide the essential parameter <{parameter}>"

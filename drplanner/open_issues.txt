@@ -1,16 +1,5 @@
-1   clean up the codebase to have a clean version to branch off
-2   todo: reconsider the current diagnose-repair cycle issue
-    -> Maybe add constraint to consider the past advice and not to resend anything etc...#
-    -> Decouple the function description and the planner description
-        FD: Used methods, PD: current code, base
-3   delete path_length cost and add velocity + distance cost
-4   do not require extra information anymore by adding it to constraints - works semi-well
-5   provide error handling if no optimal trajectory was found
-5b  todo: modularize the diagnose-repair
-5c  todo: modularize the prompt structure!
-6   todo: think of how to implement modular error handling to dr. planner
-    -> Own class
-7   todo: add "time_steps" from planner.config as a tunable parameter to the repair
+1   todo: fix all common errors
+3   todo: update the planner description and initial cost with the current best version
 8   todo: add plots as visual input to the evaluation feedback
 9   todo: automate function description of all class/superclass methods
 10  todo: let LLM request class descriptions at runtime

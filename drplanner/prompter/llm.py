@@ -20,7 +20,7 @@ def check_openai_api_key(api_key, mockup=False):
 
 def mockup_query(
     iteration,
-    directory="/home/sebastian/Documents/Uni/Bachelorarbeit/DrPlanner_Data/mockup/error_runs",
+    directory="/home/sebastian/Documents/Uni/Bachelorarbeit/DrPlanner_Data/mockup/debug",
 ):
     filenames = []
     # finds all .jsons in the directory and assumes them to be mockup responses
@@ -136,12 +136,12 @@ class LLM:
     # send <messages> to the OpenAI api
     def query(
         self,
-        scenario_id: str,
-        planner_id: str,
         messages: List[Dict[str, str]],
-        start_time: str,
-        nr_iter: int = 1,
+        scenario_id=None,
+        planner_id=None,
+        start_time=None,
         save_dir: str = "../outputs/",
+        nr_iter: int = 1,
         mockup_nr_iter: int = -1,
     ):
         # check whether this is a mockup run
@@ -172,49 +172,31 @@ class LLM:
                     f"*\t <Prompt> Iteration {nr_iter} succeeds, "
                     f"{response.usage.total_tokens} tokens are used"
                 )
-
-            params = (
+            path_variables = [
                 save_dir,
                 planner_id,
                 scenario_id,
-                messages,
-                nr_iter,
+                self.gpt_version,
                 start_time,
-                content_json,
-            )
+            ]
+            path_variables = [x for x in path_variables if x is not None]
 
-            self._save_results_as_json(params)
-            self._save_results_as_txt(params)
+            self._save_iteration_as_json(messages, content_json, nr_iter, path_variables)
+            self._save_iteration_as_txt(messages, content_json, nr_iter, path_variables)
             return content_json
         else:
             print(f"*\t <Prompt> Iteration {nr_iter} failed, no response is generated")
             return None
 
     # helper function to save both prompts and responses in a human-readable form
-    def _save_results_as_txt(self, params):
-        (
-            save_dir,
-            planner_id,
-            scenario_id,
-            messages,
-            nr_iter,
-            start_time,
-            content_json,
-        ) = params
+    @staticmethod
+    def _save_iteration_as_txt(messages, content_json, nr_iter, path_variables: list):
         text_filename_result = f"result_iter-{nr_iter}.txt"
         text_filename_prompt = f"prompt_iter-{nr_iter}.txt"
+        path_variables.append("texts")
+        path_variables.append(text_filename_result)
         # Parse the saved content into a txt file
-        txt_save_dir = os.path.dirname(
-            os.path.join(
-                save_dir,
-                planner_id,
-                scenario_id,
-                self.gpt_version,
-                start_time,
-                "texts",
-                text_filename_result,
-            )
-        )
+        txt_save_dir = os.path.dirname(os.path.join(*path_variables))
 
         if not os.path.exists(txt_save_dir):
             os.makedirs(txt_save_dir, exist_ok=True)
@@ -236,30 +218,15 @@ class LLM:
                             txt_file.write(json.dumps(item))
 
     # helper function to save both prompts and responses as parsable json
-    def _save_results_as_json(self, params):
-        (
-            save_dir,
-            planner_id,
-            scenario_id,
-            messages,
-            nr_iter,
-            start_time,
-            content_json,
-        ) = params
+    @staticmethod
+    def _save_iteration_as_json(messages, content_json, nr_iter, path_variables: list):
         filename_result = f"result_iter-{nr_iter}.json"
         filename_prompt = f"prompt_iter-{nr_iter}.json"
+        paths = path_variables.copy()
+        paths.append("jsons")
+        paths.append(filename_result)
         # Save the content to a JSON file
-        json_save_dir = os.path.dirname(
-            os.path.join(
-                save_dir,
-                planner_id,
-                scenario_id,
-                self.gpt_version,
-                start_time,
-                "jsons",
-                filename_result,
-            )
-        )
+        json_save_dir = os.path.dirname(os.path.join(*paths))
         if not os.path.exists(json_save_dir):
             os.makedirs(json_save_dir, exist_ok=True)
         # save the prompt

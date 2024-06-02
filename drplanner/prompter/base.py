@@ -16,13 +16,13 @@ from commonroad_dc.costs.evaluation import PlanningProblemCostResult
 
 class PrompterBase(ABC):
     def __init__(
-            self,
-            scenario: Scenario,
-            planning_problem: PlanningProblem,
-            api_key: str,
-            gpt_version: str = "gpt-3.5-turbo",  # gpt-3.5-turbo, text-davinci-002, gpt-4-1106-preview
-            prompts_folder_name: str = "astar/",
-            mockup=False,
+        self,
+        scenario: Scenario,
+        planning_problem: PlanningProblem,
+        api_key: str,
+        gpt_version: str = "gpt-3.5-turbo",  # gpt-3.5-turbo, text-davinci-002, gpt-4-1106-preview
+        prompts_folder_name: str = "astar/",
+        mockup=False,
     ):
         self.api_key = api_key
         self.gpt_version = gpt_version
@@ -43,22 +43,22 @@ class PrompterBase(ABC):
             self.prompt_system = file.read()
 
         with open(
-                os.path.join(script_dir, prompts_folder_name + "template.txt"), "r"
+            os.path.join(script_dir, prompts_folder_name + "template.txt"), "r"
         ) as file:
             self.algorithm_template = file.read()
 
         with open(
-                os.path.join(script_dir, prompts_folder_name + "constraints.txt"), "r"
+            os.path.join(script_dir, prompts_folder_name + "constraints.txt"), "r"
         ) as file:
             self.astar_constraints = file.read()
 
         with open(
-                os.path.join(script_dir, prompts_folder_name + "few_shots.txt"), "r"
+            os.path.join(script_dir, prompts_folder_name + "few_shots.txt"), "r"
         ) as file:
             self.astar_few_shots = file.read()
 
         with open(
-                os.path.join(script_dir, prompts_folder_name + "algorithm.txt"), "r"
+            os.path.join(script_dir, prompts_folder_name + "algorithm.txt"), "r"
         ) as file:
             self.astar_base = file.read()
 
@@ -83,9 +83,7 @@ class PrompterBase(ABC):
     def generate_planner_description(self, *args, **kwargs) -> str:
         pass
 
-    def generate_cost_description(
-            self, cost_evaluation: PlanningProblemCostResult
-    ):
+    def generate_cost_description(self, cost_evaluation: PlanningProblemCostResult):
         if not self.trajectory_description:
             self.trajectory_description = TrajectoryCostDescription(cost_evaluation)
             return self.trajectory_description.generate(None)

@@ -62,24 +62,36 @@ class TrajectoryCostDescription(DescriptionBase):
         return self.description
 
     def _update(self, update: PlanningProblemCostResult):
-        description = ("What follows is a performance comparison between the last planner version and the current "
-                       "planner version.\n")
-        description += self._compare("total cost", self.cost_result.total_costs, update.total_costs)
+        description = (
+            "What follows is a performance comparison between the last planner version and the current "
+            "planner version.\n"
+        )
+        description += self._compare(
+            "total cost", self.cost_result.total_costs, update.total_costs
+        )
         description += "Total cost is calculated by a weighted sum of:\n"
-        for (item, initial_cost), (_, repaired_cost) in zip(self.cost_result.partial_costs.items(), update.partial_costs.items()):
+        for (item, initial_cost), (_, repaired_cost) in zip(
+            self.cost_result.partial_costs.items(), update.partial_costs.items()
+        ):
             item = f"{CostFunctionMeaningMapping[item]} weighted at {self.cost_result.weights[item]}"
             description += self._compare(item, initial_cost, repaired_cost)
         self.description = description[:-2] + ". "
 
         if self.cost_result.total_costs < update.total_costs:
-            self.description += (f"The performance of the motion planner is getting worse. Please reconsider your last "
-                                 f"changes and keep trying!")
+            self.description += (
+                f"The performance of the motion planner is getting worse. Please reconsider your last "
+                f"changes and keep trying!"
+            )
         elif self.cost_result.total_costs > update.total_costs:
-            self.description += (f"The performance of the motion planner is getting better. Great job, continue like "
-                                 f"that!")
+            self.description += (
+                f"The performance of the motion planner is getting better. Great job, continue like "
+                f"that!"
+            )
         elif self.cost_result.total_costs == update.total_costs:
-            self.description += (f"The performance of the motion planner is stagnating. You might need to try "
-                                 f"something completely new!")
+            self.description += (
+                f"The performance of the motion planner is stagnating. You might need to try "
+                f"something completely new!"
+            )
         return self.description
 
     @staticmethod

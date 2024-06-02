@@ -104,20 +104,28 @@ class DrPlannerBase(ABC):
         """
         pass
 
-    def describe(
-        self,
-        planned_trajectory: Union[Trajectory, Exception],
-        diagnosis_result: Union[str, None],
-    ) -> str:
+    # def describe(
+    #        self,
+    #        planned_trajectory: Union[Trajectory, Exception],
+    #        diagnosis_result: Union[str, None],
+    # ) -> str:
+    #    template = self.prompter.algorithm_template
+    #    prompt_planner = self.describe_planner(diagnosis_result)
+    #    prompt_trajectory, evaluation_trajectory = self.describe_trajectory(
+    #        planned_trajectory
+    #    )
+    #    template = template.replace("[PLANNER]", prompt_planner)
+    #    template = template.replace("[PLANNED_TRAJECTORY]", prompt_trajectory)
+    #    self.evaluation_trajectory = evaluation_trajectory
+    #    return template
+
+    def instantiate_template(
+        self, prompt_planner: str, prompt_trajectory: str, prompt_feedback: str
+    ):
         template = self.prompter.algorithm_template
-        prompt_planner = self.describe_planner(diagnosis_result)
-        prompt_trajectory, evaluation_trajectory = self.describe_trajectory(
-            planned_trajectory
-        )
         template = template.replace("[PLANNER]", prompt_planner)
         template = template.replace("[PLANNED_TRAJECTORY]", prompt_trajectory)
-        self.evaluation_trajectory = evaluation_trajectory
-        return template
+        return template.replace("[FEEDBACK]", prompt_feedback)
 
     def describe_trajectory(
         self, planned_trajectory: Union[Trajectory, Exception]
@@ -130,7 +138,9 @@ class DrPlannerBase(ABC):
                 f"The objective is to adjust the total cost of the planned trajectory to closely "
                 f"align with the desired value {self.desired_cost}. "
             )
-            description += self.prompter.generate_cost_description(evaluation_trajectory)
+            description += self.prompter.generate_cost_description(
+                evaluation_trajectory
+            )
             return description, evaluation_trajectory
         else:
             evaluation_trajectory = get_infinite_cost_result(self.cost_type)
@@ -175,17 +185,21 @@ class DrPlannerBase(ABC):
         # test the initial motion planner once
         try:
             planned_trajectory = self.plan(nr_iteration)
-            prompt_planner = self.describe(
-                planned_trajectory, None
+            prompt_planner = self.describe_planner(None)
+            prompt_trajectory, evaluation_trajectory = self.describe_trajectory(
+                planned_trajectory
             )
+            self.evaluation_trajectory = evaluation_trajectory
             self.current_cost = self.evaluation_trajectory.total_costs
         except Exception as e:
-            prompt_planner = self.describe(e, None)
-            self.evaluation_trajectory = get_infinite_cost_result(self.cost_type)
+            prompt_planner = self.describe_planner(None)
+            prompt_trajectory, evaluation_trajectory = self.describe_trajectory(e)
+            self.evaluation_trajectory = evaluation_trajectory
             self.current_cost = np.inf
+
         self.initial_cost = self.current_cost
         # history = self.prompter.generate_cost_description(self.evaluation_trajectory)
-        history = ""
+        prompt_feedback = ""
         # start the repairing process
         while (
             abs(self.current_cost - self.desired_cost) > self.THRESHOLD
@@ -201,7 +215,12 @@ class DrPlannerBase(ABC):
             # prepare the API request
             message = [
                 {"role": "system", "content": self.prompter.prompt_system},
-                {"role": "user", "content": prompt_planner + history},
+                {
+                    "role": "user",
+                    "content": self.instantiate_template(
+                        prompt_planner, prompt_trajectory, prompt_feedback
+                    ),
+                },
             ]
             # todo: get the token from the openai interface
             self.token_count += num_tokens_from_messages(
@@ -216,8 +235,8 @@ class DrPlannerBase(ABC):
             result = self.prompter.LLM.query(
                 message,
                 scenario_id=str(self.scenario.scenario_id),
-                #planner_id=str(self.planner_id),
-                #start_time=run_start_time,
+                # planner_id=str(self.planner_id),
+                # start_time=run_start_time,
                 save_dir=self.config.save_dir,
                 nr_iter=nr_iteration,
                 mockup_nr_iter=mockup_nr_iteration,
@@ -225,19 +244,27 @@ class DrPlannerBase(ABC):
 
             # reset some variables
             self.prompter.reload_LLM()
-            history = "Diagnoses and prescriptions from the last iteration:\n"
+            prompt_feedback = "Diagnoses and prescriptions from the last iteration:\n"
             nr_iteration += 1
 
             # repair the motion planner and test the result
             try:
-                history += f" {result['summary']}\n"
+                prompt_feedback += f" {result['summary']}\n"
                 self.repair(result)
                 planned_trajectory = self.plan(nr_iteration)
                 # add feedback
-                history += self.add_feedback(planned_trajectory)
+                previous_cost = self.current_cost
+                prompt_feedback += self.add_feedback(planned_trajectory)
+                # if this solution was better than before, set it as new standard
+                if self.current_cost <= previous_cost:
+                    prompt_planner = self.describe_planner(result)
+                    prompt_trajectory = ""
+
             except Exception as e:
-                history += "Usually here would be an evaluation of the repair, but..."
-                history += self.prompter.generate_exception_description(e)
+                prompt_feedback += (
+                    "Usually here would be an evaluation of the repair, but..."
+                )
+                prompt_feedback += self.prompter.generate_exception_description(e)
                 self.current_cost = np.inf
             self.cost_list.append(self.current_cost)
 

@@ -22,13 +22,9 @@ Improved code as LLM response to parameter "improved_cost_function":
     # you also need to include the function definition
     def evaluate(self, trajectory: TrajectorySample) -> float:
         cost = 0.0
-        # own method
+        # stable cost function basis
         cost += self.desired_velocity_costs(trajectory)
-        # free style definition
-        cost += (
-            np.sum((0.25 * (self.desired_d - trajectory.curvilinear.d)) ** 2)
-            + (20 * (self.desired_d - trajectory.curvilinear.d[-1])) ** 2
-        )
+        cost += self.desired_path_length_costs(trajectory)
         return cost
 ```
 

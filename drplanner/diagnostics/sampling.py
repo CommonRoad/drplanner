@@ -19,7 +19,7 @@ from commonroad_rp.utility.evaluation import run_evaluation
 from describer.base import (
     PlanningException,
     CompilerException,
-    MissingParameterException,
+    MissingParameterException, MissingSignatureException,
 )
 
 from drplanner.diagnostics.base import DrPlannerBase
@@ -176,7 +176,11 @@ class DrSamplingPlanner(DrPlannerBase):
         except Exception as _:
             raise MissingParameterException(self.prompter.COST_FUNCTION)
 
+        # format string to proper python code
         updated_cost_function = textwrap.dedent(updated_cost_function)
+        if not updated_cost_function.startswith("def"):
+            raise MissingSignatureException()
+
         # Create a namespace dictionary to hold the compiled function
         function_namespace = {}
         function_namespace.update(self.motion_planner.__dict__)

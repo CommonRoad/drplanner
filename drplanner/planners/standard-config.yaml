@@ -11,10 +11,14 @@ sampling:
   t_min: 0.2
 
 debug:
+  logging_level: "NOTSET"
   show_plots: False
   show_evaluation_plots: False
+  save_config: False
+  draw_ref_path: False
+  draw_planning_problem: False
   save_plots: False
   draw_traj_set: False
-  draw_icons: True
+  draw_icons: False
   multiproc: True
   num_workers: 6

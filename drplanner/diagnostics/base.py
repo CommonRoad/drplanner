@@ -37,6 +37,8 @@ class DrPlannerBase:
         self.initial_cost = math.inf
         self.current_cost = None
 
+        self.few_shot_num =self.config.few_shot_num
+
         self.token_count = 0
         self.cost_list = []
 

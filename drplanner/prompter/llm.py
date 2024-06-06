@@ -5,6 +5,10 @@ import os
 import openai
 import json
 from datetime import datetime
+from drplanner.prompter.prompter import Prompter
+from langchain.schema import AIMessage, HumanMessage, SystemMessage
+
+delimiter = "####"
 
 
 def check_openai_api_key(api_key):
@@ -79,7 +83,8 @@ class LLM:
         ]
 
         self._save = True
-
+    
+    
     def query(
         self,
         scenario_id: str,
@@ -87,7 +92,39 @@ class LLM:
         messages: List[Dict[str, str]],
         nr_iter: int = 1,
         save_dir: str = "../outputs/",
+        scenario_description: any = "Not available",
+        driving_intensions: str = "Not available",
+        fewshot_messages: List[str] = None, 
+        fewshot_answers: List[str] = None
     ):
+        human_message = f"""\
+        Above messages are some examples of how you make a decision successfully in the past. Those scenarios are similar to the current scenario. You should refer to those examples to make a decision for the current scenario. 
+
+        Here is the current scenario:
+        {delimiter} Driving scenario description:
+        {scenario_description}
+        {delimiter} Driving Intensions:
+        {driving_intensions}
+
+        You can stop reasoning once you have a valid action to take. 
+        """
+        human_message = human_message.replace("        ", "")
+
+        if fewshot_messages is None:
+            raise ValueError("fewshot_message is None")
+        messages = [
+            SystemMessage(content=Prompter.prompt_system),
+        ]
+        for i in range(len(fewshot_messages)):
+            messages.append(
+                HumanMessage(content=fewshot_messages[i])
+            )
+            messages.append(
+                AIMessage(content=fewshot_answers[i])
+            )
+        messages.append(
+            HumanMessage(content=human_message)
+        )
         response = openai.chat.completions.create(
             model=self.gpt_version,
             messages=messages,

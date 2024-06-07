@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from commonroad.scenario.scenario import Scenario
 from commonroad.planning.planning_problem import PlanningProblem
 
-from describer.base import (
+from drplanner.describer.base import (
     ExceptionDescription,
     DrPlannerException,
 )

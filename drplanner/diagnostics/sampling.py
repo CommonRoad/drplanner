@@ -16,7 +16,7 @@ from commonroad_rp.reactive_planner import ReactivePlanner
 from commonroad_rp.trajectories import TrajectorySample
 from commonroad_rp.utility.config import ReactivePlannerConfiguration
 from commonroad_rp.utility.evaluation import run_evaluation
-from describer.base import (
+from drplanner.describer.base import (
     PlanningException,
     CompilerException,
     MissingParameterException,

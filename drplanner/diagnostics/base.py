@@ -16,7 +16,7 @@ from commonroad_dc.costs.evaluation import (
     CostFunctionEvaluator,
 )
 
-from describer.trajectory_description import get_infinite_cost_result
+from drplanner.describer.trajectory_description import get_infinite_cost_result
 from drplanner.utils.config import DrPlannerConfiguration
 from drplanner.prompter.search import PrompterSearch
 from drplanner.utils.gpt import num_tokens_from_messages

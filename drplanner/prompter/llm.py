@@ -59,6 +59,8 @@ class LLMFunction:
 
     # transforms the function into a form required by the OpenAI api
     def get_function_as_list(self):
+        parameters = self.parameters["properties"]
+        self.parameters["required"] = list(parameters.keys())
         return [
             {
                 "name": "planner_diagnosis",

@@ -35,7 +35,7 @@ CostFunctionMeaningMapping = {
 def get_infinite_cost_result(cost_function: CostFunction) -> PlanningProblemCostResult:
     partial_cost_functions = cost_function_mapping[cost_function]
     cost_result = PlanningProblemCostResult(cost_function, 0)
-    for (pcf, weight) in partial_cost_functions:
+    for pcf, weight in partial_cost_functions:
         cost_result.add_partial_costs(pcf, np.inf, weight)
     return cost_result
 

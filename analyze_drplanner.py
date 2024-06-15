@@ -49,6 +49,12 @@ def load_txt_file(filename):
         return file.read()
 
 
+def print_cost_function(cost_function: str):
+    lines = cost_function.split("\n")
+    for i in range(1, len(lines)):
+        print(lines[i])
+
+
 def parse_results():
     filename = config.save_dir + "results.csv"
     planner_results = []
@@ -190,12 +196,12 @@ def misc_statistic(drplanner_results: list):
     )
 
 
-def cost_function_statistic(drplanner_results: list):
+def cost_function_statistic(drplanner_results: list, print_all=True):
     # first extract original cost function:
-    original = "def evaluate(self, trajectory: TrajectorySample) -> float:\n    cost = 0.0\n    cost += self.acceleration_costs(trajectory)\n   cost += self.desired_velocity_costs(trajectory)\n   cost += self.desired_path_length_costs(trajectory)\n    cost += self.distance_to_reference_path_costs(trajectory)\n    cost += self.orientation_offset_costs(trajectory)\n    return cost\n"
+    original = "def evaluate(self, trajectory: TrajectorySample) -> float:\n    cost = 0.0\n    cost += self.acceleration_costs(trajectory)\n    cost += self.desired_velocity_costs(trajectory)\n    cost += self.desired_path_length_costs(trajectory)\n    cost += self.distance_to_reference_path_costs(trajectory)\n    cost += self.orientation_offset_costs(trajectory)\n    return cost\n"
     cost_function_array = [x.cost_functions for x in drplanner_results]
 
-    # evaluate the average rate of change of the llm cost function
+    # calculate the average rate of change of the llm cost function
     avg_creativity_array = []
     for cfs in cost_function_array:
         cfs = [cf for cf in cfs if cf]
@@ -211,6 +217,20 @@ def cost_function_statistic(drplanner_results: list):
 
     avg_creativity = sum(avg_creativity_array) / len(avg_creativity_array)
     print(f"avg creativity {avg_creativity}")
+
+    if not print_all:
+        return
+
+    # print the top 10 most different cost functions
+    print("original:")
+    print_cost_function(original)
+    flattened_cost_functions = list(set([(cf, Levenshtein.distance(original, cf)) for cfs in cost_function_array for cf in cfs if cf]))
+    ranking = list(reversed(sorted(flattened_cost_functions, key=lambda x: x[1])))
+    for i, (cf, count) in enumerate(ranking):
+        if i > 10:
+            break
+        print(f"distance: {count}")
+        print_cost_function(cf)
 
 
 def print_statistics():

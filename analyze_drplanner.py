@@ -21,6 +21,7 @@ class DrPlannerResult:
             self.final_cost = self.initial_cost
         self.iterations = []
         self.cost_functions = []
+        self.prompts = []
         if len(row) > 4:
             for i in range(4, len(row)):
                 self.iterations.append(float(row[i]))
@@ -29,17 +30,23 @@ class DrPlannerResult:
                 + "/gpt-3.5-turbo/jsons/"
             )
             for i in range(len(row) - 4):
-                iteration = load_json_file(jsons_folder + f"result_iter-{i}.json")
-                if "improved_cost_function" in iteration.keys():
-                    self.cost_functions.append(iteration["improved_cost_function"])
+                result = load_json_file(jsons_folder + f"result_iter-{i}.json")
+                prompt = load_json_file(jsons_folder + f"prompt_iter-{i}.json")
+                self.prompts.append(prompt[1]["content"])
+                if "improved_cost_function" in result.keys():
+                    self.cost_functions.append(result["improved_cost_function"])
                 else:
                     self.cost_functions.append(None)
 
 
 def load_json_file(filename):
     with open(filename, "r") as file:
-        data = json.load(file)
-    return data
+        return json.load(file)
+
+
+def load_txt_file(filename):
+    with open(filename, "r") as file:
+        return file.read()
 
 
 def parse_results():
@@ -54,33 +61,26 @@ def parse_results():
     return planner_results
 
 
-def absolute_cost_statistic(drplanner_results: list):
+def cost_statistic(drplanner_results: list):
     # This only includes runs where the initial planner was successful
     absolute_cost_reduction = [
         r.initial_cost - r.final_cost
         for r in drplanner_results
         if not math.isinf(r.initial_cost) and not math.isinf(r.final_cost)
     ]
-    print(f"maximal absolute cost reduction: {max(absolute_cost_reduction)}")
-    print(f"minimal absolute cost reduction: {min(absolute_cost_reduction)}")
     average_cost_reduction = sum(absolute_cost_reduction) / len(absolute_cost_reduction)
-    print(f"average absolute cost reduction: {average_cost_reduction}")
+    print(f"absolute cost reduction: {max(absolute_cost_reduction)} (max), {min(absolute_cost_reduction)} (min), {average_cost_reduction} (avg)")
 
-
-def relative_cost_statistic(drplanner_results: list):
-    # This only includes runs where the initial planner was successful
     relative_cost_reduction = [
         ((r.initial_cost - r.final_cost) / r.initial_cost) * 100
         for r in drplanner_results
         if not math.isinf(r.initial_cost) and not math.isinf(r.final_cost)
     ]
-    print(f"maximal relative cost reduction: {max(relative_cost_reduction):.2f}%")
-    print(f"minimal relative cost reduction: {min(relative_cost_reduction):.2f}%")
     average_cost_reduction = sum(relative_cost_reduction) / len(relative_cost_reduction)
-    print(f"average relative cost reduction: {average_cost_reduction:.2f}%")
+    print(f"relative cost reduction: {max(relative_cost_reduction):.2f}% (max), {min(relative_cost_reduction):.2f}% (min), {average_cost_reduction:.2f}% (avg)")
 
 
-def failure_statistics(drplanner_results: list):
+def failure_statistic(drplanner_results: list):
     fixed = [
         r
         for r in drplanner_results
@@ -114,7 +114,7 @@ def failure_statistics(drplanner_results: list):
     )
 
 
-def exception_statistics(drplanner_results: list):
+def exception_statistic(drplanner_results: list):
     fails_per_run = []
     for r in drplanner_results:
         num_fails = 0
@@ -127,17 +127,50 @@ def exception_statistics(drplanner_results: list):
         specific_runs = [x for x in fails_per_run if x == amount]
         percent = len(specific_runs) / len(fails_per_run) * 100
         print(f"In {percent:.2f}% of runs, there occurred exactly {amount} exceptions")
-    # combine lists of iterations into one list
-    iterations = [r.iterations for r in drplanner_results]
-    iterations = [item for sublist in iterations for item in sublist]
-    failed = [i for i in iterations if math.isinf(i)]
-    avg_failures = len(failed) / len(iterations) * 100
+    iteration_amount = sum([len(r.iterations) for r in drplanner_results])
+    avg_failures = sum(fails_per_run) / iteration_amount * 100
     print(
-        f"Some sort of exception occurred in {avg_failures:.2f}% of all combined iterations"
+        f"Some sort of exception occurred in {avg_failures:.2f}% of all iterations"
     )
 
+    # evaluate how many times the cost function was not included in the llm response
+    cost_function_array = [x.cost_functions for x in drplanner_results]
+    flattened_cost_functions = [
+        item for sublist in cost_function_array for item in sublist
+    ]
+    parameter_error = [c for c in flattened_cost_functions if not c]
+    percent = len(parameter_error) / sum(fails_per_run) * 100
+    print(
+        f"Of {sum(fails_per_run)} exceptions, {len(parameter_error)} where caused by missing cost function parameter ({percent:.2f}%)"
+    )
 
-def content_statistics(drplanner_results: list):
+    # evaluate prominent reasons for an exception
+    regex = "!AN EXCEPTION OCCURRED!"
+    reasons = set()
+    reason_list = []
+    prompt_iterations = [r.prompts for r in drplanner_results]
+    for prompts in prompt_iterations:
+        for prompt in prompts:
+            lines = prompt.split("\n")
+            for index in range(len(lines)):
+                line = lines[index]
+                if regex in line:
+                    reason = ""
+                    index += 1
+                    next_line = lines[index]
+                    while len(next_line) > 0:
+                        reason += next_line + " "
+                        index += 1
+                        next_line = lines[index]
+                    reasons.add(reason)
+                    reason_list.append(reason)
+    print("These were all the reasons for an exception:")
+    reasons = sorted(list(reasons), key=lambda x: reason_list.count(x))
+    for reason in reversed(reasons):
+        print(f"count: {reason_list.count(reason)}, cause: {reason}")
+
+
+def misc_statistic(drplanner_results: list):
     # evaluate how many unique trajectories were generated each run
     num_exceptions = 0
     unique_results = []
@@ -156,25 +189,13 @@ def content_statistics(drplanner_results: list):
         f"Per run an average {avg_uniqueness:.2f}% of successful iterations produced unique results"
     )
 
+
+def cost_function_statistic(drplanner_results: list):
     # first extract original cost function:
     original = "def evaluate(self, trajectory: TrajectorySample) -> float:\n    cost = 0.0\n    cost += self.acceleration_costs(trajectory)\n   cost += self.desired_velocity_costs(trajectory)\n   cost += self.desired_path_length_costs(trajectory)\n    cost += self.distance_to_reference_path_costs(trajectory)\n    cost += self.orientation_offset_costs(trajectory)\n    return cost\n"
-
     cost_function_array = [x.cost_functions for x in drplanner_results]
-    temp = set()
-    [temp.add(len(c)) for c in cost_function_array]
-    assert len(temp) == 1
 
-    # evaluate how many times the cost function was not included in the llm response
-    flattened_cost_functions = [
-        item for sublist in cost_function_array for item in sublist
-    ]
-    parameter_error = [c for c in flattened_cost_functions if not c]
-    percent = len(parameter_error) / num_exceptions * 100
-    print(
-        f"Of {num_exceptions} exceptions, {len(parameter_error)} where caused by missing cost function parameter ({percent:.2f}%)"
-    )
-
-    # evaluate how much the cost function was changed by the llm (on average)
+    # evaluate the average rate of change of the llm cost function
     avg_creativity_array = []
     for cfs in cost_function_array:
         cfs = [cf for cf in cfs if cf]
@@ -194,15 +215,18 @@ def content_statistics(drplanner_results: list):
 
 def print_statistics():
     results = parse_results()
+
     # assert that all runs had the same amount of iterations
     temp = set()
     [temp.add(len(r.iterations)) for r in results]
     assert len(temp) == 1
-    absolute_cost_statistic(results)
-    relative_cost_statistic(results)
-    failure_statistics(results)
-    exception_statistics(results)
-    content_statistics(results)
+
+    # partial statistics
+    cost_statistic(results)
+    failure_statistic(results)
+    exception_statistic(results)
+    cost_function_statistic(results)
+    misc_statistic(results)
 
 
 print_statistics()

@@ -1,4 +1,5 @@
 import inspect
+import textwrap
 
 from commonroad.scenario.scenario import Scenario
 from commonroad.planning.planning_problem import PlanningProblem
@@ -21,8 +22,11 @@ class PrompterSampling(PrompterBase):
         mockup: bool = False,
     ):
         self.COST_FUNCTION = "improved_cost_function"
-        self.PLANNER_CONFIG = "planner_config"
-        self.EXTRA_INFORMATION = "extra_information"
+        self.PLANNER_CONFIG = [
+            ("t_min", "minimal time horizon in [s]"),
+            ("t_max", "maximal time horizon in [s]"),
+            ("d_bound", "range bound for distance to reference in [m]"),
+        ]
 
         super().__init__(
             scenario,
@@ -36,15 +40,22 @@ class PrompterSampling(PrompterBase):
     def init_LLM(self) -> LLMFunction:
         llm_function = LLMFunction()
         llm_function.add_code_parameter(self.COST_FUNCTION, "updated cost function")
-        llm_function.add_number_parameter(self.PLANNER_CONFIG, "time step amount")
-        llm_function.add_string_parameter(self.EXTRA_INFORMATION, "extra information")
+        # add sampling configuration parameters
+        for key, descr in self.PLANNER_CONFIG:
+            llm_function.add_number_parameter(key, descr)
         return llm_function
 
     def generate_planner_description(
         self, cost_function, config: ReactivePlannerConfiguration
     ):
         # describe the current planning horizon
-        config_description = f"The current planning horizon length in time-steps is {config.planning.time_steps_computation}"
+        t_max = float(config.planning.dt * config.planning.time_steps_computation)
+        config_description = "These are the current intervals used for sampling: "
+        config_description += f"Time horizon starts at {config.sampling.t_min} seconds and ends at {t_max} seconds. "
+        if config.sampling.t_min <= 2 * config.planning.dt:
+            config_description += "In this case, t_min can longer be decreased since it is at a minimum. "
+        config_description += f"The car can be between [{config.sampling.d_min}, {config.sampling.d_max}] meters away from the reference path. "
+        # config_description += f"The car's velocity can deviate from the target velocity in this range: [{config.sampling.v_min}, {config.sampling.v_max}]."
 
         # if code is directly provided
         if isinstance(cost_function, str):
@@ -52,8 +63,8 @@ class PrompterSampling(PrompterBase):
         # otherwise access it using "inspect" and describe its used methods
         else:
             cf_code = (
-                "This is the code of the cost function: ```"
-                + inspect.getsource(cost_function.evaluate)
+                "This is the code of the cost function:\n```\n"
+                + textwrap.dedent(inspect.getsource(cost_function.evaluate))
                 + "```"
             )
             # generate heuristic function's description
@@ -63,8 +74,7 @@ class PrompterSampling(PrompterBase):
                 self.astar_base
                 + "\n"
                 + cf_code
-                # + "\n"
+                + "\n"
+                + config_description
                 # + heuristic_function_des
-                # + "\n"
-                # + config_description
             )

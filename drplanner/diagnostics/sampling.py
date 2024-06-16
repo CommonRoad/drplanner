@@ -161,15 +161,14 @@ class DrSamplingPlanner(DrPlannerBase):
         self.motion_planner_config.update()
 
         # ----- planner configuration -----
-        updated_time_step_amount = diagnosis_result[self.prompter.PLANNER_CONFIG]
-        if updated_time_step_amount:
-            try:
-                self.motion_planner_config.planning.time_steps_computation = int(
-                    updated_time_step_amount
-                )
-            except Exception as e:
-                raise RuntimeError(f"Could not convert time steps into an int: {e}")
-
+        t_min = float(diagnosis_result[self.prompter.PLANNER_CONFIG[0][0]])
+        t_max = float(diagnosis_result[self.prompter.PLANNER_CONFIG[1][0]])
+        d_max = float(diagnosis_result[self.prompter.PLANNER_CONFIG[2][0]])
+        time_steps_computation = int(t_max/self.motion_planner_config.planning.dt)
+        self.motion_planner_config.planning.time_steps_computation = time_steps_computation
+        self.motion_planner_config.sampling.t_min = t_min
+        self.motion_planner_config.sampling.d_min = -d_max
+        self.motion_planner_config.sampling.d_max = d_max
         # reset planner
         self.motion_planner = get_planner(self.motion_planner_config)
 

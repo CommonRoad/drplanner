@@ -57,14 +57,14 @@ class PrompterSampling(PrompterBase):
                 + "```"
             )
             # generate heuristic function's description
-            hf_obj = CostFunctionDescription(cost_function.evaluate)
-            heuristic_function_des = hf_obj.generate(cost_function)
+            # hf_obj = CostFunctionDescription(cost_function.evaluate)
+            # heuristic_function_des = hf_obj.generate(cost_function)
             return (
                 self.astar_base
                 + "\n"
                 + cf_code
-                + "\n"
-                + heuristic_function_des
+                # + "\n"
+                # + heuristic_function_des
                 # + "\n"
                 # + config_description
             )

@@ -1,5 +1,7 @@
-1   todo: fix all common errors
-3   todo: update the planner description and initial cost with the current best version
+1   todo: turn time_step_size into sampling array:
+time_step_size determines length of planning horizon which determines maximum for sampling parameter.
+Therefore, this is a verkappter sampling parameter and the reason why it was so influential.
+2   todo: add config parameters to easily turn on/off new features for testing
 8   todo: add plots as visual input to the evaluation feedback
 9   todo: automate function description of all class/superclass methods
 10  todo: let LLM request class descriptions at runtime

@@ -55,8 +55,8 @@ def print_cost_function(cost_function: str):
         print(lines[i])
 
 
-def parse_results():
-    filename = config.save_dir + "results.csv"
+def parse_results(save_dir):
+    filename = save_dir + "results.csv"
     planner_results = []
     with open(filename, "r") as file:
         reader = csv.reader(file)
@@ -233,8 +233,8 @@ def cost_function_statistic(drplanner_results: list, print_all=True):
         print_cost_function(cf)
 
 
-def print_statistics():
-    results = parse_results()
+def print_statistics(path_to_results):
+    results = parse_results(path_to_results)
 
     # assert that all runs had the same amount of iterations
     temp = set()
@@ -249,4 +249,4 @@ def print_statistics():
     misc_statistic(results)
 
 
-print_statistics()
+print_statistics(config.save_dir)

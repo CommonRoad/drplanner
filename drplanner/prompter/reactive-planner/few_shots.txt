@@ -36,7 +36,7 @@ cost = 0.0
 # some calculation of cost...
 '''
 
-In addition to modifying the cost function, you can also modify the current planning horizon length by increasing the amount of discrete time-steps.
-Initially, timestep-amount is set to 20.
-It can be a number between 10 and 100 but if it is too large/small planning will fail!
-However, long planning horizons can significantly improve performance in certain situations.
+You can also modify the current sampling intervals. These intervals determine the properties of sampled trajectories and are therefore responsible for choosing the initial pool of trajectories (which is then ranked byy the cost_function).
+These are the intervals:
+1) time horizon [t_min, t_max] in seconds. Increasing t_max will allow for long, smooth, low-curvature trajectories which are good for following straight paths. Decreasing t_min will allow for the opposite which is beneficial for maneuvering through dense traffic etc.
+2) distance to reference path [-d_max, d_max] in meters. Increasing d_max will give the car more freedom since it can now roam far away from the reference path. But this might also lead to the car missing the goal region or driving physically impossible trajectories.

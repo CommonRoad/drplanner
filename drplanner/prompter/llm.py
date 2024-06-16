@@ -49,7 +49,7 @@ class LLMFunction:
 
         # initialize function parameters with summary array
         function_parameters_dict = {
-            "summary": LLMFunction._add_array_parameter(
+            "summary": LLMFunction._array_parameter(
                 LLMFunction._object_parameter(summary_dict),
                 "Diagnostic and prescriptive summary",
             )
@@ -101,7 +101,7 @@ class LLMFunction:
         return {"type": "object", "properties": properties}
 
     @staticmethod
-    def _add_array_parameter(items: dict, description: str) -> dict:
+    def _array_parameter(items: dict, description: str) -> dict:
         return {"type": "array", "items": items, "description": description}
 
 

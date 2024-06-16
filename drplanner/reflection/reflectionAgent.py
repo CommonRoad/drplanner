@@ -1,6 +1,7 @@
 import os
 import textwrap
 import time
+from drplanner.utils.config import DrPlannerConfiguration
 from langchain.chat_models import ChatOpenAI
 from langchain.schema import HumanMessage, SystemMessage
 
@@ -11,15 +12,17 @@ class ReflectionAgent:
         self, temperature: float = 0.0, verbose: bool = False
     ) -> None: 
         #todo:change the instantiate according to config
+        self.config = DrPlannerConfiguration()
         self.llm = ChatOpenAI(
+            openai_api_key=self.config.openai_api_key,
             temperature=temperature,
-            model_name='gpt-4-1106-preview',
-            max_tokens=1000,
+            model_name=self.config.gpt_version,
+            max_tokens=3000,
             request_timeout=60,
         )
 
 
-    def reflection(self, human_message: str, llm_response: str) -> str:
+    def reflection(self, human_message: str, llm_response: str):
         delimiter = "####"
         system_message = textwrap.dedent(f"""\
         You are ChatGPT, a large language model trained by OpenAI. Now you act as a mature driving assistant, who can give accurate and correct advice for human driver in complex urban driving scenarios.

@@ -65,6 +65,7 @@ scenarios_folder = (
 )
 xml_files = glob.glob(os.path.join(scenarios_folder, "**", "*.xml"), recursive=True)
 scenarios = [os.path.abspath(file) for file in xml_files]
+# TODO: save DrPlanner config!!!
 
 for p in scenarios:
     print(p)

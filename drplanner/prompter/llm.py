@@ -1,5 +1,6 @@
 # adapt from https://github.com/real-stanford/reflect
-from typing import List, Dict
+import base64
+from typing import List, Dict, Union
 
 import os
 import openai
@@ -192,9 +193,46 @@ class LLM:
             print(f"*\t <Prompt> Iteration {nr_iter} failed, no response is generated")
             return None
 
+    @staticmethod
+    def get_messages(system_prompt: str, user_prompt: str, scenario_png: Union[str, None]):
+        if scenario_png:
+            base64_image = LLM._encode_image(scenario_png)
+            user_content = [
+                {
+                    "type": "text",
+                    "text": user_prompt
+                },
+                {
+                    "type": "image_url",
+                    "image_url": {"url": f"data:image/png;base64,{base64_image}"}
+                }
+            ]
+        else:
+            user_content = user_prompt
+        return [
+            {
+                "role": "system",
+                "content": system_prompt
+            },
+            {
+                "role": "user",
+                "content": user_content
+            }
+        ]
+
+    @staticmethod
+    def extract_text_from_messages(messages: list) -> list:
+        content = messages[1]["content"]
+
+        if isinstance(content, list):
+            content = content[0]["text"]
+        messages[1]["content"] = content
+        return messages
+
     # helper function to save both prompts and responses in a human-readable form
     @staticmethod
     def _save_iteration_as_txt(messages, content_json, nr_iter, path_variables: list):
+        messages = LLM.extract_text_from_messages(messages)
         text_filename_result = f"result_iter-{nr_iter}.txt"
         text_filename_prompt = f"prompt_iter-{nr_iter}.txt"
         path_variables.append("texts")
@@ -224,6 +262,7 @@ class LLM:
     # helper function to save both prompts and responses as parsable json
     @staticmethod
     def _save_iteration_as_json(messages, content_json, nr_iter, path_variables: list):
+        messages = LLM.extract_text_from_messages(messages)
         filename_result = f"result_iter-{nr_iter}.json"
         filename_prompt = f"prompt_iter-{nr_iter}.json"
         paths = path_variables.copy()
@@ -239,3 +278,8 @@ class LLM:
         # save the result
         with open(os.path.join(json_save_dir, filename_result), "w") as file:
             json.dump(content_json, file)
+
+    @staticmethod
+    def _encode_image(image_path):
+        with open(image_path, "rb") as image_file:
+            return base64.b64encode(image_file.read()).decode("utf-8")

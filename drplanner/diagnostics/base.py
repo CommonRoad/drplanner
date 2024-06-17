@@ -19,6 +19,7 @@ from commonroad_dc.costs.evaluation import (
 from drplanner.describer.trajectory_description import get_infinite_cost_result
 from drplanner.utils.config import DrPlannerConfiguration
 from drplanner.prompter.search import PrompterSearch
+from drplanner.prompter.llm import LLM
 from drplanner.utils.gpt import num_tokens_from_messages
 
 
@@ -141,6 +142,8 @@ class DrPlannerBase(ABC):
             description += self.prompter.generate_cost_description(
                 evaluation_trajectory
             )
+            if self.config.send_scenario:
+                description += "To give you a broad understanding of the scenario which is currently used for motion planning, a plot is provided showing all lanes (grey), the planned trajectory (black line) and the goal area (light orange)"
             return description, evaluation_trajectory
         else:
             evaluation_trajectory = get_infinite_cost_result(self.cost_type)
@@ -213,18 +216,20 @@ class DrPlannerBase(ABC):
             )
 
             # prepare the API request
-            message = [
-                {"role": "system", "content": self.prompter.prompt_system},
-                {
-                    "role": "user",
-                    "content": self.instantiate_template(
-                        prompt_planner, prompt_trajectory, prompt_feedback
-                    ),
-                },
-            ]
+            path_to_plots = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+            if self.config.send_scenario:
+                path_to_plots += "/plots/img.png"
+            else:
+                path_to_plots = None
+
+            messages = LLM.get_messages(
+                self.prompter.prompt_system,
+                self.instantiate_template(prompt_planner, prompt_trajectory, prompt_feedback),
+                path_to_plots)
             # todo: get the token from the openai interface
             self.token_count += num_tokens_from_messages(
-                message,
+                LLM.extract_text_from_messages(messages),
                 self.prompter.LLM.gpt_version,
             )
             mockup_nr_iteration = -1
@@ -233,7 +238,7 @@ class DrPlannerBase(ABC):
 
             # send request and receive response
             result = self.prompter.LLM.query(
-                message,
+                messages,
                 scenario_id=str(self.scenario.scenario_id),
                 # planner_id=str(self.planner_id),
                 # start_time=run_start_time,

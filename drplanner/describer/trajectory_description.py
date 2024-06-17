@@ -96,13 +96,14 @@ class TrajectoryCostDescription(DescriptionBase):
 
     @staticmethod
     def _compare(item: str, initial: float, repaired: float):
-        if initial == repaired:
+        threshold = 0.01
+        if abs(initial - repaired) < threshold:
             compare = "equal to"
-        elif initial > repaired:
-            compare = "greater than"
+        elif repaired > initial:
+            compare = "worse than"
         else:
-            compare = "smaller than"
-        return f"- {item}: last result ({initial:.2f}) is {compare} current result ({repaired:.2f})\n"
+            compare = "better than"
+        return f"- {item}: current result ({repaired:.2f}) is {compare} last result ({initial:.2f})\n"
 
 
 class TrajectoryStateDescription(DescriptionBase):

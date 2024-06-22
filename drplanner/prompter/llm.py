@@ -152,6 +152,7 @@ class LLM:
             response = mockup_query(mockup_nr_iter)
         # otherwise send the query
         else:
+            print(f"temperature: {self.temperature}")
             functions = self.llm_function.get_function_as_list()
             response = openai.chat.completions.create(
                 model=self.gpt_version,
@@ -194,30 +195,23 @@ class LLM:
             return None
 
     @staticmethod
-    def get_messages(system_prompt: str, user_prompt: str, scenario_png: Union[str, None]):
+    def get_messages(
+        system_prompt: str, user_prompt: str, scenario_png: Union[str, None]
+    ):
         if scenario_png:
             base64_image = LLM._encode_image(scenario_png)
             user_content = [
-                {
-                    "type": "text",
-                    "text": user_prompt
-                },
+                {"type": "text", "text": user_prompt},
                 {
                     "type": "image_url",
-                    "image_url": {"url": f"data:image/png;base64,{base64_image}"}
-                }
+                    "image_url": {"url": f"data:image/png;base64,{base64_image}"},
+                },
             ]
         else:
             user_content = user_prompt
         return [
-            {
-                "role": "system",
-                "content": system_prompt
-            },
-            {
-                "role": "user",
-                "content": user_content
-            }
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_content},
         ]
 
     @staticmethod

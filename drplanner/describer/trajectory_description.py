@@ -77,7 +77,13 @@ class TrajectoryCostDescription(DescriptionBase):
             description += self._compare(item, initial_cost, repaired_cost)
         self.description = description[:-2] + ". "
 
-        if self.cost_result.total_costs < update.total_costs:
+        threshold = 1.0
+        if abs(self.cost_result.total_costs - update.total_costs) < threshold:
+            self.description += (
+                f"The performance of the motion planner is stagnating. You might need to try "
+                f"something completely new!"
+            )
+        elif self.cost_result.total_costs < update.total_costs:
             self.description += (
                 f"The performance of the motion planner is getting worse. Please reconsider your last "
                 f"changes and keep trying!"
@@ -86,11 +92,6 @@ class TrajectoryCostDescription(DescriptionBase):
             self.description += (
                 f"The performance of the motion planner is getting better. Great job, continue like "
                 f"that!"
-            )
-        elif self.cost_result.total_costs == update.total_costs:
-            self.description += (
-                f"The performance of the motion planner is stagnating. You might need to try "
-                f"something completely new!"
             )
         return self.description
 

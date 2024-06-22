@@ -147,10 +147,10 @@ class DrSamplingPlanner(DrPlannerBase):
             self.scenario,
             self.planning_problem,
             self.config.openai_api_key,
+            self.config.temperature,
             self.config.gpt_version,
             mockup=self.config.mockup_openAI,
         )
-        self.prompter.LLM.temperature = self.config.temperature
         self.cost_function = self.motion_planner.cost_function
 
     def repair(self, diagnosis_result: Union[str, None]):
@@ -164,8 +164,10 @@ class DrSamplingPlanner(DrPlannerBase):
         t_min = float(diagnosis_result[self.prompter.PLANNER_CONFIG[0][0]])
         t_max = float(diagnosis_result[self.prompter.PLANNER_CONFIG[1][0]])
         d_max = float(diagnosis_result[self.prompter.PLANNER_CONFIG[2][0]])
-        time_steps_computation = int(t_max/self.motion_planner_config.planning.dt)
-        self.motion_planner_config.planning.time_steps_computation = time_steps_computation
+        time_steps_computation = int(t_max / self.motion_planner_config.planning.dt)
+        self.motion_planner_config.planning.time_steps_computation = (
+            time_steps_computation
+        )
         self.motion_planner_config.sampling.t_min = t_min
         self.motion_planner_config.sampling.d_min = -d_max
         self.motion_planner_config.sampling.d_max = d_max

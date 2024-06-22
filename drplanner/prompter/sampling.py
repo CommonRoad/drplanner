@@ -17,6 +17,7 @@ class PrompterSampling(PrompterBase):
         scenario: Scenario,
         planning_problem: PlanningProblem,
         api_key: str,
+        temperature: float,
         gpt_version: str = "gpt-4-1106-preview",
         prompts_folder_name: str = "reactive-planner/",
         mockup: bool = False,
@@ -35,6 +36,7 @@ class PrompterSampling(PrompterBase):
             gpt_version,
             prompts_folder_name,
             mockup=mockup,
+            temperature=temperature,
         )
 
     def init_LLM(self) -> LLMFunction:
@@ -53,7 +55,9 @@ class PrompterSampling(PrompterBase):
         config_description = "These are the current intervals used for sampling: "
         config_description += f"Time horizon starts at {config.sampling.t_min} seconds and ends at {t_max} seconds. "
         if config.sampling.t_min <= 2 * config.planning.dt:
-            config_description += "In this case, t_min can longer be decreased since it is at a minimum. "
+            config_description += (
+                "In this case, t_min can longer be decreased since it is at a minimum. "
+            )
         config_description += f"The car can be between [{config.sampling.d_min}, {config.sampling.d_max}] meters away from the reference path. "
         # config_description += f"The car's velocity can deviate from the target velocity in this range: [{config.sampling.v_min}, {config.sampling.v_max}]."
 

@@ -67,10 +67,10 @@ class DrPlannerBase(ABC):
             self.scenario,
             self.planning_problem,
             self.config.openai_api_key,
+            self.config.temperature,
             self.config.gpt_version,
             mockup=self.config.mockup_openAI,
         )
-        self.prompter.LLM.temperature = self.config.temperature
 
         # initialize meta parameters
         self.cost_type = CostFunction.SM1
@@ -104,21 +104,6 @@ class DrPlannerBase(ABC):
         Wrapper method to run the motion planner
         """
         pass
-
-    # def describe(
-    #        self,
-    #        planned_trajectory: Union[Trajectory, Exception],
-    #        diagnosis_result: Union[str, None],
-    # ) -> str:
-    #    template = self.prompter.algorithm_template
-    #    prompt_planner = self.describe_planner(diagnosis_result)
-    #    prompt_trajectory, evaluation_trajectory = self.describe_trajectory(
-    #        planned_trajectory
-    #    )
-    #    template = template.replace("[PLANNER]", prompt_planner)
-    #    template = template.replace("[PLANNED_TRAJECTORY]", prompt_trajectory)
-    #    self.evaluation_trajectory = evaluation_trajectory
-    #    return template
 
     def instantiate_template(
         self, prompt_planner: str, prompt_trajectory: str, prompt_feedback: str
@@ -216,7 +201,9 @@ class DrPlannerBase(ABC):
             )
 
             # prepare the API request
-            path_to_plots = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            path_to_plots = os.path.dirname(
+                os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            )
 
             if self.config.send_scenario:
                 path_to_plots += "/plots/img.png"
@@ -225,8 +212,11 @@ class DrPlannerBase(ABC):
 
             messages = LLM.get_messages(
                 self.prompter.prompt_system,
-                self.instantiate_template(prompt_planner, prompt_trajectory, prompt_feedback),
-                path_to_plots)
+                self.instantiate_template(
+                    prompt_planner, prompt_trajectory, prompt_feedback
+                ),
+                path_to_plots,
+            )
             # todo: get the token from the openai interface
             self.token_count += num_tokens_from_messages(
                 LLM.extract_text_from_messages(messages),

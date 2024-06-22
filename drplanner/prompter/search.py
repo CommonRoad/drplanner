@@ -35,6 +35,7 @@ class PrompterSearch(PrompterBase):
         scenario: Scenario,
         planning_problem: PlanningProblem,
         api_key: str,
+        temperature: float,
         gpt_version: str = "gpt-4-1106-preview",
         prompts_folder_name: str = "astar/",
         mockup: bool = False,
@@ -50,6 +51,7 @@ class PrompterSearch(PrompterBase):
             gpt_version,
             prompts_folder_name,
             mockup=mockup,
+            temperature=temperature,
         )
 
         self.mp_obj = MotionPrimitiveDescription()

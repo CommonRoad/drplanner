@@ -22,10 +22,12 @@ class PrompterBase(ABC):
         api_key: str,
         gpt_version: str = "gpt-3.5-turbo",  # gpt-3.5-turbo, text-davinci-002, gpt-4-1106-preview
         prompts_folder_name: str = "astar/",
+        temperature=0.2,
         mockup=False,
     ):
         self.api_key = api_key
         self.gpt_version = gpt_version
+        self.temperature = temperature
 
         self.scenario = scenario
         self.planning_problem = planning_problem
@@ -35,7 +37,11 @@ class PrompterBase(ABC):
         self.mockup = mockup
         self.llm_function = self.init_LLM()
         self.LLM = LLM(
-            self.gpt_version, self.api_key, self.llm_function, mockup=self.mockup
+            self.gpt_version,
+            self.api_key,
+            self.llm_function,
+            mockup=self.mockup,
+            temperature=self.temperature,
         )
 
         script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -72,7 +78,11 @@ class PrompterBase(ABC):
     def reload_LLM(self):
         print("*\t <LLM> The LLM is reloaded")
         self.LLM = LLM(
-            self.gpt_version, self.api_key, self.llm_function, mockup=self.mockup
+            self.gpt_version,
+            self.api_key,
+            self.llm_function,
+            mockup=self.mockup,
+            temperature=self.temperature,
         )
 
     @abstractmethod

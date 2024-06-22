@@ -15,7 +15,7 @@ from commonroad_rp.cost_function import CostFunction, DefaultCostFunction
 from commonroad_rp.reactive_planner import ReactivePlanner
 from commonroad_rp.trajectories import TrajectorySample
 from commonroad_rp.utility.config import ReactivePlannerConfiguration
-from commonroad_rp.utility.evaluation import run_evaluation
+from commonroad_rp.utility.evaluation import run_evaluation, create_full_solution_trajectory
 from drplanner.describer.base import (
     PlanningException,
     CompilerException,
@@ -105,22 +105,7 @@ def run_planner(
                 collision_checker=planner.collision_checker,
                 coordinate_system=planner.coordinate_system,
             )
-    try:
-        solution, _ = run_evaluation(
-            planner.config, planner.record_state_list, planner.record_input_list
-        )
-    except StateException as _:
-        cause = (
-            "The final trajectory was generated but driving it is impossible. Either the vehicle can not "
-            "accelerate that fast or the input violates the friction circle!"
-        )
-        solution = (
-            "The cost function generates trajectories which are unstable and extreme. Try to be more "
-            "conservative."
-        )
-        raise PlanningException(cause, solution)
-
-    return solution
+    return create_full_solution_trajectory(config, planner.record_state_list)
 
 
 class DrSamplingPlanner(DrPlannerBase):
@@ -239,21 +224,19 @@ class DrSamplingPlanner(DrPlannerBase):
         solution = run_planner(
             self.motion_planner, self.motion_planner_config, self.cost_function
         )
-        planning_problem_solution = solution.planning_problem_solutions[0]
-        trajectory_solution = planning_problem_solution.trajectory
 
         # todo: find a good way to visualize solution
 
-        if self._save_solution:
-            # write solution to a CommonRoad XML file
-            csw = CommonRoadSolutionWriter(solution)
-            target_folder = self.dir_output + "sampling/solutions/"
-            os.makedirs(
-                os.path.dirname(target_folder), exist_ok=True
-            )  # Ensure the directory exists
-            csw.write_to_file(
-                output_path=target_folder,
-                filename=f"solution_{solution.benchmark_id}_iter_{nr_iter}.xml",
-                overwrite=True,
-            )
-        return trajectory_solution
+        #if self._save_solution:
+        #    # write solution to a CommonRoad XML file
+        #    csw = CommonRoadSolutionWriter(solution)
+        #    target_folder = self.dir_output + "sampling/solutions/"
+        #    os.makedirs(
+        #        os.path.dirname(target_folder), exist_ok=True
+        #    )  # Ensure the directory exists
+        #    csw.write_to_file(
+        #        output_path=target_folder,
+        #        filename=f"solution_{solution.benchmark_id}_iter_{nr_iter}.xml",
+        #        overwrite=True,
+        #    )
+        return solution

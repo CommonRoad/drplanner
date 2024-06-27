@@ -28,6 +28,8 @@ class DrPlannerBase:
         self._visualize = self.config.visualize
         self._save_solution = self.config.save_solution
 
+        self.reflection = config.reflection_module
+
         self.THRESHOLD = config.cost_threshold
         self.TOKEN_LIMIT = config.token_limit
         self.ITERATION_MAX = config.iteration_max

@@ -1,11 +1,15 @@
-# DrPlanner 🩺: Diagnosis and Repair of Motion Planners Using LLMs
+# DrPlanner 🩺: Diagnosis and Repair of Motion Planners Using LLMs (add reflection and memory module)
 
 [![Static Badge](https://img.shields.io/badge/Arxiv-pdf-8A2BE2?logo=arxiv)](https://arxiv.org/abs/2403.07470)
 [![Custom badge](https://img.shields.io/badge/Project%20Page-white?logo=GitHub&color=yellow)](https://commonroad.github.io/drplanner/)
 [![GitHub issues](https://img.shields.io/github/issues/CommonRoad/drplanner)](https://github.com/CommonRoad/drplanner/issues)
 ## 🔍 Framework Overview
 
+
 <img src="./docs/figures/framework.png" width=92%>
+
+**With reflection and memory module**:
+<img src="./docs/figures/framework(new version).png" width=92%>
 
 **DrPlanner**: the first framework to autonomously **d**iagnose and **r**epair motion **planner**s 📍, harnessing the power of LLMs that improve as they scale.
 
@@ -40,6 +44,7 @@ git submodule update
 conda create -n drplanner python=3.10 -y
 conda activate drplanner
 pip install . # or poetry install
+pip install -r requirements.txt
 ```
 
 ### 2. Configuration ⚙️ 

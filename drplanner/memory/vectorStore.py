@@ -1,5 +1,6 @@
 import os
 import textwrap
+from drplanner.utils.config import DrPlannerConfiguration
 from langchain.vectorstores import Chroma
 from langchain.embeddings.openai import OpenAIEmbeddings
 from langchain.docstore.document import Document
@@ -7,60 +8,51 @@ from langchain.docstore.document import Document
 
 class PlanningMemory:
 
-    def __init__(self, encode_type='sce_language', db_path=None) -> None:
-        self.encode_type = encode_type
-        if encode_type == 'sce_encode':
-            # 'sce_encode' is deprecated for now.
-            raise ValueError("encode_type sce_encode is deprecated for now.")
-        elif encode_type == 'sce_language':
-            self.embedding = OpenAIEmbeddings(openai_api_key="sk-proj-Mhj0bzpPIn0JPfNQe052T3BlbkFJUMPYjpihwadeT7jqrt2Z")            
+    def __init__(self, db_path=None) -> None:
+        config = DrPlannerConfiguration()               
+        db_path = os.path.join(
+            './db', 'chroma_24_mem/') if db_path is None else db_path
+        self.embedding = OpenAIEmbeddings(openai_api_key=config.openai_api_key) 
+        self.scenario_memory = Chroma(
+            embedding_function=self.embedding,
+            persist_directory=db_path
+            )
         
-            db_path = os.path.join(
-                './db', 'chroma_24_mem/') if db_path is None else db_path
-            self.scenario_memory = Chroma(
-                embedding_function=self.embedding,
-                persist_directory=db_path
-                )
-        else:
-            raise ValueError(
-                "Unknown ENCODE_TYPE: should be sce_encode or sce_language")
-        
-    def retrieveMemory(self, scenario_description:str, top_k: int = 5):
+    def retrieveMemory(self, prompt_planner:str, top_k):
         similarity_results = self.scenario_memory.similarity_search_with_score(
-            scenario_description, k=top_k)
+            prompt_planner,top_k)
         fewshot_results = []
-        for idx in range(0, len(similarity_results)):
-            if similarity_results[0][1] < 0.3:
-              fewshot_results.append(similarity_results[idx][0].metadata)
+        top_three_similar_memories=self.top_three_similar_memories(similarity_results)
+        for idx in range(0, len(top_three_similar_memories)):
+            #print("The score for memory:",str(top_three_similar_memories[idx][1]))
+            fewshot_results.append(top_three_similar_memories[idx][0].metadata)
         return fewshot_results
+    
+    def top_three_similar_memories(self,memories:any):
+        sorted_memories = sorted(memories, key=lambda x: float(x[1]), reverse=False)
+        return sorted_memories[:3]
 
-    def addMemory(self, scenario_description: any, human_question: str,corrected_response: str, comments: str = ""):
-        if self.encode_type == 'sce_encode':
-            pass
-        elif self.encode_type == 'sce_language':
-            scenario_description = scenario_description.replace("'", '')
+    def addMemory(self, prompt_planner: any, human_question: str,result: any, comments: str = ""):
+        prompt_planner = prompt_planner.replace("'", '')
         get_results = self.scenario_memory._collection.get(
             where_document={
-                "$contains": scenario_description
+                "$contains": prompt_planner
             }
         )
-
         if len(get_results['ids']) > 0:
             # already have one
             id = get_results['ids'][0]
             self.scenario_memory._collection.update(
-                ids=id, metadatas={"human_question": human_question,'LLM_response': corrected_response,  'comments': comments}
+                ids=id, metadatas={"human_question": human_question,'LLM_response': result,  'comments': comments}
             )
-            print("Modify a memory item. Now the database has ", len(
-                self.scenario_memory._collection.get(include=['embeddings'])['embeddings']), " items.")
+            print("Modify a memory item.")
         else:
             doc = Document(
-                page_content=scenario_description,
-                metadata={"human_question": human_question,'LLM_response': corrected_response,  'comments': comments}
+                page_content=prompt_planner,
+                metadata={"human_question": human_question,'LLM_response': result,  'comments': comments}
             )
             id = self.scenario_memory.add_documents([doc])
-            print("Add a memory item. Now the database has ", len(
-                self.scenario_memory._collection.get(include=['embeddings'])['embeddings']), " items.")
+            print("Add a memory item.")
 
     def deleteMemory(self, ids):
         self.scenario_memory._collection.delete(ids=ids)

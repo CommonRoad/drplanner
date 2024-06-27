@@ -34,7 +34,6 @@ class LLM:
 
         self.temperature = temperature
 
-        self.SIMILAR_MEMORY = "similar_memory"
         self.HEURISTIC_FUNCTION = "improved_heuristic_function"    
         self.MOTION_PRIMITIVES = "motion_primitives"
         self.EXTRA_INFORMATION = "extra_information"
@@ -63,11 +62,7 @@ class LLM:
                             "description": "Diagnostic and prescriptive summary",
                         },
 
-                        self.SIMILAR_MEMORY: {
-                            "type": "string",
-                            #or type: "dict"
-                            "description": "similar memories with successful diagnosis and repair",
-                        },
+                        
 
                         self.HEURISTIC_FUNCTION: {
                             "type": "string",

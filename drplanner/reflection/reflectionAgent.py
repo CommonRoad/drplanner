@@ -63,7 +63,7 @@ class ReflectionAgent:
         target_phrase = f"{delimiter} What should ChatGPT do to avoid such errors in the future:"
         substring = response.content[response.content.find(
             target_phrase)+len(target_phrase):].strip()
-        corrected_memory = f"{delimiter} I have made a misake before and below is my self-reflection:\n{substring}"
+        corrected_memory = f"{delimiter} I have made a mistake before and below is my self-reflection:\n{substring}"
         print("Reflection done. Time taken: {:.2f}s".format(
             time.time() - start_time))
         print("corrected_memory:", corrected_memory)

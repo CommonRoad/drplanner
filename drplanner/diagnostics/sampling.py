@@ -73,7 +73,7 @@ def run_planner(
             if not optimal:
                 cause = "No optimal trajectory could be found!"
                 solution = (
-                    "Redefine the cost function or adjust the configuration parameters."
+                    ""
                 )
                 raise PlanningException(cause, solution)
 
@@ -91,7 +91,7 @@ def run_planner(
             if not optimal:
                 cause = "No optimal trajectory could be found!"
                 solution = (
-                    "Redefine the cost function or adjust the configuration parameters."
+                    ""
                 )
                 raise PlanningException(cause, solution)
 
@@ -128,10 +128,7 @@ class DrSamplingPlanner(DrPlannerBase):
         self.prompter = PrompterSampling(
             self.scenario,
             self.planning_problem,
-            self.config.openai_api_key,
-            self.config.temperature,
-            self.config.gpt_version,
-            mockup=self.config.mockup_openAI,
+            self.config,
         )
         self.cost_function = self.motion_planner.cost_function
 
@@ -145,16 +142,17 @@ class DrSamplingPlanner(DrPlannerBase):
         self.motion_planner_config.update()
 
         # ----- planner configuration -----
-        t_min = float(self.diagnosis_result[self.prompter.PLANNER_CONFIG[0][0]])
-        t_max = float(self.diagnosis_result[self.prompter.PLANNER_CONFIG[1][0]])
-        d_max = float(self.diagnosis_result[self.prompter.PLANNER_CONFIG[2][0]])
-        time_steps_computation = int(t_max / self.motion_planner_config.planning.dt)
-        self.motion_planner_config.planning.time_steps_computation = (
-            time_steps_computation
-        )
-        self.motion_planner_config.sampling.t_min = t_min
-        self.motion_planner_config.sampling.d_min = -d_max
-        self.motion_planner_config.sampling.d_max = d_max
+        if self.config.repair_sampling_parameters:
+            t_min = float(self.diagnosis_result[self.prompter.PLANNER_CONFIG[0][0]])
+            t_max = float(self.diagnosis_result[self.prompter.PLANNER_CONFIG[1][0]])
+            d_max = float(self.diagnosis_result[self.prompter.PLANNER_CONFIG[2][0]])
+            time_steps_computation = int(t_max / self.motion_planner_config.planning.dt)
+            self.motion_planner_config.planning.time_steps_computation = (
+                time_steps_computation
+            )
+            self.motion_planner_config.sampling.t_min = t_min
+            self.motion_planner_config.sampling.d_min = -d_max
+            self.motion_planner_config.sampling.d_max = d_max
         # reset planner
         self.motion_planner = get_planner(self.motion_planner_config)
 
@@ -205,9 +203,7 @@ class DrSamplingPlanner(DrPlannerBase):
     ):
         # if at loop start
         if not self.diagnosis_result:
-            self.prompter.update_planner_prompt(
-                self.cost_function
-            )
+            self.prompter.update_planner_prompt(self.cost_function)
         # if a better cost function was found
         elif self.update_function_description:
             updated_cost_function = self.diagnosis_result[self.prompter.COST_FUNCTION]

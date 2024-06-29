@@ -67,7 +67,9 @@ class DrSearchPlanner(DrPlannerBase):
 
     def repair(self):
         # ----- heuristic function -----
-        updated_heuristic_function = self.diagnosis_result[self.prompter.HEURISTIC_FUNCTION]
+        updated_heuristic_function = self.diagnosis_result[
+            self.prompter.HEURISTIC_FUNCTION
+        ]
         updated_heuristic_function = textwrap.dedent(updated_heuristic_function)
         # Create a namespace dictionary to hold the compiled function
         function_namespace = {}
@@ -95,7 +97,9 @@ class DrSearchPlanner(DrPlannerBase):
         )
 
         # ----- motion primitives -----
-        updated_motion_primitives_id = self.diagnosis_result[self.prompter.MOTION_PRIMITIVES]
+        updated_motion_primitives_id = self.diagnosis_result[
+            self.prompter.MOTION_PRIMITIVES
+        ]
         if updated_motion_primitives_id.startswith(
             "'"
         ) and updated_motion_primitives_id.endswith("'"):

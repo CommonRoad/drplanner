@@ -75,7 +75,9 @@ def cost_statistic(drplanner_results: list):
         if not math.isinf(r.initial_cost) and not math.isinf(r.final_cost)
     ]
     average_cost_reduction = sum(absolute_cost_reduction) / len(absolute_cost_reduction)
-    print(f"absolute cost reduction: {max(absolute_cost_reduction)} (max), {min(absolute_cost_reduction)} (min), {average_cost_reduction} (avg)")
+    print(
+        f"absolute cost reduction: {max(absolute_cost_reduction)} (max), {min(absolute_cost_reduction)} (min), {average_cost_reduction} (avg)"
+    )
 
     relative_cost_reduction = [
         ((r.initial_cost - r.final_cost) / r.initial_cost) * 100
@@ -83,7 +85,9 @@ def cost_statistic(drplanner_results: list):
         if not math.isinf(r.initial_cost) and not math.isinf(r.final_cost)
     ]
     average_cost_reduction = sum(relative_cost_reduction) / len(relative_cost_reduction)
-    print(f"relative cost reduction: {max(relative_cost_reduction):.2f}% (max), {min(relative_cost_reduction):.2f}% (min), {average_cost_reduction:.2f}% (avg)")
+    print(
+        f"relative cost reduction: {max(relative_cost_reduction):.2f}% (max), {min(relative_cost_reduction):.2f}% (min), {average_cost_reduction:.2f}% (avg)"
+    )
 
 
 def failure_statistic(drplanner_results: list):
@@ -135,9 +139,7 @@ def exception_statistic(drplanner_results: list):
         print(f"In {percent:.2f}% of runs, there occurred exactly {amount} exceptions")
     iteration_amount = sum([len(r.iterations) for r in drplanner_results])
     avg_failures = sum(fails_per_run) / iteration_amount * 100
-    print(
-        f"Some sort of exception occurred in {avg_failures:.2f}% of all iterations"
-    )
+    print(f"Some sort of exception occurred in {avg_failures:.2f}% of all iterations")
 
     # evaluate how many times the cost function was not included in the llm response
     cost_function_array = [x.cost_functions for x in drplanner_results]
@@ -224,7 +226,16 @@ def cost_function_statistic(drplanner_results: list, print_all=True):
     # print the top 10 most different cost functions
     print("original:")
     print_cost_function(original)
-    flattened_cost_functions = list(set([(cf, Levenshtein.distance(original, cf)) for cfs in cost_function_array for cf in cfs if cf]))
+    flattened_cost_functions = list(
+        set(
+            [
+                (cf, Levenshtein.distance(original, cf))
+                for cfs in cost_function_array
+                for cf in cfs
+                if cf
+            ]
+        )
+    )
     ranking = list(reversed(sorted(flattened_cost_functions, key=lambda x: x[1])))
     for i, (cf, count) in enumerate(ranking):
         if i > 10:

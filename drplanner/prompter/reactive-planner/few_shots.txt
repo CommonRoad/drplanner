@@ -11,7 +11,7 @@ These are some pre-defined helper methods which you can use with ```self.```:
 ```distance_to_reference_path_costs(trajectory: TrajectorySample) -> float```,
 # Prefers short trajectories
 ```path_length_costs(trajectory: TrajectorySample) -> float```
-# Prefers trajectories with constant velocity
+# Prefers trajectories with constant velocity, should NEVER be zero since it is very important
 ```desired_velocity_costs(self, trajectory: TrajectorySample) -> float:```
 # Prefers trajectories which end in center of the goal area
 ```desired_path_length_costs(self, trajectory: TrajectorySample) -> float:```
@@ -35,9 +35,3 @@ This is false:
 cost = 0.0
 # some calculation of cost...
 '''
-
-You can also modify the current sampling intervals. These intervals determine the properties of sampled trajectories and are therefore responsible for choosing the initial pool of trajectories (which is then ranked byy the cost_function).
-These are the intervals:
-1) time horizon [t_min, t_max] in seconds. Increasing t_max will allow for long, smooth, low-curvature trajectories which are good for following straight paths. Decreasing t_min will allow for the opposite which is beneficial for maneuvering through dense traffic etc.
-2) distance to reference path [-d_max, d_max] in meters. Increasing d_max will give the car more freedom since it can now roam far away from the reference path. But this might also lead to the car missing the goal region or driving physically impossible trajectories.
-Feel free to increase these parameters if everything works well

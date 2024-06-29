@@ -37,15 +37,15 @@ class Prompt:
 
 class PrompterBase(ABC):
     def __init__(
-            self,
-            scenario: Scenario,
-            planning_problem: PlanningProblem,
-            user_prompt_template: list[str],
-            api_key: str,
-            gpt_version: str = "gpt-3.5-turbo",  # gpt-3.5-turbo, text-davinci-002, gpt-4-1106-preview
-            prompts_folder_name: str = "astar/",
-            temperature=0.2,
-            mockup=False,
+        self,
+        scenario: Scenario,
+        planning_problem: PlanningProblem,
+        user_prompt_template: list[str],
+        api_key: str,
+        gpt_version: str = "gpt-3.5-turbo",  # gpt-3.5-turbo, text-davinci-002, gpt-4-1106-preview
+        prompts_folder_name: str = "astar/",
+        temperature=0.2,
+        mockup=False,
     ):
         self.api_key = api_key
         self.gpt_version = gpt_version
@@ -74,7 +74,9 @@ class PrompterBase(ABC):
         self.user_prompt = Prompt(user_prompt_template)
 
         for part in user_prompt_template:
-            template_path = os.path.join(script_dir, prompts_folder_name + f"{part}.txt")
+            template_path = os.path.join(
+                script_dir, prompts_folder_name + f"{part}.txt"
+            )
             if os.path.exists(template_path):
                 with open(template_path, "r") as file:
                     self.user_prompt.set(part, file.read())
@@ -99,14 +101,14 @@ class PrompterBase(ABC):
     def update_planner_prompt(self, *args, **kwargs) -> str:
         pass
 
-    def generate_cost_description(self, cost_evaluation: PlanningProblemCostResult):
-        if not self.trajectory_description:
-            self.trajectory_description = TrajectoryCostDescription(cost_evaluation)
-            return self.trajectory_description.generate(None)
-        return self.trajectory_description.generate(cost_evaluation)
+    def generate_cost_description(self, initial: PlanningProblemCostResult) -> str:
+        self.trajectory_description = TrajectoryCostDescription(initial)
+        return self.trajectory_description.generate()
 
-    def update_cost_description(self, cost_evaluation: PlanningProblemCostResult):
-        self.trajectory_description.cost_result = cost_evaluation
+    def update_cost_description(self, new: PlanningProblemCostResult) -> str:
+        description = self.trajectory_description.update(new)
+        self.trajectory_description.cost_result = new
+        return description
 
     @staticmethod
     def generate_exception_description(e: Exception):

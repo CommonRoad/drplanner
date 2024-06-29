@@ -7,6 +7,7 @@ from commonroad_rp.utility.config import ReactivePlannerConfiguration
 
 from drplanner.prompter.base import PrompterBase
 from drplanner.prompter.llm import LLMFunction
+from drplanner.utils.config import DrPlannerConfiguration
 
 
 class PrompterSampling(PrompterBase):
@@ -14,12 +15,10 @@ class PrompterSampling(PrompterBase):
         self,
         scenario: Scenario,
         planning_problem: PlanningProblem,
-        api_key: str,
-        temperature: float,
-        gpt_version: str = "gpt-4-1106-preview",
+        config: DrPlannerConfiguration,
         prompts_folder_name: str = "reactive-planner/",
-        mockup: bool = False,
     ):
+        self.config = config
         self.COST_FUNCTION = "improved_cost_function"
         self.PLANNER_CONFIG = [
             ("t_min", "minimal time horizon in [s]"),
@@ -40,24 +39,23 @@ class PrompterSampling(PrompterBase):
             scenario,
             planning_problem,
             template,
-            api_key,
-            gpt_version,
+            config.openai_api_key,
+            config.gpt_version,
             prompts_folder_name,
-            mockup=mockup,
-            temperature=temperature,
+            mockup=config.mockup_openAI,
+            temperature=config.temperature,
         )
 
     def init_LLM(self) -> LLMFunction:
         llm_function = LLMFunction()
         llm_function.add_code_parameter(self.COST_FUNCTION, "updated cost function")
-        # add sampling configuration parameters
-        for key, descr in self.PLANNER_CONFIG:
-            llm_function.add_number_parameter(key, descr)
+        if self.config.repair_sampling_parameters:
+            # add sampling configuration parameters
+            for key, descr in self.PLANNER_CONFIG:
+                llm_function.add_number_parameter(key, descr)
         return llm_function
 
-    def update_planner_prompt(
-        self, cost_function
-    ):
+    def update_planner_prompt(self, cost_function):
         # if code is directly provided
         if isinstance(cost_function, str):
             self.user_prompt.set("planner", cost_function)
@@ -71,9 +69,25 @@ class PrompterSampling(PrompterBase):
             self.user_prompt.set("planner", cf_code)
 
     def update_config_prompt(self, config: ReactivePlannerConfiguration):
+        # standard prompt
+        config_description = (
+            "You can also modify the current sampling intervals. "
+            "These intervals determine the properties of sampled trajectories and are "
+            "therefore responsible for choosing the initial pool of trajectories "
+            "(which is then ranked by the cost_function).\n"
+            "These are the intervals:\n"
+            "1) time horizon [t_min, t_max] in seconds. Increasing t_max will allow for "
+            "long, smooth, low-curvature trajectories which are good for following straight paths. "
+            "Decreasing t_min will allow for the opposite which is beneficial for maneuvering "
+            "through dense traffic etc.\n"
+            "2) distance to reference path [-d_max, d_max] in meters. Increasing d_max will give "
+            "the car more freedom since it can now roam far away from the reference path. But this "
+            "might also lead to the car missing the goal region or driving physically impossible trajectories.\n"
+            "Feel free to increase these parameters if everything works well"
+        )
         # describe the current planning horizon
         t_max = float(config.planning.dt * config.planning.time_steps_computation)
-        config_description = "These are the current intervals used for sampling: "
+        config_description += "These are the current intervals used for sampling: "
         config_description += f"Time horizon starts at {config.sampling.t_min} seconds and ends at {t_max} seconds. "
         if config.sampling.t_min <= 2 * config.planning.dt:
             config_description += (

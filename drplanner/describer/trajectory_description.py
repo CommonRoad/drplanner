@@ -47,10 +47,7 @@ class TrajectoryCostDescription(DescriptionBase):
         super().__init__()
         self.cost_result = cost_result
 
-    def generate(self, update: Union[PlanningProblemCostResult, None]) -> str:
-        if update:
-            return self._update(update)
-
+    def generate(self) -> str:
         description = f"The current total cost is calculated to be {self.cost_result.total_costs:.2f}, "
         description += "it includes "
         for item, cost in self.cost_result.partial_costs.items():
@@ -61,7 +58,7 @@ class TrajectoryCostDescription(DescriptionBase):
         self.description = description[:-2] + ". "
         return self.description
 
-    def _update(self, update: PlanningProblemCostResult):
+    def update(self, update: PlanningProblemCostResult):
         description = (
             "What follows is a performance comparison between the last planner version and the current "
             "planner version.\n"

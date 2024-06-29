@@ -72,9 +72,7 @@ def run_planner(
 
             if not optimal:
                 cause = "No optimal trajectory could be found!"
-                solution = (
-                    ""
-                )
+                solution = ""
                 raise PlanningException(cause, solution)
 
             planner.record_state_and_input(optimal[0].state_list[1])
@@ -90,9 +88,7 @@ def run_planner(
 
             if not optimal:
                 cause = "No optimal trajectory could be found!"
-                solution = (
-                    ""
-                )
+                solution = ""
                 raise PlanningException(cause, solution)
 
             planner.record_state_and_input(optimal[0].state_list[1 + temp])
@@ -204,9 +200,12 @@ class DrSamplingPlanner(DrPlannerBase):
         # if at loop start
         if not self.diagnosis_result:
             self.prompter.update_planner_prompt(self.cost_function)
-        # if a better cost function was found
+        # if new cost function should be described
         elif self.update_function_description:
-            updated_cost_function = self.diagnosis_result[self.prompter.COST_FUNCTION]
+            try:
+                updated_cost_function = self.diagnosis_result[self.prompter.COST_FUNCTION]
+            except Exception as _:
+                raise MissingParameterException(self.prompter.COST_FUNCTION)
             updated_cost_function = textwrap.dedent(updated_cost_function)
             self.prompter.update_planner_prompt(
                 updated_cost_function,

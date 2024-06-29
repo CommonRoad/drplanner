@@ -1,5 +1,3 @@
-from typing import Union
-
 import numpy as np
 from commonroad.common.solution import CostFunction
 from commonroad_dc.costs.evaluation import (
@@ -43,57 +41,65 @@ def get_infinite_cost_result(cost_function: CostFunction) -> PlanningProblemCost
 class TrajectoryCostDescription(DescriptionBase):
     domain = "trajectory_cost"
 
-    def __init__(self, cost_result: PlanningProblemCostResult):
+    def __init__(self):
         super().__init__()
-        self.cost_result = cost_result
 
-    def generate(self) -> str:
-        description = f"The current total cost is calculated to be {self.cost_result.total_costs:.2f}, "
+    def generate(self, cost_result: PlanningProblemCostResult, desired_cost: int) -> str:
+        description = f"The total cost of the initial planner is calculated to be {cost_result.total_costs:.2f}, "
         description += "it includes "
-        for item, cost in self.cost_result.partial_costs.items():
+        for item, cost in cost_result.partial_costs.items():
             description += (
                 f"{CostFunctionMeaningMapping[item]}, valued at {cost:.2f} "
-                f"with a weight of {self.cost_result.weights[item]}; "
+                f"with a weight of {cost_result.weights[item]}; "
             )
         self.description = description[:-2] + ". "
+        self.description += (
+            f"The objective is to adjust the total cost of the planned trajectory to closely "
+            f"align with the desired value {desired_cost}.\n"
+        )
         return self.description
 
-    def update(self, update: PlanningProblemCostResult):
+    def update(self, a: PlanningProblemCostResult, version: str, b: PlanningProblemCostResult, desired_cost: int):
         description = (
-            "What follows is a performance comparison between the last planner version and the current "
-            "planner version.\n"
+            f"What follows is a performance comparison between the {version} planner and the current "
+            "planner.\n"
         )
         description += self._compare(
-            "total cost", self.cost_result.total_costs, update.total_costs
+            "total cost", a.total_costs, b.total_costs, version
         )
         description += "Total cost is calculated by a weighted sum of:\n"
         for (item, initial_cost), (_, repaired_cost) in zip(
-            self.cost_result.partial_costs.items(), update.partial_costs.items()
+            a.partial_costs.items(), b.partial_costs.items()
         ):
-            item = f"{CostFunctionMeaningMapping[item]} weighted at {self.cost_result.weights[item]}"
-            description += self._compare(item, initial_cost, repaired_cost)
+            item = f"{CostFunctionMeaningMapping[item]} weighted at {a.weights[item]}"
+            description += self._compare(item, initial_cost, repaired_cost, version)
         self.description = description[:-2] + ". "
 
         threshold = 1.0
-        if abs(self.cost_result.total_costs - update.total_costs) < threshold:
+        if abs(a.total_costs - b.total_costs) < threshold:
             self.description += (
                 f"The performance of the motion planner is stagnating. You might need to try "
                 f"something completely new!"
             )
-        elif self.cost_result.total_costs < update.total_costs:
+        elif a.total_costs < b.total_costs:
             self.description += (
                 f"The performance of the motion planner is getting worse. Please reconsider your last "
                 f"changes and keep trying!"
             )
-        elif self.cost_result.total_costs > update.total_costs:
+        elif a.total_costs > b.total_costs:
             self.description += (
                 f"The performance of the motion planner is getting better. Great job, continue like "
                 f"that!"
             )
+
+        self.description += (
+            f"The objective is to adjust the total cost of the planned trajectory to closely "
+            f"align with the desired value {desired_cost}.\n"
+        )
         return self.description
 
     @staticmethod
-    def _compare(item: str, initial: float, repaired: float):
+    def _compare(item: str, initial: float, repaired: float, version: str):
         threshold = 0.01
         if abs(initial - repaired) < threshold:
             compare = "equal to"
@@ -101,7 +107,7 @@ class TrajectoryCostDescription(DescriptionBase):
             compare = "worse than"
         else:
             compare = "better than"
-        return f"- {item}: current result ({repaired:.2f}) is {compare} last result ({initial:.2f})\n"
+        return f"- {item}: current result ({repaired:.2f}) is {compare} {version} result ({initial:.2f})\n"
 
 
 class TrajectoryStateDescription(DescriptionBase):

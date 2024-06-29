@@ -152,7 +152,6 @@ class LLM:
             response = mockup_query(mockup_nr_iter)
         # otherwise send the query
         else:
-            print(f"temperature: {self.temperature}")
             functions = self.llm_function.get_function_as_list()
             response = openai.chat.completions.create(
                 model=self.gpt_version,

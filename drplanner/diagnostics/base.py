@@ -80,9 +80,11 @@ class DrPlannerBase(ABC):
             self.cost_type, VehicleType.BMW_320i
         )
         self.evaluation_trajectory = None
+        self.diagnosis_result = None
+        self.update_function_description = False
 
     @abstractmethod
-    def repair(self, diagnosis_result: Union[str, None]):
+    def repair(self):
         """
         Tries to implement the recommendations by DrPlanner
         """
@@ -91,8 +93,7 @@ class DrPlannerBase(ABC):
     @abstractmethod
     def describe_planner(
         self,
-        diagnosis_result: Union[str, None],
-    ) -> str:
+    ):
         """
         Describes the current state of the planner to DrPlanner
         """
@@ -105,17 +106,9 @@ class DrPlannerBase(ABC):
         """
         pass
 
-    def instantiate_template(
-        self, prompt_planner: str, prompt_trajectory: str, prompt_feedback: str
-    ):
-        template = self.prompter.algorithm_template
-        template = template.replace("[PLANNER]", prompt_planner)
-        template = template.replace("[PLANNED_TRAJECTORY]", prompt_trajectory)
-        return template.replace("[FEEDBACK]", prompt_feedback)
-
     def describe_trajectory(
         self, planned_trajectory: Union[Trajectory, Exception]
-    ) -> (str, PlanningProblemCostResult):
+    ) -> PlanningProblemCostResult:
         if isinstance(planned_trajectory, Trajectory):
             evaluation_trajectory = self.cost_evaluator.evaluate_pp_solution(
                 self.scenario, self.planning_problem, planned_trajectory
@@ -129,7 +122,8 @@ class DrPlannerBase(ABC):
             )
             if self.config.send_scenario:
                 description += "To give you a broad understanding of the scenario which is currently used for motion planning, a plot is provided showing all lanes (grey), the planned trajectory (black line) and the goal area (light orange)"
-            return description, evaluation_trajectory
+            self.prompter.user_prompt.set("trajectory", description)
+            return evaluation_trajectory
         else:
             evaluation_trajectory = get_infinite_cost_result(self.cost_type)
             self.prompter.generate_cost_description(evaluation_trajectory)
@@ -137,7 +131,8 @@ class DrPlannerBase(ABC):
             description += self.prompter.generate_exception_description(
                 planned_trajectory
             )
-            return description, evaluation_trajectory
+            self.prompter.user_prompt.set("trajectory", description)
+            return evaluation_trajectory
 
     def add_feedback(self, updated_trajectory: Trajectory):
         """
@@ -173,21 +168,19 @@ class DrPlannerBase(ABC):
         # test the initial motion planner once
         try:
             planned_trajectory = self.plan(nr_iteration)
-            prompt_planner = self.describe_planner(None)
-            prompt_trajectory, evaluation_trajectory = self.describe_trajectory(
+            self.describe_planner()
+            evaluation_trajectory = self.describe_trajectory(
                 planned_trajectory
             )
             self.evaluation_trajectory = evaluation_trajectory
             self.current_cost = self.evaluation_trajectory.total_costs
         except Exception as e:
-            prompt_planner = self.describe_planner(None)
-            prompt_trajectory, evaluation_trajectory = self.describe_trajectory(e)
+            self.describe_planner()
+            evaluation_trajectory = self.describe_trajectory(e)
             self.evaluation_trajectory = evaluation_trajectory
             self.current_cost = np.inf
 
         self.initial_cost = self.current_cost
-        # history = self.prompter.generate_cost_description(self.evaluation_trajectory)
-        prompt_feedback = ""
         # start the repairing process
         while (
             abs(self.current_cost - self.desired_cost) > self.THRESHOLD
@@ -211,10 +204,8 @@ class DrPlannerBase(ABC):
                 path_to_plots = None
 
             messages = LLM.get_messages(
-                self.prompter.prompt_system,
-                self.instantiate_template(
-                    prompt_planner, prompt_trajectory, prompt_feedback
-                ),
+                self.prompter.system_prompt.__str__(),
+                self.prompter.user_prompt.__str__(),
                 path_to_plots,
             )
             # todo: get the token from the openai interface
@@ -236,7 +227,7 @@ class DrPlannerBase(ABC):
                 nr_iter=nr_iteration,
                 mockup_nr_iter=mockup_nr_iteration,
             )
-
+            self.diagnosis_result = result
             # reset some variables
             self.prompter.reload_LLM()
             prompt_feedback = "Diagnoses and prescriptions from the last iteration:\n"
@@ -245,15 +236,14 @@ class DrPlannerBase(ABC):
             # repair the motion planner and test the result
             try:
                 prompt_feedback += f" {result['summary']}\n"
-                self.repair(result)
+                self.repair()
                 planned_trajectory = self.plan(nr_iteration)
                 # add feedback
                 previous_cost = self.current_cost
                 prompt_feedback += self.add_feedback(planned_trajectory)
                 # if this solution was better than before, set it as new standard
-                if self.current_cost <= previous_cost and self.config.version2:
-                    prompt_planner = self.describe_planner(result)
-                    prompt_trajectory = ""
+                self.update_function_description = self.current_cost <= previous_cost and self.config.feedback_cost_function
+                self.describe_planner()
 
             except Exception as e:
                 prompt_feedback += (
@@ -261,6 +251,7 @@ class DrPlannerBase(ABC):
                 )
                 prompt_feedback += self.prompter.generate_exception_description(e)
                 self.current_cost = np.inf
+            self.prompter.user_prompt.set("feedback", prompt_feedback)
             self.cost_list.append(self.current_cost)
 
         print("[DrPlanner] Ends.")

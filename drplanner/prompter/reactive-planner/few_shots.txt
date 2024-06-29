@@ -40,3 +40,4 @@ You can also modify the current sampling intervals. These intervals determine th
 These are the intervals:
 1) time horizon [t_min, t_max] in seconds. Increasing t_max will allow for long, smooth, low-curvature trajectories which are good for following straight paths. Decreasing t_min will allow for the opposite which is beneficial for maneuvering through dense traffic etc.
 2) distance to reference path [-d_max, d_max] in meters. Increasing d_max will give the car more freedom since it can now roam far away from the reference path. But this might also lead to the car missing the goal region or driving physically impossible trajectories.
+Feel free to increase these parameters if everything works well

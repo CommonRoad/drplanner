@@ -1,21 +1,18 @@
-import os
 import textwrap
 import time
 from types import MethodType
-from typing import Union, Optional, Type
+from typing import Optional, Type
 
 import numpy as np
-from commonroad.common.solution import CommonRoadSolutionWriter
 from commonroad.planning.planning_problem import PlanningProblemSet
 from commonroad.scenario.scenario import Scenario
 from commonroad.scenario.trajectory import Trajectory
-from commonroad_dc.feasibility.vehicle_dynamics import StateException
 from commonroad_route_planner.route_planner import RoutePlanner
 from commonroad_rp.cost_function import CostFunction, DefaultCostFunction
 from commonroad_rp.reactive_planner import ReactivePlanner
 from commonroad_rp.trajectories import TrajectorySample
 from commonroad_rp.utility.config import ReactivePlannerConfiguration
-from commonroad_rp.utility.evaluation import run_evaluation, create_full_solution_trajectory
+from commonroad_rp.utility.evaluation import create_full_solution_trajectory
 from drplanner.describer.base import (
     PlanningException,
     CompilerException,
@@ -138,7 +135,9 @@ class DrSamplingPlanner(DrPlannerBase):
         )
         self.cost_function = self.motion_planner.cost_function
 
-    def repair(self, diagnosis_result: Union[str, None]):
+    def repair(self):
+        if not self.diagnosis_result:
+            return
         # reset configuration
         self.motion_planner_config = ReactivePlannerConfiguration.load(
             f"drplanner/planners/standard-config.yaml", self.scenario_path
@@ -146,9 +145,9 @@ class DrSamplingPlanner(DrPlannerBase):
         self.motion_planner_config.update()
 
         # ----- planner configuration -----
-        t_min = float(diagnosis_result[self.prompter.PLANNER_CONFIG[0][0]])
-        t_max = float(diagnosis_result[self.prompter.PLANNER_CONFIG[1][0]])
-        d_max = float(diagnosis_result[self.prompter.PLANNER_CONFIG[2][0]])
+        t_min = float(self.diagnosis_result[self.prompter.PLANNER_CONFIG[0][0]])
+        t_max = float(self.diagnosis_result[self.prompter.PLANNER_CONFIG[1][0]])
+        d_max = float(self.diagnosis_result[self.prompter.PLANNER_CONFIG[2][0]])
         time_steps_computation = int(t_max / self.motion_planner_config.planning.dt)
         self.motion_planner_config.planning.time_steps_computation = (
             time_steps_computation
@@ -161,7 +160,7 @@ class DrSamplingPlanner(DrPlannerBase):
 
         # ----- heuristic function -----
         try:
-            updated_cost_function = diagnosis_result[self.prompter.COST_FUNCTION]
+            updated_cost_function = self.diagnosis_result[self.prompter.COST_FUNCTION]
         except Exception as _:
             raise MissingParameterException(self.prompter.COST_FUNCTION)
 
@@ -203,40 +202,27 @@ class DrSamplingPlanner(DrPlannerBase):
 
     def describe_planner(
         self,
-        diagnosis_result: Union[str, None],
-    ) -> str:
-        # if there was no diagnosis provided describe starting cost function
-        if diagnosis_result is None:
-            return self.prompter.generate_planner_description(
-                self.cost_function,
-                self.motion_planner_config,
+    ):
+        # if at loop start
+        if not self.diagnosis_result:
+            self.prompter.update_planner_prompt(
+                self.cost_function
             )
-        # otherwise describe the repaired version of the cost function
-        else:
-            updated_cost_function = diagnosis_result[self.prompter.COST_FUNCTION]
+        # if a better cost function was found
+        elif self.update_function_description:
+            updated_cost_function = self.diagnosis_result[self.prompter.COST_FUNCTION]
             updated_cost_function = textwrap.dedent(updated_cost_function)
-            return self.prompter.generate_planner_description(
+            self.prompter.update_planner_prompt(
                 updated_cost_function,
-                self.motion_planner_config,
             )
+
+        if self.config.repair_sampling_parameters:
+            self.prompter.update_config_prompt(self.motion_planner_config)
 
     def plan(self, nr_iter: int) -> Trajectory:
         solution = run_planner(
             self.motion_planner, self.motion_planner_config, self.cost_function
         )
 
-        # todo: find a good way to visualize solution
-
-        #if self._save_solution:
-        #    # write solution to a CommonRoad XML file
-        #    csw = CommonRoadSolutionWriter(solution)
-        #    target_folder = self.dir_output + "sampling/solutions/"
-        #    os.makedirs(
-        #        os.path.dirname(target_folder), exist_ok=True
-        #    )  # Ensure the directory exists
-        #    csw.write_to_file(
-        #        output_path=target_folder,
-        #        filename=f"solution_{solution.benchmark_id}_iter_{nr_iter}.xml",
-        #        overwrite=True,
-        #    )
+        # todo: find a good way to save and visualize solution
         return solution

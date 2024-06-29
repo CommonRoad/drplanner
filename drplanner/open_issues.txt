@@ -3,6 +3,14 @@ time_step_size determines length of planning horizon which determines maximum fo
 Therefore, this is a verkappter sampling parameter and the reason why it was so influential.
 2   todo: add config parameters to easily turn on/off new features for testing
 8   todo: add plots as visual input to the evaluation feedback
+8.5 todo: change the diagnose-repair cycle:
+    llm1 sends a <n> experiments meaning:
+        a) <n> cost function parameters
+        b) <n> config parameters
+    client conducts runs with all <n²> combinations of experiments
+    client provides experiment results to another llm2
+    llm2 analyzes the data and draws conclusions
+    conclusions are fed to llm1 and cycle starts again
 9   todo: automate function description of all class/superclass methods
 10  todo: let LLM request class descriptions at runtime
 11  todo: add a DangerZone... if the performance gain is stagnating increase temperature

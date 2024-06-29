@@ -58,7 +58,11 @@ class PrompterSampling(PrompterBase):
     def update_planner_prompt(self, cost_function):
         # if code is directly provided
         if isinstance(cost_function, str):
-            self.user_prompt.set("planner", cost_function)
+            cf_code = (
+                    "This is the code of the cost function:\n```\n"
+                    + cost_function
+                    + "```"
+            )
         # otherwise access it using "inspect" and describe its used methods
         else:
             cf_code = (
@@ -66,7 +70,7 @@ class PrompterSampling(PrompterBase):
                 + textwrap.dedent(inspect.getsource(cost_function.evaluate))
                 + "```"
             )
-            self.user_prompt.set("planner", cf_code)
+        self.user_prompt.set("planner", cf_code)
 
     def update_config_prompt(self, config: ReactivePlannerConfiguration):
         # standard prompt

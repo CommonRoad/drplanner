@@ -14,16 +14,38 @@ from drplanner.describer.trajectory_description import TrajectoryCostDescription
 from commonroad_dc.costs.evaluation import PlanningProblemCostResult
 
 
+class Prompt:
+    def __init__(self, template: list):
+        # standard structure of a prompt
+        self._content: dict[str, str] = {}
+        for key in template:
+            self._content[key] = ""
+
+    def __str__(self) -> str:
+        prompt = ""
+        for value in self._content.values():
+            if not value:
+                continue
+            prompt += value + "\n"
+        return prompt
+
+    def set(self, key, value):
+        if key not in self._content.keys():
+            return
+        self._content[key] = value
+
+
 class PrompterBase(ABC):
     def __init__(
-        self,
-        scenario: Scenario,
-        planning_problem: PlanningProblem,
-        api_key: str,
-        gpt_version: str = "gpt-3.5-turbo",  # gpt-3.5-turbo, text-davinci-002, gpt-4-1106-preview
-        prompts_folder_name: str = "astar/",
-        temperature=0.2,
-        mockup=False,
+            self,
+            scenario: Scenario,
+            planning_problem: PlanningProblem,
+            user_prompt_template: list[str],
+            api_key: str,
+            gpt_version: str = "gpt-3.5-turbo",  # gpt-3.5-turbo, text-davinci-002, gpt-4-1106-preview
+            prompts_folder_name: str = "astar/",
+            temperature=0.2,
+            mockup=False,
     ):
         self.api_key = api_key
         self.gpt_version = gpt_version
@@ -45,33 +67,17 @@ class PrompterBase(ABC):
         )
 
         script_dir = os.path.dirname(os.path.abspath(__file__))
+        self.system_prompt = Prompt(["base"])
         with open(os.path.join(script_dir, "system.txt"), "r") as file:
-            self.prompt_system = file.read()
+            self.system_prompt.set("base", file.read())
 
-        with open(
-            os.path.join(script_dir, prompts_folder_name + "template.txt"), "r"
-        ) as file:
-            self.algorithm_template = file.read()
+        self.user_prompt = Prompt(user_prompt_template)
 
-        with open(
-            os.path.join(script_dir, prompts_folder_name + "constraints.txt"), "r"
-        ) as file:
-            self.astar_constraints = file.read()
-
-        with open(
-            os.path.join(script_dir, prompts_folder_name + "few_shots.txt"), "r"
-        ) as file:
-            self.astar_few_shots = file.read()
-
-        with open(
-            os.path.join(script_dir, prompts_folder_name + "algorithm.txt"), "r"
-        ) as file:
-            self.astar_base = file.read()
-
-        # replace the unchanged parts
-        self.algorithm_template = self.algorithm_template.replace(
-            "[CONSTRAINTS]", self.astar_constraints
-        ).replace("[FEW_SHOTS]", self.astar_few_shots)
+        for part in user_prompt_template:
+            template_path = os.path.join(script_dir, prompts_folder_name + f"{part}.txt")
+            if os.path.exists(template_path):
+                with open(template_path, "r") as file:
+                    self.user_prompt.set(part, file.read())
 
         self.trajectory_description = None
 
@@ -90,7 +96,7 @@ class PrompterBase(ABC):
         pass
 
     @abstractmethod
-    def generate_planner_description(self, *args, **kwargs) -> str:
+    def update_planner_prompt(self, *args, **kwargs) -> str:
         pass
 
     def generate_cost_description(self, cost_evaluation: PlanningProblemCostResult):

@@ -44,9 +44,18 @@ class PrompterSearch(PrompterBase):
         self.HEURISTIC_FUNCTION = "improved_heuristic_function"
         self.MOTION_PRIMITIVES = "motion_primitives"
         self.EXTRA_INFORMATION = "extra_information"
+        template = [
+            "constraints",
+            "algorithm",
+            "planner",
+            "trajectory",
+            "few_shots",
+            "feedback",
+        ]
         super().__init__(
             scenario,
             planning_problem,
+            template,
             api_key,
             gpt_version,
             prompts_folder_name,
@@ -67,9 +76,7 @@ class PrompterSearch(PrompterBase):
         llm_function.add_string_parameter(self.EXTRA_INFORMATION, "extra information")
         return llm_function
 
-    def generate_planner_description(
-        self, motion_planner_obj: Union[object, AStarSearch], motion_primitives_id: str
-    ) -> str:
+    def update_planner_prompt(self, motion_planner_obj: Union[object, AStarSearch], motion_primitives_id: str):
         hf_code = (
             "This is the code of the heuristic function: ```"
             + inspect.getsource(motion_planner_obj.heuristic_function)
@@ -82,6 +89,4 @@ class PrompterSearch(PrompterBase):
 
         # generate motion primitives' description
         motion_primitives_des = self.mp_obj.generate(motion_primitives_id)
-        return (
-            self.astar_base + hf_code + heuristic_function_des + motion_primitives_des
-        )
+        self.user_prompt.set("planner", hf_code + heuristic_function_des + motion_primitives_des)

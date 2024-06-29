@@ -1,5 +1,4 @@
 import textwrap
-from typing import Union
 import importlib
 import copy
 import sys
@@ -36,8 +35,6 @@ from SMP.motion_planner.node import PriorityNode
 from SMP.motion_planner.plot_config import DefaultPlotConfig
 from SMP.motion_planner.search_algorithms.best_first_search import GreedyBestFirstSearch
 
-from commonroad_dc.costs.evaluation import PlanningProblemCostResult
-
 from drplanner.utils.config import DrPlannerConfiguration
 from drplanner.diagnostics.base import DrPlannerBase
 
@@ -68,9 +65,9 @@ class DrSearchPlanner(DrPlannerBase):
             self.scenario, self.planning_problem, automaton, DefaultPlotConfig
         )
 
-    def repair(self, diagnosis_result: Union[str, None]):
+    def repair(self):
         # ----- heuristic function -----
-        updated_heuristic_function = diagnosis_result[self.prompter.HEURISTIC_FUNCTION]
+        updated_heuristic_function = self.diagnosis_result[self.prompter.HEURISTIC_FUNCTION]
         updated_heuristic_function = textwrap.dedent(updated_heuristic_function)
         # Create a namespace dictionary to hold the compiled function
         function_namespace = {}
@@ -98,7 +95,7 @@ class DrSearchPlanner(DrPlannerBase):
         )
 
         # ----- motion primitives -----
-        updated_motion_primitives_id = diagnosis_result[self.prompter.MOTION_PRIMITIVES]
+        updated_motion_primitives_id = self.diagnosis_result[self.prompter.MOTION_PRIMITIVES]
         if updated_motion_primitives_id.startswith(
             "'"
         ) and updated_motion_primitives_id.endswith("'"):
@@ -130,9 +127,8 @@ class DrSearchPlanner(DrPlannerBase):
 
     def describe_planner(
         self,
-        diagnosis_result: Union[str, None],
-    ) -> (str, PlanningProblemCostResult):
-        return self.prompter.generate_planner_description(
+    ):
+        self.prompter.update_planner_prompt(
             self.StudentMotionPlanner, self.motion_primitives_id
         )
 

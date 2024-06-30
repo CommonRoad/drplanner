@@ -131,6 +131,8 @@ class DrSearchPlanner(DrPlannerBase):
 
     def describe_planner(
         self,
+        update: bool = False,
+        improved: bool = False,
     ):
         self.prompter.update_planner_prompt(
             self.StudentMotionPlanner, self.motion_primitives_id

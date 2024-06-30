@@ -1,3 +1,4 @@
+import inspect
 import textwrap
 import time
 from types import MethodType
@@ -127,6 +128,8 @@ class DrSamplingPlanner(DrPlannerBase):
             self.config,
         )
         self.cost_function = self.motion_planner.cost_function
+        self.code_current = ""
+        self.code_previous = ""
 
     def repair(self):
         if not self.diagnosis_result:
@@ -185,7 +188,7 @@ class DrSamplingPlanner(DrPlannerBase):
         if not callable(new_cost_function):
             raise ValueError("No valid 'heuristic_function' found after execution")
 
-        # Bind the function to the StudentMotionPlanner instance
+        # Bind the function
         self.cost_function.evaluate = new_cost_function.__get__(self.cost_function)
 
         self.cost_function = DefaultCostFunction(
@@ -196,19 +199,27 @@ class DrSamplingPlanner(DrPlannerBase):
 
     def describe_planner(
         self,
+        update: bool = False,
+        improved: bool = False,
     ):
         # if at loop start
         if not self.diagnosis_result:
-            self.prompter.update_planner_prompt(self.cost_function)
+            self.prompter.update_planner_prompt(self.cost_function, self.code_previous, self.config.feedback_mode)
+            self.code_previous = textwrap.dedent(inspect.getsource(self.cost_function.evaluate))
         # if new cost function should be described
-        elif self.update_function_description:
+        elif update:
             try:
                 updated_cost_function = self.diagnosis_result[self.prompter.COST_FUNCTION]
             except Exception as _:
                 raise MissingParameterException(self.prompter.COST_FUNCTION)
             updated_cost_function = textwrap.dedent(updated_cost_function)
+            self.code_current = updated_cost_function
+            if improved:
+                self.code_previous = self.code_current
             self.prompter.update_planner_prompt(
-                updated_cost_function,
+                self.code_current,
+                self.code_previous,
+                self.config.feedback_mode
             )
 
         if self.config.repair_sampling_parameters:

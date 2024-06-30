@@ -12,7 +12,7 @@ from commonroad.scenario.scenario import Scenario
 from commonroad.planning.planning_problem import PlanningProblemSet
 from commonroad.scenario.trajectory import Trajectory
 from commonroad_dc.costs.evaluation import (
-    CostFunctionEvaluator,
+    CostFunctionEvaluator, PlanningProblemCostResult,
 )
 
 from drplanner.describer.trajectory_description import get_infinite_cost_result
@@ -71,17 +71,21 @@ class DrPlannerBase(ABC):
             mockup=self.config.mockup_openAI,
         )
 
-        # initialize meta parameters
+        # standard parameters to evaluate a planning result
         self.cost_type = CostFunction.SM1
         self.vehicle_model = VehicleModel.KS
         self.vehicle_type = VehicleType.BMW_320i
         self.cost_evaluator = CostFunctionEvaluator(
             self.cost_type, VehicleType.BMW_320i
         )
-        self.evaluation_trajectory = None
+        # stores the cost evaluation of the last generated solution
+        # noinspection PyTypeChecker
+        self.cost_result_current: PlanningProblemCostResult = None
+        # stores some benchmark cost result to compare against
+        # noinspection PyTypeChecker
+        self.cost_result_previous: PlanningProblemCostResult = None
+        # stores the last generated llm response
         self.diagnosis_result = None
-        self.cost_result = None
-        self.update_function_description = False
 
     @abstractmethod
     def repair(self):
@@ -93,6 +97,8 @@ class DrPlannerBase(ABC):
     @abstractmethod
     def describe_planner(
         self,
+        update: bool = False,
+        improved: bool = False,
     ):
         """
         Describes the current state of the planner to DrPlanner
@@ -112,7 +118,7 @@ class DrPlannerBase(ABC):
         """
         if isinstance(planned_trajectory, Trajectory):
             description = self.prompter.generate_cost_description(
-                self.evaluation_trajectory, self.desired_cost
+                self.cost_result_current, self.desired_cost
             )
             if self.config.repair_with_plot:
                 description += "To give you a broad understanding of the scenario which is currently used for motion planning, a plot is provided showing all lanes (grey), the planned trajectory (black line) and the goal area (light orange)"
@@ -129,17 +135,17 @@ class DrPlannerBase(ABC):
         Evaluates the result of the repair process
         """
         # retrieve current cost result
-        self.evaluation_trajectory = self.cost_evaluator.evaluate_pp_solution(
+        self.cost_result_current = self.cost_evaluator.evaluate_pp_solution(
             self.scenario, self.planning_problem, updated_trajectory
         )
         if self.config.feedback_mode == 1:
             version = "last"
         else:
             version = "initial"
-        feedback = self.prompter.update_cost_description(self.cost_result, self.evaluation_trajectory, self.desired_cost, a_version=version)
+        feedback = self.prompter.update_cost_description(self.cost_result_previous, self.cost_result_current, self.desired_cost, a_version=version)
         print(f"*\t Feedback: {feedback}")
         # update the current cost
-        self.current_cost = self.evaluation_trajectory.total_costs
+        self.current_cost = self.cost_result_current.total_costs
         return feedback
 
     def diagnose_repair(self):
@@ -160,17 +166,17 @@ class DrPlannerBase(ABC):
         # test the initial motion planner once
         try:
             planned_trajectory = self.plan(nr_iteration)
-            self.evaluation_trajectory = self.cost_evaluator.evaluate_pp_solution(
+            self.cost_result_current = self.cost_evaluator.evaluate_pp_solution(
                 self.scenario, self.planning_problem, planned_trajectory
             )
-            self.cost_result = self.evaluation_trajectory
-            self.describe_planner()
+            self.cost_result_previous = self.cost_result_current
+            self.describe_planner(improved=True)
             self.describe_trajectory(planned_trajectory)
-            self.current_cost = self.evaluation_trajectory.total_costs
+            self.current_cost = self.cost_result_current.total_costs
         except Exception as e:
-            self.evaluation_trajectory = get_infinite_cost_result(self.cost_type)
-            self.cost_result = self.evaluation_trajectory
-            self.describe_planner()
+            self.cost_result_current = get_infinite_cost_result(self.cost_type)
+            self.cost_result_previous = self.cost_result_current
+            self.describe_planner(improved=True)
             self.describe_trajectory(e)
             self.current_cost = np.inf
 
@@ -236,24 +242,27 @@ class DrPlannerBase(ABC):
                 # add feedback
                 prompt_feedback += self.add_feedback(planned_trajectory)
                 # determine whether the current cost function prompt needs an update
-                self.update_function_description = self.config.feedback_mode == 1 or (
-                    self.current_cost <= self.lowest_cost
+                improved = self.current_cost <= self.lowest_cost
+                update = self.config.feedback_mode % 2 == 1 or (
+                    improved
                     and self.config.feedback_mode == 2
                 )
-                if self.update_function_description:
-                    self.cost_result = self.evaluation_trajectory
+                if improved:
                     self.lowest_cost = self.current_cost
-                self.describe_planner()
+                if update:
+                    self.cost_result_previous = self.cost_result_current
+
+                self.describe_planner(update=update, improved=improved)
 
             except Exception as e:
                 prompt_feedback += (
                     "Usually here would be an evaluation of the repair, but..."
                 )
                 prompt_feedback += self.prompter.generate_exception_description(e)
-                self.evaluation_trajectory = get_infinite_cost_result(self.cost_type)
+                self.cost_result_current = get_infinite_cost_result(self.cost_type)
                 self.current_cost = np.inf
-                self.update_function_description = self.config.feedback_mode == 1
-                self.describe_planner()
+                update = self.config.feedback_mode == 1
+                self.describe_planner(update=update)
 
             self.prompter.user_prompt.set("feedback", prompt_feedback)
             self.cost_list.append(self.current_cost)

@@ -23,10 +23,11 @@ def mockup_query(
     iteration,
     directory="/home/sebastian/Documents/Uni/Bachelorarbeit/DrPlanner_Data/mockup/debug",
 ):
+    directory = "/home/sebastian/Documents/Uni/Bachelorarbeit/DrPlanner_Data/USA_Lanker-2_19_T-1/gpt-4o/jsons"
     filenames = []
     # finds all .jsons in the directory and assumes them to be mockup responses
     for file_name in os.listdir(directory):
-        if file_name.endswith(".json"):
+        if file_name.endswith(".json") and file_name.startswith("result"):
             # Construct the full file path
             file_path = os.path.join(directory, file_name)
             filenames.append(file_path)

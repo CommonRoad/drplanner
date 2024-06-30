@@ -55,20 +55,40 @@ class PrompterSampling(PrompterBase):
                 llm_function.add_number_parameter(key, descr)
         return llm_function
 
-    def update_planner_prompt(self, cost_function):
+    def update_planner_prompt(self, cost_function, cost_function_previous: str, feedback_mode: int):
         # if code is directly provided
         if isinstance(cost_function, str):
-            cf_code = (
-                    "This is the code of the cost function:\n```\n"
-                    + cost_function
-                    + "```"
-            )
+            if feedback_mode < 3 or cost_function == cost_function_previous:
+                if feedback_mode < 2:
+                    version = "current"
+                else:
+                    version = "currently best performing"
+                cf_code = (
+                        f"This is the code of the {version} cost function:\n```\n"
+                        + cost_function
+                        + "```\n"
+                        + "Adjust it to decrease costs."
+                )
+            else:
+                cf_code = (
+                        f"This is the current version of the cost function:\n```\n"
+                        + cost_function
+                        + "```\n"
+                )
+                cf_code += (
+                        f"Now for comparison, this is the code of the currently best performing cost function:\n```\n"
+                        + cost_function_previous
+                        + "```\n"
+                        + "Compare the two version to identify which partial costs are most important and which changes were beneficial!"
+                )
+
         # otherwise access it using "inspect" and describe its used methods
         else:
             cf_code = (
-                "This is the code of the cost function:\n```\n"
+                "This was the code of the initial cost function:\n```\n"
                 + textwrap.dedent(inspect.getsource(cost_function.evaluate))
-                + "```"
+                + "```\n"
+                + "Adjust it to decrease costs."
             )
         self.user_prompt.set("planner", cf_code)
 

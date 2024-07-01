@@ -1,0 +1,20 @@
+{
+  "few_shots": [
+    {
+      "key": "Acceleration cost weight too low. Increase weight of velocity cost and add acceleration cots.",
+      "value": "def evaluate(self, trajectory: TrajectorySample) -> float:\n    cost = 0.0\n    cost += 50.0 * self.acceleration_costs(trajectory)\n    cost += 80.0 * self.desired_velocity_costs(trajectory)\n    cost += 1.0 * self.path_length_costs(trajectory)\n    return cost"
+    },
+    {
+      "key": "High steering cost. Increase weights for steering_angle_costs and steering_velocity_costs and decrease other costs to balance the influence of other factors.",
+      "value": "def evaluate(self, trajectory: TrajectorySample) -> float:\n    cost = 0.0\n    cost += 120.0 * self.steering_angle_costs(trajectory)\n    cost += 120.0 * self.steering_velocity_costs(trajectory)\n    cost += 10.0 * self.desired_velocity_costs(trajectory)\n    cost += 1.0 * self.longitudinal_jerk_costs(trajectory)\n    return cost"
+    },
+    {
+      "key": "Planner failed. No trajectory found. Simplify the cost function to only include the most important components.",
+      "value": "def evaluate(self, trajectory: TrajectorySample) -> float:\n    cost = 0.0\n    cost += self.desired_velocity_costs(trajectory)\n    cost += self.desired_path_length_costs(trajectory)\n    return cost"
+    },
+    {
+      "key": "Excessive path length cost. Decrease the weight of path_length_costs to better balance trajectory efficiency.",
+      "value": "def evaluate(self, trajectory: TrajectorySample) -> float:\n    cost = 0.0\n    cost = 0.0\n    cost += 10.0 * self.acceleration_costs(trajectory)\n    cost += 5.0 * self.jerk_costs(trajectory)\n    cost += 5.0 * self.lateral_jerk_costs(trajectory)\n    cost += 40.0 * self.distance_to_reference_path_costs(trajectory)\n    cost += 20.0 * self.desired_velocity_costs(trajectory)\n    cost += 0.5 * self.path_length_costs(trajectory)\n    return cost"
+    }
+  ]
+}

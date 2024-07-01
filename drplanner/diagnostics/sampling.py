@@ -24,6 +24,7 @@ from drplanner.describer.base import (
 from drplanner.diagnostics.base import DrPlannerBase
 from drplanner.prompter.sampling import PrompterSampling
 from drplanner.utils.config import DrPlannerConfiguration
+from drplanner.memory.memory import FewShotMemory
 
 
 def get_planner(config: ReactivePlannerConfiguration) -> ReactivePlanner:
@@ -105,6 +106,7 @@ def run_planner(
 class DrSamplingPlanner(DrPlannerBase):
     def __init__(
         self,
+        memory: FewShotMemory,
         scenario: Scenario,
         scenario_path: str,
         planning_problem_set: PlanningProblemSet,
@@ -125,6 +127,7 @@ class DrSamplingPlanner(DrPlannerBase):
         self.prompter = PrompterSampling(
             self.scenario,
             self.planning_problem,
+            memory,
             self.config,
         )
         self.cost_function = self.motion_planner.cost_function
@@ -224,6 +227,10 @@ class DrSamplingPlanner(DrPlannerBase):
 
         if self.config.repair_sampling_parameters:
             self.prompter.update_config_prompt(self.motion_planner_config)
+
+    def add_memory(self, diagnosis_result: dict):
+        summary = diagnosis_result["summary"]
+        self.prompter.update_memory_prompt(summary)
 
     def plan(self, nr_iter: int) -> Trajectory:
         solution = run_planner(

@@ -1,5 +1,6 @@
 import inspect
 import textwrap
+from typing import Union
 
 from commonroad.scenario.scenario import Scenario
 from commonroad.planning.planning_problem import PlanningProblem
@@ -8,6 +9,7 @@ from commonroad_rp.utility.config import ReactivePlannerConfiguration
 from drplanner.prompter.base import PrompterBase
 from drplanner.prompter.llm import LLMFunction
 from drplanner.utils.config import DrPlannerConfiguration
+from drplanner.memory.memory import FewShotMemory
 
 
 class PrompterSampling(PrompterBase):
@@ -15,9 +17,12 @@ class PrompterSampling(PrompterBase):
         self,
         scenario: Scenario,
         planning_problem: PlanningProblem,
+        memory: Union[FewShotMemory, None],
         config: DrPlannerConfiguration,
         prompts_folder_name: str = "reactive-planner/",
     ):
+        self.memory = memory
+        assert not config.repair_memory or memory
         self.config = config
         self.COST_FUNCTION = "improved_cost_function"
         self.PLANNER_CONFIG = [
@@ -30,10 +35,15 @@ class PrompterSampling(PrompterBase):
             "algorithm",
             "planner",
             "trajectory",
-            "few_shots",
             "sampling",
             "feedback",
         ]
+
+        if config.repair_memory:
+            template.insert(4, "memory")
+            template.insert(4, "documentation")
+        else:
+            template.insert(4, "few_shots")
 
         super().__init__(
             scenario,
@@ -54,6 +64,14 @@ class PrompterSampling(PrompterBase):
             for key, descr in self.PLANNER_CONFIG:
                 llm_function.add_number_parameter(key, descr)
         return llm_function
+
+    def update_memory_prompt(self, summary: list[dict[str, str]]):
+        if self.config.repair_memory:
+            few_shots = self.memory.retrieve(summary)
+            memory_text = "Here are some example cost functions. They were chosen based on your last diagnoses:\n"
+            for fs in few_shots:
+                memory_text += fs + "\n"
+            self.user_prompt.set("memory", memory_text[:-1])
 
     def update_planner_prompt(self, cost_function, cost_function_previous: str, feedback_mode: int):
         # if code is directly provided

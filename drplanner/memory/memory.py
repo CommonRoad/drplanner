@@ -42,11 +42,32 @@ class FewShotMemory:
 
         self.collection.add(documents=few_shot_docs, embeddings=few_shot_embeddings, ids=few_shot_ids)
 
-    def retrieve(self, diagnosis: str, prescription: str) -> list[str]:
-        key = f"{diagnosis}: {prescription}"
-        result = self.collection.query(
-            query_texts=[key],
-            n_results=3,
-            include=["documents"]
-        )
-        return result["documents"][0]
+    def retrieve(self, summary: list[dict[str, str]]) -> set[str]:
+        result: set[str] = set()
+        docs: list[list[str]] = []
+
+        # retrieve all relevant documents
+        for data in summary:
+            diagnosis = data["diagnosis"]
+            prescription = data["prescription"]
+            key = f"{diagnosis}: {prescription}"
+            query = self.collection.query(
+                query_texts=[key],
+                n_results=3,
+                include=["documents"]
+            )
+            docs.append(query["documents"][0])
+
+        assert len(docs) == len(summary)
+        # pick three
+        index = 0
+        while len(result) < 3:
+            # check if there are no more docs
+            if sum([len(x) for x in docs]) <= 0:
+                break
+
+            documents = docs[index]
+            if len(documents) > 0:
+                result.add(documents.pop(0))
+            index = (index + 1) % len(docs)
+        return result

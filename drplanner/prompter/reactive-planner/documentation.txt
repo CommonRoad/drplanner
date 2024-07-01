@@ -1,0 +1,20 @@
+These are some pre-defined helper methods which you can use with ```self.```:
+```acceleration_costs(trajectory: TrajectorySample) -> float```,
+```jerk_costs(trajectory: TrajectorySample) -> float```,
+```lateral_jerk_costs(trajectory: TrajectorySample) -> float```,
+```longitudinal_jerk_costs(trajectory: TrajectorySample) -> float```,
+# Prefers trajectories where the car does not use the steering wheel a lot
+```orientation_offset_costs(trajectory: TrajectorySample) -> float```,
+```steering_angle_costs(trajectory: TrajectorySample) -> float```,
+```steering_velocity_costs(trajectory: TrajectorySample) -> float```,
+# Prefers trajectories which closely follow the road's center line
+```distance_to_reference_path_costs(trajectory: TrajectorySample) -> float```,
+# Prefers short trajectories
+```path_length_costs(trajectory: TrajectorySample) -> float```
+# Prefers trajectories with constant velocity, should NEVER be zero since it is very important
+```desired_velocity_costs(self, trajectory: TrajectorySample) -> float:```
+# Prefers trajectories which end in center of the goal area
+```desired_path_length_costs(self, trajectory: TrajectorySample) -> float:```
+
+When choosing from the pool of helper methods or adjusting their weights it is helpful to look at the cost evaluation as a reference.
+Also keep in mind that the helper methods do not return normalized values and their outputs can vary greatly in size.

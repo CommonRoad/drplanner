@@ -148,6 +148,9 @@ class DrPlannerBase(ABC):
         self.current_cost = self.cost_result_current.total_costs
         return feedback
 
+    def add_memory(self, diagnosis_result: dict):
+        pass
+
     def diagnose_repair(self):
         """
         Full DrPlanner session:
@@ -229,6 +232,7 @@ class DrPlannerBase(ABC):
                 mockup_nr_iter=mockup_nr_iteration,
             )
             self.diagnosis_result = result
+            self.add_memory(result)
             # reset some variables
             self.prompter.reload_LLM()
             prompt_feedback = "Diagnoses and prescriptions from the last iteration:\n"

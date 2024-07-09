@@ -1,0 +1,12 @@
+These are pre-defined helper methods which can be used with ```self.```:
+```acceleration_costs(trajectory: TrajectorySample)```,
+```jerk_costs(trajectory: TrajectorySample)```,
+```lateral_jerk_costs(trajectory: TrajectorySample)```,
+```longitudinal_jerk_costs(trajectory: TrajectorySample)```,
+```orientation_offset_costs(trajectory: TrajectorySample)```,
+```steering_angle_costs(trajectory: TrajectorySample)```,
+```steering_velocity_costs(trajectory: TrajectorySample)```,
+```distance_to_reference_path_costs(trajectory: TrajectorySample)```,
+```path_length_costs(trajectory: TrajectorySample)```
+```desired_velocity_costs(self, trajectory: TrajectorySample)```
+```desired_path_length_costs(self, trajectory: TrajectorySample)```

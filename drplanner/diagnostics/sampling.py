@@ -1,21 +1,17 @@
 import inspect
 import textwrap
-import time
 from types import MethodType
-from typing import Optional, Type
+from typing import Optional
 
 import numpy as np
 from commonroad.planning.planning_problem import PlanningProblemSet
 from commonroad.scenario.scenario import Scenario
 from commonroad.scenario.trajectory import Trajectory
-from commonroad_route_planner.route_planner import RoutePlanner
-from commonroad_rp.cost_function import CostFunction, DefaultCostFunction
-from commonroad_rp.reactive_planner import ReactivePlanner
+
+from commonroad_rp.cost_function import DefaultCostFunction
 from commonroad_rp.trajectories import TrajectorySample
 from commonroad_rp.utility.config import ReactivePlannerConfiguration
-from commonroad_rp.utility.evaluation import create_full_solution_trajectory
 from drplanner.describer.base import (
-    PlanningException,
     CompilerException,
     MissingParameterException,
     MissingSignatureException,
@@ -25,82 +21,7 @@ from drplanner.diagnostics.base import DrPlannerBase
 from drplanner.prompter.sampling import PrompterSampling
 from drplanner.utils.config import DrPlannerConfiguration
 from drplanner.memory.memory import FewShotMemory
-
-
-def get_planner(config: ReactivePlannerConfiguration) -> ReactivePlanner:
-    # run route planner and add reference path to config
-    route_planner = RoutePlanner(
-        config.scenario.lanelet_network, config.planning_problem
-    )
-    route = route_planner.plan_routes().retrieve_first_route()
-    # initialize reactive planner
-    planner = ReactivePlanner(config)
-    # set reference path for curvilinear coordinate system
-    planner.set_reference_path(route.reference_path)
-    return planner
-
-
-# helper function to run a ReactivePlanner with a given CostFunction
-def run_planner(
-    planner: ReactivePlanner,
-    config: ReactivePlannerConfiguration,
-    cost_function: Type[CostFunction | None],
-):
-    # update cost function
-    planner.set_cost_function(cost_function)
-
-    print(f"The current planning horizon is {planner.horizon}!")
-    max_planning_time = 40
-    current_time = time.time()
-    # Add first state to recorded state and input list
-    planner.record_state_and_input(planner.x_0)
-    optimal = None
-    while not planner.goal_reached():
-        if time.time() - current_time > max_planning_time:
-            cause = "Planning took too much time and was terminated!"
-            solution = (
-                "The vehicle might be driving to slow or is stuck without moving."
-            )
-            raise PlanningException(cause, solution)
-        current_count = len(planner.record_state_list) - 1
-
-        # check if planning cycle or not
-        plan_new_trajectory = current_count % config.planning.replanning_frequency == 0
-
-        if plan_new_trajectory:
-            # new planning cycle -> plan a new optimal trajectory
-            planner.set_desired_velocity(current_speed=planner.x_0.velocity)
-            optimal = planner.plan()
-
-            if not optimal:
-                cause = "No optimal trajectory could be found!"
-                solution = ""
-                raise PlanningException(cause, solution)
-
-            planner.record_state_and_input(optimal[0].state_list[1])
-            planner.reset(
-                initial_state_cart=planner.record_state_list[-1],
-                initial_state_curv=(optimal[2][1], optimal[3][1]),
-                collision_checker=planner.collision_checker,
-                coordinate_system=planner.coordinate_system,
-            )
-        else:
-            # continue on optimal trajectory
-            temp = current_count % config.planning.replanning_frequency
-
-            if not optimal:
-                cause = "No optimal trajectory could be found!"
-                solution = ""
-                raise PlanningException(cause, solution)
-
-            planner.record_state_and_input(optimal[0].state_list[1 + temp])
-            planner.reset(
-                initial_state_cart=planner.record_state_list[-1],
-                initial_state_curv=(optimal[2][1 + temp], optimal[3][1 + temp]),
-                collision_checker=planner.collision_checker,
-                coordinate_system=planner.coordinate_system,
-            )
-    return create_full_solution_trajectory(config, planner.record_state_list)
+from drplanner.planners.reactive_planner import get_planner, run_planner
 
 
 class DrSamplingPlanner(DrPlannerBase):
@@ -207,12 +128,18 @@ class DrSamplingPlanner(DrPlannerBase):
     ):
         # if at loop start
         if not self.diagnosis_result:
-            self.prompter.update_planner_prompt(self.cost_function, self.code_previous, self.config.feedback_mode)
-            self.code_previous = textwrap.dedent(inspect.getsource(self.cost_function.evaluate))
+            self.prompter.update_planner_prompt(
+                self.cost_function, self.code_previous, self.config.feedback_mode
+            )
+            self.code_previous = textwrap.dedent(
+                inspect.getsource(self.cost_function.evaluate)
+            )
         # if new cost function should be described
         elif update:
             try:
-                updated_cost_function = self.diagnosis_result[self.prompter.COST_FUNCTION]
+                updated_cost_function = self.diagnosis_result[
+                    self.prompter.COST_FUNCTION
+                ]
             except Exception as _:
                 raise MissingParameterException(self.prompter.COST_FUNCTION)
             updated_cost_function = textwrap.dedent(updated_cost_function)
@@ -220,9 +147,7 @@ class DrSamplingPlanner(DrPlannerBase):
             if improved:
                 self.code_previous = self.code_current
             self.prompter.update_planner_prompt(
-                self.code_current,
-                self.code_previous,
-                self.config.feedback_mode
+                self.code_current, self.code_previous, self.config.feedback_mode
             )
 
         if self.config.repair_sampling_parameters:

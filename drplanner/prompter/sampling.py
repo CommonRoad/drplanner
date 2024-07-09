@@ -73,7 +73,9 @@ class PrompterSampling(PrompterBase):
                 memory_text += fs + "\n"
             self.user_prompt.set("memory", memory_text[:-1])
 
-    def update_planner_prompt(self, cost_function, cost_function_previous: str, feedback_mode: int):
+    def update_planner_prompt(
+        self, cost_function, cost_function_previous: str, feedback_mode: int
+    ):
         # if code is directly provided
         if isinstance(cost_function, str):
             if feedback_mode < 3 or cost_function == cost_function_previous:
@@ -82,22 +84,22 @@ class PrompterSampling(PrompterBase):
                 else:
                     version = "currently best performing"
                 cf_code = (
-                        f"This is the code of the {version} cost function:\n```\n"
-                        + cost_function
-                        + "```\n"
-                        + "Adjust it to decrease costs."
+                    f"This is the code of the {version} cost function:\n```\n"
+                    + cost_function
+                    + "```\n"
+                    + "Adjust it to decrease costs."
                 )
             else:
                 cf_code = (
-                        f"This is the current version of the cost function:\n```\n"
-                        + cost_function
-                        + "```\n"
+                    f"This is the current version of the cost function:\n```\n"
+                    + cost_function
+                    + "```\n"
                 )
                 cf_code += (
-                        f"Now for comparison, this is the code of the currently best performing cost function:\n```\n"
-                        + cost_function_previous
-                        + "```\n"
-                        + "Compare the two version to identify which partial costs are most important and which changes were beneficial!"
+                    f"Now for comparison, this is the code of the currently best performing cost function:\n```\n"
+                    + cost_function_previous
+                    + "```\n"
+                    + "Compare the two version to identify which partial costs are most important and which changes were beneficial!"
                 )
 
         # otherwise access it using "inspect" and describe its used methods

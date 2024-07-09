@@ -12,7 +12,8 @@ from commonroad.scenario.scenario import Scenario
 from commonroad.planning.planning_problem import PlanningProblemSet
 from commonroad.scenario.trajectory import Trajectory
 from commonroad_dc.costs.evaluation import (
-    CostFunctionEvaluator, PlanningProblemCostResult,
+    CostFunctionEvaluator,
+    PlanningProblemCostResult,
 )
 
 from drplanner.describer.trajectory_description import get_infinite_cost_result
@@ -142,7 +143,12 @@ class DrPlannerBase(ABC):
             version = "last"
         else:
             version = "initial"
-        feedback = self.prompter.update_cost_description(self.cost_result_previous, self.cost_result_current, self.desired_cost, a_version=version)
+        feedback = self.prompter.update_cost_description(
+            self.cost_result_previous,
+            self.cost_result_current,
+            self.desired_cost,
+            a_version=version,
+        )
         print(f"*\t Feedback: {feedback}")
         # update the current cost
         self.current_cost = self.cost_result_current.total_costs
@@ -248,8 +254,7 @@ class DrPlannerBase(ABC):
                 # determine whether the current cost function prompt needs an update
                 improved = self.current_cost <= self.lowest_cost
                 update = self.config.feedback_mode % 2 == 1 or (
-                    improved
-                    and self.config.feedback_mode == 2
+                    improved and self.config.feedback_mode == 2
                 )
                 if improved:
                     self.lowest_cost = self.current_cost

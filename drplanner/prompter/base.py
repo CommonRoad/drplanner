@@ -101,11 +101,19 @@ class PrompterBase(ABC):
     def update_planner_prompt(self, *args, **kwargs) -> str:
         pass
 
-    def generate_cost_description(self, initial: PlanningProblemCostResult, desired_cost: int) -> str:
+    def generate_cost_description(
+        self, initial: PlanningProblemCostResult, desired_cost: int
+    ) -> str:
         self.trajectory_description = TrajectoryCostDescription()
         return self.trajectory_description.generate(initial, desired_cost)
 
-    def update_cost_description(self, a: PlanningProblemCostResult, b: PlanningProblemCostResult, desired_cost: int, a_version: str = "initial") -> str:
+    def update_cost_description(
+        self,
+        a: PlanningProblemCostResult,
+        b: PlanningProblemCostResult,
+        desired_cost: int,
+        a_version: str = "initial",
+    ) -> str:
         return self.trajectory_description.update(a, a_version, b, desired_cost)
 
     @staticmethod

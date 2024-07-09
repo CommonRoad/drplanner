@@ -44,14 +44,14 @@ class TrajectoryCostDescription(DescriptionBase):
     def __init__(self):
         super().__init__()
 
-    def generate(self, cost_result: PlanningProblemCostResult, desired_cost: int) -> str:
+    def generate(
+        self, cost_result: PlanningProblemCostResult, desired_cost: int
+    ) -> str:
         description = f"The total cost of the initial planner is calculated to be {cost_result.total_costs:.2f}, "
         description += "it includes "
         for item, cost in cost_result.partial_costs.items():
-            description += (
-                f"{CostFunctionMeaningMapping[item]}, valued at {cost:.2f} "
-                f"with a weight of {cost_result.weights[item]}; "
-            )
+            cost = cost * cost_result.weights[item]
+            description += f"{CostFunctionMeaningMapping[item]}, valued at {cost:.2f}; "
         self.description = description[:-2] + ". "
         self.description += (
             f"The objective is to adjust the total cost of the planned trajectory to closely "
@@ -59,7 +59,13 @@ class TrajectoryCostDescription(DescriptionBase):
         )
         return self.description
 
-    def update(self, a: PlanningProblemCostResult, version: str, b: PlanningProblemCostResult, desired_cost: int):
+    def update(
+        self,
+        a: PlanningProblemCostResult,
+        version: str,
+        b: PlanningProblemCostResult,
+        desired_cost: int,
+    ):
         description = (
             f"What follows is a performance comparison between the {version} planner and the current "
             "planner.\n"

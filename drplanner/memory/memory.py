@@ -13,21 +13,44 @@ class FewShotMemory:
             os.makedirs(path_to_storage, exist_ok=True)
         self.client = chromadb.PersistentClient(path=path_to_storage)
         try:
-            self.collection = self.client.get_collection(name="few_shots")
+            self.few_shot_collection = self.client.get_collection(name="few_shots")
         except ValueError as _:
-            self.collection = self.client.create_collection(name="few_shots")
-            self.init_collection()
+            self.few_shot_collection = self.client.create_collection(name="few_shots")
+            self.init_collection("few_shots")
+        try:
+            self.diagnosis_collection = self.client.get_collection(name="diagnosis")
+        except ValueError as _:
+            self.diagnosis_collection = self.client.create_collection(name="diagnosis")
+            self.init_collection("diagnosis")
+        try:
+            self.prescription_collection = self.client.get_collection(
+                name="prescription"
+            )
+        except ValueError as _:
+            self.prescription_collection = self.client.create_collection(
+                name="prescription"
+            )
+            self.init_collection("prescription")
 
-    def init_collection(self):
+    def select_collection(self, collection_name):
+        if collection_name == "few_shots":
+            return self.few_shot_collection
+        elif collection_name == "diagnosis":
+            return self.diagnosis_collection
+        elif collection_name == "prescription":
+            return self.prescription_collection
+        else:
+            raise ValueError("This collection does not exist")
+
+    def init_collection(self, collection_name: str):
         script_dir = os.path.dirname(os.path.abspath(__file__))
         default_ef = embedding_functions.DefaultEmbeddingFunction()
-
         # read all predefined few-shots and add them to the collection
-        path_to_few_shots = os.path.join(script_dir, "static_few_shots")
-        few_shot_docs: list[str] = []
-        few_shot_embeddings = []
-        few_shot_ids: list[str] = []
-        counter = 0
+        path_to_few_shots = os.path.join(script_dir, "few_shots", collection_name)
+        docs: list[str] = []
+        embeddings = []
+        ids: list[str] = []
+        collection = self.select_collection(collection_name)
         for file_name in os.listdir(path_to_few_shots):
             with open(os.path.join(path_to_few_shots, file_name), "r") as file:
                 examples: list = json.load(file)["few_shots"]
@@ -35,39 +58,27 @@ class FewShotMemory:
                     key: str = data["key"]
                     value: str = data["value"]
                     embedding = default_ef([key])[0]
-                    few_shot_docs.append(value)
-                    few_shot_embeddings.append(embedding)
-                    few_shot_ids.append(f"id{counter}")
-                    counter += 1
+                    docs.append(value)
+                    embeddings.append(embedding)
+                    ids.append(f"id{collection.count()}")
 
-        self.collection.add(documents=few_shot_docs, embeddings=few_shot_embeddings, ids=few_shot_ids)
+        collection.add(documents=docs, embeddings=embeddings, ids=ids)
 
-    def retrieve(self, summary: list[dict[str, str]]) -> set[str]:
-        result: set[str] = set()
-        docs: list[list[str]] = []
-
-        # retrieve all relevant documents
-        for data in summary:
-            diagnosis = data["diagnosis"]
-            prescription = data["prescription"]
-            key = f"{diagnosis}: {prescription}"
-            query = self.collection.query(
-                query_texts=[key],
-                n_results=3,
-                include=["documents"]
-            )
-            docs.append(query["documents"][0])
-
-        assert len(docs) == len(summary)
-        # pick three
-        index = 0
-        while len(result) < 3:
-            # check if there are no more docs
-            if sum([len(x) for x in docs]) <= 0:
-                break
-
-            documents = docs[index]
-            if len(documents) > 0:
-                result.add(documents.pop(0))
-            index = (index + 1) % len(docs)
+    @staticmethod
+    def preprocess_key(key) -> str:
+        result = key
+        if isinstance(key, list):
+            result = ""
+            for thing in key:
+                if isinstance(thing, dict):
+                    for a, b in thing.items():
+                        result += f"{a}: {b}\n"
+                else:
+                    result += thing + "\n"
         return result
+
+    def retrieve(self, key, collection_name="few_shots", n=1) -> list[str]:
+        collection = self.select_collection(collection_name)
+        key = self.preprocess_key(key)
+        query = collection.query(query_texts=[key], n_results=n, include=["documents"])
+        return query["documents"][0]

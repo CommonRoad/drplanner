@@ -1,0 +1,8 @@
+{
+  "few_shots": [
+    {
+      "key": "Problem: The cost function is not effectively discouraging frequent or intense actuation of the throttle leading to high acceleration costs.\nReason: The weights assigned to factors influencing acceleration are not sufficient to prioritize minimizing acceleration costs in trajectory selection.\nApproach: Identify and increase the weights of factors related to acceleration costs and its derivatives in the cost function to better penalize high acceleration trajectories.\nSolution: Increase the weights of acceleration_costs, jerk_costs, and related factors while decreasing the weights of other cost factors to prioritize minimizing acceleration costs in trajectory selection.",
+      "value": "1.0 * self.acceleration_costs(trajectory) -> 10.0 * self.acceleration_costs(trajectory)\n1.0 * self.jerk_costs(trajectory) -> 10.0 * self.jerk_costs(trajectory)\n1.0 * self.lateral_jerk_costs(trajectory) -> 10.0 * self.lateral_jerk_costs(trajectory)\n1.0 * self.longitudinal_jerk_costs(trajectory) -> 10.0 * self.longitudinal_jerk_costs(trajectory)\n10.0 * self.distance_to_reference_path_costs(trajectory) -> 5.0 * self.distance_to_reference_path_costs(trajectory)\n50.0 * self.steering_angle_costs(trajectory) -> 5.0 * self.steering_angle_costs(trajectory)\n50.0 * self.steering_velocity_costs(trajectory) -> 5.0 * self.steering_velocity_costs(trajectory)\n10.0 * self.desired_velocity_costs(trajectory) -> 1.0 * self.desired_velocity_costs(trajectory)\n10.0 * self.desired_path_length_costs(trajectory) -> 1.0 * self.desired_path_length_costs(trajectory)"
+    }
+  ]
+}

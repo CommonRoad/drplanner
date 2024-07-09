@@ -42,22 +42,27 @@ def mockup_query(
 
 # A class representing an OpenAI api function call
 class LLMFunction:
-    def __init__(self):
-        # define content of summary object
-        summary_dict = {
-            "diagnosis": LLMFunction._string_parameter("diagnosis"),
-            "prescription": LLMFunction._string_parameter("prescription"),
-        }
+    def __init__(self, custom=False):
+        if not custom:
+            # define content of summary object
+            summary_dict = {
+                "diagnosis": LLMFunction.get_string_parameter("diagnosis"),
+                "prescription": LLMFunction.get_string_parameter("prescription"),
+            }
 
-        # initialize function parameters with summary array
-        function_parameters_dict = {
-            "summary": LLMFunction._array_parameter(
-                LLMFunction._object_parameter(summary_dict),
-                "Diagnostic and prescriptive summary",
-            )
-        }
+            # initialize function parameters with summary array
+            function_parameters_dict = {
+                "summary": LLMFunction.get_array_parameter(
+                    LLMFunction.get_object_parameter(summary_dict),
+                    "Diagnostic and prescriptive summary",
+                )
+            }
+        else:
+            function_parameters_dict = {}
 
-        self.parameters: dict = LLMFunction._object_parameter(function_parameters_dict)
+        self.parameters: dict = LLMFunction.get_object_parameter(
+            function_parameters_dict
+        )
 
     # transforms the function into a form required by the OpenAI api
     def get_function_as_list(self):
@@ -72,38 +77,45 @@ class LLMFunction:
         ]
 
     def add_string_parameter(self, parameter_name: str, parameter_description: str):
-        self.parameters["properties"][parameter_name] = LLMFunction._string_parameter(
-            parameter_description
-        )
+        self.parameters["properties"][
+            parameter_name
+        ] = LLMFunction.get_string_parameter(parameter_description)
 
     def add_code_parameter(self, parameter_name: str, parameter_description: str):
-        self.parameters["properties"][parameter_name] = LLMFunction._code_parameter(
+        self.parameters["properties"][parameter_name] = LLMFunction.get_code_parameter(
             parameter_description
         )
 
     def add_number_parameter(self, parameter_name: str, parameter_description: str):
-        self.parameters["properties"][parameter_name] = LLMFunction._number_parameter(
-            parameter_description
+        self.parameters["properties"][
+            parameter_name
+        ] = LLMFunction.get_number_parameter(parameter_description)
+
+    def add_array_parameter(
+        self, parameter_name: str, parameter_description: str, items: dict
+    ):
+        self.parameters["properties"][parameter_name] = LLMFunction.get_array_parameter(
+            items, parameter_description
         )
 
     @staticmethod
-    def _number_parameter(description: str) -> dict:
+    def get_number_parameter(description: str) -> dict:
         return {"type": "number", "description": description}
 
     @staticmethod
-    def _string_parameter(description: str) -> dict:
+    def get_string_parameter(description: str) -> dict:
         return {"type": "string", "description": description}
 
     @staticmethod
-    def _code_parameter(description: str) -> dict:
+    def get_code_parameter(description: str) -> dict:
         return {"type": "string", "format": "python-code", "description": description}
 
     @staticmethod
-    def _object_parameter(properties: dict) -> dict:
+    def get_object_parameter(properties: dict) -> dict:
         return {"type": "object", "properties": properties}
 
     @staticmethod
-    def _array_parameter(items: dict, description: str) -> dict:
+    def get_array_parameter(items: dict, description: str) -> dict:
         return {"type": "array", "items": items, "description": description}
 
 
@@ -144,7 +156,7 @@ class LLM:
         scenario_id=None,
         planner_id=None,
         start_time=None,
-        save_dir: str = "../outputs/",
+        save_dir: str = "../../outputs/",
         nr_iter: int = 1,
         mockup_nr_iter: int = -1,
     ):

@@ -1,4 +1,4 @@
 Problem: The acceleration cost is quite high and the main factor behind bad performance.
 Reason: The current cost-function does not sufficiently discourage the planner from picking trajectories with frequent or intense actuation of the throttle.
 Approach: Identify the physical factors which influence acceleration and increase the weights of the corresponding partial cost-functions.
-Solution: Influencing factors are acceleration_costs and its derivatives: jerk_costs and everything related to it. Introduce these factors to the function and increase their weights.
+Solution: Influencing factors are acceleration_costs and its derivatives: jerk_costs and everything related to it. Introduce these factors to the function, increase their weights and decrease the weight of others such that acceleration is the main cost cause.

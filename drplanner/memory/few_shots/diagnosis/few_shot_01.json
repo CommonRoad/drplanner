@@ -1,0 +1,8 @@
+{
+  "few_shots": [
+    {
+      "key": "The total cost of the initial planner is calculated to be 225.13, it includes squared sum of acceleration, valued at 105.83; squared sum of steering angle, valued at 0.60; squared sum of steering velocity, valued at 6.05; sum of the path length, valued at 107.77; squared sum of the deviation to the desired velocity, valued at 0.00; squared sum of the deviation to the desired orientation, valued at 4.89. The objective is to adjust the total cost of the planned trajectory to closely align with the desired value 0.16.",
+      "value": "Problem: The cost function is not effectively discouraging frequent or intense actuation of the throttle leading to high acceleration costs.\nReason: The weights assigned to factors influencing acceleration are not sufficient to prioritize minimizing acceleration costs in trajectory selection.\nApproach: Identify and increase the weights of factors related to acceleration costs and its derivatives in the cost function to better penalize high acceleration trajectories.\nSolution: Increase the weights of acceleration_costs, jerk_costs, and related factors while decreasing the weights of other cost factors to prioritize minimizing acceleration costs in trajectory selection."
+    }
+  ]
+}

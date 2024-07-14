@@ -23,7 +23,9 @@ class DrPlannerIteration:
         memory: FewShotMemory,
         include_documentation=False,
         include_memory=False,
+        n_shot=1,
     ):
+        self.n_shot = n_shot
         self.diagnosis_prompt_structure = ["cost_function", "evaluation"]
         self.prescription_prompt_structure = ["cost_function", "diagnoses"]
 
@@ -51,10 +53,7 @@ class DrPlannerIteration:
             "reason": LLMFunction.get_string_parameter("The reason for the problem"),
             "approach": LLMFunction.get_string_parameter(
                 "The approach for solving the problem"
-            ),
-            "solution": LLMFunction.get_string_parameter(
-                "The application of the approach"
-            ),
+            )
         }
         items = LLMFunction.get_object_parameter(diagnosis_structure)
         llm_function.add_array_parameter(
@@ -70,8 +69,9 @@ class DrPlannerIteration:
 
         # initialize prescription llm
         llm_function = LLMFunction(custom=True)
+        llm_function.add_string_parameter("solution", "A description of the exact changes which need to be implemented")
         llm_function.add_code_parameter(
-            "cost_function", "the improved cost function of the motion planner"
+            "cost_function", "The improved cost function of the motion planner"
         )
         self.prescription_llm = LLM(
             self.config.gpt_version,
@@ -105,7 +105,7 @@ class DrPlannerIteration:
         user_prompt = Prompt(self.diagnosis_prompt_structure)
 
         # set memory prompt
-        memories = self.memory.retrieve(evaluation, collection_name="diagnosis")
+        memories = self.memory.retrieve(evaluation, collection_name="diagnosis", n=self.n_shot)
         memory_prompt = (
             "Here are some old diagnoses which you made in similar situations:\n"
         )
@@ -166,7 +166,7 @@ class DrPlannerIteration:
         user_prompt = Prompt(self.prescription_prompt_structure)
 
         # set memory prompt
-        memories = self.memory.retrieve(diagnoses, collection_name="prescription")
+        memories = self.memory.retrieve(diagnoses, collection_name="prescription", n=self.n_shot)
         memory_prompt = "For reference, here are excerpts of changes which you made in similar situations:\n"
         for m in memories:
             memory_prompt += m + "\n"
@@ -242,8 +242,10 @@ class DrPlannerIteration:
         return end_cf, end_evaluation, end_total_cost, diagnosis
 
 
-def run_iteration(scenario_path: str = "USA_Lanker-2_19_T-1"):
-    config = DrPlannerConfiguration()
+def run_iteration(scenario_path: str = "USA_Lanker-2_19_T-1", config: DrPlannerConfiguration = None):
+    if not config:
+        config = DrPlannerConfiguration()
+
     if not scenario_path.endswith(".xml"):
         scenario_path = os.path.join(
             os.path.dirname(config.project_path), "scenarios", f"{scenario_path}.xml"
@@ -275,4 +277,73 @@ def run_iteration(scenario_path: str = "USA_Lanker-2_19_T-1"):
         cost_results.append(tc)
         diagnoses.append(d)
         iteration_id += 1
-    print(cost_results, max(cost_results))
+    print(cost_results, min(cost_results))
+
+
+def get_explorer_llm(config: DrPlannerConfiguration) -> Tuple[LLM, Prompt, Prompt]:
+    llm_function = LLMFunction(custom=True)
+    llm_function.add_code_parameter("variant_1", "First cost function variant")
+    llm_function.add_code_parameter("variant_2", "Second cost function variant")
+    llm_function.add_code_parameter("variant_3", "Third cost function variant")
+    llm_function.add_code_parameter("variant_4", "Forth cost function variant")
+    llm = LLM(
+        config.gpt_version,
+        config.openai_api_key,
+        llm_function,
+        temperature=config.temperature,
+        mockup=config.mockup_openAI,
+    )
+    path_to_prompts = os.path.join(
+        config.project_path,
+        "prompter",
+        "reactive-planner",
+        "iterative",
+    )
+    with open(os.path.join(path_to_prompts, "explorer_system_prompt.txt"), "r") as file:
+        system_prompt = Prompt(["base"])
+        system_prompt.set("base", file.read())
+    with open(os.path.join(path_to_prompts, "explorer_user_prompt.txt"), "r") as file:
+        user_prompt = Prompt(["base"])
+        user_prompt.set("base", file.read())
+    return llm, system_prompt, user_prompt
+
+
+def run(scenario_path: str = "USA_Lanker-2_19_T-1"):
+    config = DrPlannerConfiguration()
+    if not scenario_path.endswith(".xml"):
+        scenario_path = os.path.join(
+            os.path.dirname(config.project_path), "scenarios", f"{scenario_path}.xml"
+        )
+
+    explorer_llm, system_prompt, user_prompt = get_explorer_llm(config)
+    cost_function_variants: list[str] = []
+    messages = LLM.get_messages(system_prompt.__str__(), user_prompt.__str__(), None)
+    query = explorer_llm.query(messages, planner_id="explorer")
+    counter = 1
+    while counter > 0:
+        key = f"variant_{counter}"
+        if key in query.keys():
+            cost_function_variants.append(query[key])
+            counter += 1
+        else:
+            counter = 0
+
+    memory = FewShotMemory()
+    results: list[Tuple[str, float]] = []
+    signature = "def evaluate(self, trajectory: TrajectorySample) -> float:"
+    for i, variant in enumerate(cost_function_variants):
+        if not variant.startswith(signature):
+            lines = variant.split("\n")
+            lines[0] = signature
+            variant = "\n".join(lines)
+        planner = ReactiveMotionPlanner(variant)
+        dr_planner = DrPlannerIteration(planner, config, memory, include_memory=config.repair_memory)
+        evaluation_string, start_total_cost = dr_planner.evaluate(scenario_path)
+        print(f"Total initial cost of variant nr.{i}: {start_total_cost}")
+        end_cf, _, end_total_cost, _ = dr_planner.run(scenario_path, evaluation_string, iteration_id=i)
+        print(f"Total final cost of variant nr.{i}: {end_total_cost}")
+        results.append((end_cf, end_total_cost))
+
+    top_result = min(results, key=lambda x: x[1])
+    print(f"Top result with total cost of {top_result[1]}:\n{top_result[0]}")
+

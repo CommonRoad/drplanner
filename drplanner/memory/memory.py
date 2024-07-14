@@ -60,7 +60,7 @@ class FewShotMemory:
                     embedding = default_ef([key])[0]
                     docs.append(value)
                     embeddings.append(embedding)
-                    ids.append(f"id{collection.count()}")
+                    ids.append(f"{collection_name}{len(ids)}")
 
         collection.add(documents=docs, embeddings=embeddings, ids=ids)
 

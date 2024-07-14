@@ -1,8 +1,32 @@
 {
   "few_shots": [
     {
-      "key": "The total cost of the initial planner is calculated to be 225.13, it includes squared sum of acceleration, valued at 105.83; squared sum of steering angle, valued at 0.60; squared sum of steering velocity, valued at 6.05; sum of the path length, valued at 107.77; squared sum of the deviation to the desired velocity, valued at 0.00; squared sum of the deviation to the desired orientation, valued at 4.89. The objective is to adjust the total cost of the planned trajectory to closely align with the desired value 0.16.",
-      "value": "Problem: The cost function is not effectively discouraging frequent or intense actuation of the throttle leading to high acceleration costs.\nReason: The weights assigned to factors influencing acceleration are not sufficient to prioritize minimizing acceleration costs in trajectory selection.\nApproach: Identify and increase the weights of factors related to acceleration costs and its derivatives in the cost function to better penalize high acceleration trajectories.\nSolution: Increase the weights of acceleration_costs, jerk_costs, and related factors while decreasing the weights of other cost factors to prioritize minimizing acceleration costs in trajectory selection."
+      "key": "The total cost of the initial planner is calculated to be 1205.75, it includes squared sum of acceleration, valued at 492.20; squared sum of steering angle, valued at 0.06; squared sum of steering velocity, valued at 2.51; sum of the path length, valued at 710.05; squared sum of the deviation to the desired velocity, valued at 0.00; squared sum of the deviation to the desired orientation, valued at 0.93. The objective is to adjust the total cost of the planned trajectory to closely align with the desired value 0.16.",
+      "value": "Problem: Frequent actuation of the throttle leads to high acceleration costs.\nReason: The partial cost functions influencing jerk do not have sufficient influence on the total cost.\nApproach: Strongly increase the weights of jerk_costs, lateral_jerk_costs and longitudinal_jerk_costs while decreasing weights of other factors."
+    },
+    {
+      "key": "The total cost of the initial planner is calculated to be 1205.75, it includes squared sum of acceleration, valued at 492.20; squared sum of steering angle, valued at 0.06; squared sum of steering velocity, valued at 2.51; sum of the path length, valued at 710.05; squared sum of the deviation to the desired velocity, valued at 0.00; squared sum of the deviation to the desired orientation, valued at 0.93. The objective is to adjust the total cost of the planned trajectory to closely align with the desired value 0.16.",
+      "value": "Problem: In the currently chosen trajectory the gas pedal is firmly depressed at least once.\nReason: Trajectories with high acceleration are not punished by high cost in the current cost function.\nApproach: Strongly increase the weights of acceleration_costs. Increase jerk_costs, lateral_jerk_costs and longitudinal_jerk_costs factors. Decrease weights of other unrelated factors."
+    },
+    {
+      "key": "The total cost of the initial planner is calculated to be 774.25, it includes squared sum of acceleration, valued at 62.23; squared sum of steering angle, valued at 0.01; squared sum of steering velocity, valued at 0.93; sum of the path length, valued at 711.08; squared sum of the deviation to the desired velocity, valued at 0.00; squared sum of the deviation to the desired orientation, valued at 0.00. The objective is to adjust the total cost of the planned trajectory to closely align with the desired value 0.16.",
+      "value": "Problem: The length of the driven trajectory is unnecessarily long.\nReason: This is due to the car making a lot of turns instead of driving a straight line.\nApproach: Increase cost for frequent steering and for changing the orientation. Heavily increase cost for path length."
+    },
+    {
+      "key": "!AN EXCEPTION OCCURRED!\nThe planner failed: No optimal trajectory could be found!",
+      "value": "Problem: The planner failed since he could not find any trajectory satisfying the constraints.\nReason: Because of constant re-planning, a bad cost function maneuvers the car into a critical state from where it can not continue driving.\nApproach: Identify extreme weightings inside the cost function and correct them. Adopt a more conservative approach."
+    },
+    {
+      "key": "The planner failed: Planning took too much time and was terminated! The vehicle might be driving to slow or is stuck without moving.",
+      "value": "Problem: Planning took to much time. Therefore, it was terminated and the planner failed.\nReason: The vehicle might not be moving. This could be caused by only choosing 0-velocity trajectories.\nApproach: Because acceleration should be encouraged, decrease its cost-weight."
+    },
+    {
+      "key": "!AN EXCEPTION OCCURRED!\nThe planner failed: No optimal trajectory could be found!",
+      "value": "Problem: There is some fundamental problem within the planner. It does not produce any results.\nReason: In this case it is difficult to reason about the concrete problem.\nApproach: Return to the standard cost function which only consists of the very basic partial costs."
+    },
+    {
+      "key": "!AN EXCEPTION OCCURRED!\nname 'acceleration_costs' is not defined\nTYPE: <class 'NameError'> METHOD: run_planner LINE: optimal = planner.plan()",
+      "value": "problem: Planner fails to execute the cost function code due to an compilation error.\nreason: The function 'acceleration_costs' is actually a method owned by the class executing the code.\napproach: Turn function call into a method call by adding \"self.\"."
     }
   ]
 }

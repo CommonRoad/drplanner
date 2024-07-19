@@ -47,19 +47,19 @@ class TrajectoryCostDescription(DescriptionBase):
     def generate(
         self, cost_result: PlanningProblemCostResult, desired_cost: int
     ) -> str:
-        description = f"The total cost of the initial planner is calculated to be {cost_result.total_costs:.2f}, "
-        description += "it includes "
+        description = f"To the chosen trajectory a total penalty of {cost_result.total_costs:.2f} was issued. "
+        description += "It consists of "
         for item, cost in cost_result.partial_costs.items():
             cost = cost * cost_result.weights[item]
             description += f"{CostFunctionMeaningMapping[item]}, valued at {cost:.2f}; "
         self.description = description[:-2] + ". "
         self.description += (
-            f"The objective is to adjust the total cost of the planned trajectory to closely "
-            f"align with the desired value {desired_cost}.\n"
+            f"The objective is to decrease this penalty of the planned trajectory to closely "
+            f"align with desired value {desired_cost}.\n"
         )
         return self.description
 
-    def update(
+    def compare(
         self,
         a: PlanningProblemCostResult,
         version: str,

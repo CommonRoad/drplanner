@@ -1,7 +1,7 @@
 import math
 import os
 import textwrap
-from typing import Tuple
+from typing import Tuple, Union
 
 from drplanner.prompter.llm import LLM, LLMFunction
 
@@ -21,6 +21,7 @@ from commonroad.common.solution import CostFunction
 class DrPlannerIterationConfiguration:
     documentation = False
     memory = True
+    update_memory = True
     diagnosis_shots = 2
     prescription_shots = 3
     cost_function = CostFunction.SM1
@@ -30,11 +31,13 @@ class DrPlannerIterationConfiguration:
 # A single DrPlanner iteration which tries to improve a motion planner
 class DrPlannerIteration:
     def __init__(
-        self,
-        motion_planner: ReactiveMotionPlanner,
-        config: DrPlannerConfiguration,
-        memory: FewShotMemory,
+            self,
+            motion_planner: ReactiveMotionPlanner,
+            config: DrPlannerConfiguration,
+            memory: FewShotMemory,
+            save_dir: str,
     ):
+        self.save_dir = save_dir
         self.iteration_config = DrPlannerIterationConfiguration()
         self.diagnosis_prompt_structure = ["cost_function", "evaluation", "advice"]
         self.prescription_prompt_structure = ["cost_function", "diagnoses"]
@@ -63,7 +66,7 @@ class DrPlannerIteration:
             "reason": LLMFunction.get_string_parameter("The reason for the problem"),
             "approach": LLMFunction.get_string_parameter(
                 "The approach for solving the problem"
-            )
+            ),
         }
         items = LLMFunction.get_object_parameter(diagnosis_structure)
         llm_function.add_array_parameter(
@@ -79,7 +82,10 @@ class DrPlannerIteration:
 
         # initialize prescription llm
         llm_function = LLMFunction(custom=True)
-        llm_function.add_string_parameter("solution", "A description of the exact changes which need to be implemented")
+        llm_function.add_string_parameter(
+            "solution",
+            "A description of the exact changes which need to be implemented",
+        )
         llm_function.add_code_parameter(
             "cost_function", "The improved cost function of the motion planner"
         )
@@ -100,7 +106,9 @@ class DrPlannerIteration:
                 self.config.project_path, "planners", "standard-config.yaml"
             )
             cost_result = self.motion_planner.evaluate_on_scenario(
-                absolute_scenario_path, absolute_config_path, cost_type=self.iteration_config.cost_function
+                absolute_scenario_path,
+                absolute_config_path,
+                cost_type=self.iteration_config.cost_function,
             )
             evaluation = TrajectoryCostDescription().generate(
                 cost_result, self.config.desired_cost
@@ -115,7 +123,11 @@ class DrPlannerIteration:
         user_prompt = Prompt(self.diagnosis_prompt_structure)
 
         # set memory prompt
-        memories = self.memory.retrieve(evaluation, collection_name="diagnosis", n=self.iteration_config.diagnosis_shots)
+        memories = self.memory.retrieve(
+            evaluation,
+            collection_name="diagnosis",
+            n=self.iteration_config.diagnosis_shots,
+        )
         memory_prompt = (
             "Here are some old diagnoses which you made in similar situations:\n"
         )
@@ -135,7 +147,8 @@ class DrPlannerIteration:
 
         # set default prompt parts
         user_prompt.set(
-            "cost_function", f"This is the planner's cost function code:\n{cost_function}"
+            "cost_function",
+            f"This is the planner's cost function code:\n{cost_function}",
         )
         user_prompt.set(
             "evaluation",
@@ -143,10 +156,7 @@ class DrPlannerIteration:
         )
         advice_prompt = "It is very important, that you remember the following:\n"
         advice_prompt += "If the penalty related to some partial cost factor is *high*, this is due to this cost factor having a *low* weight, not the other way round!"
-        user_prompt.set(
-            "advice",
-            advice_prompt
-        )
+        user_prompt.set("advice", advice_prompt)
         return user_prompt
 
     def diagnose(self, evaluation: str, iteration_id: int) -> list[dict[str, str]]:
@@ -168,8 +178,9 @@ class DrPlannerIteration:
         messages = LLM.get_messages(
             system_prompt.__str__(), user_prompt.__str__(), None
         )
+        save_dir = os.path.join(self.save_dir, self.config.gpt_version, "diagnosis")
         result = self.diagnosis_llm.query(
-            messages, planner_id="diagnose", nr_iter=iteration_id
+            messages, nr_iter=iteration_id, save_dir=save_dir
         )
         if "diagnoses" in result.keys():
             return result["diagnoses"]
@@ -177,12 +188,16 @@ class DrPlannerIteration:
             return []
 
     def prescribe_user_prompt(
-        self, cost_function: str, diagnoses: list[dict]
+            self, cost_function: str, diagnoses: list[dict]
     ) -> Prompt:
         user_prompt = Prompt(self.prescription_prompt_structure)
 
         # set memory prompt
-        memories = self.memory.retrieve(diagnoses, collection_name="prescription", n=self.iteration_config.prescription_shots)
+        memories = self.memory.retrieve(
+            diagnoses,
+            collection_name="prescription",
+            n=self.iteration_config.prescription_shots,
+        )
         memory_prompt = "For reference, here are excerpts of changes which you made in similar situations:\n"
         for m in memories:
             memory_prompt += m + "\n"
@@ -198,7 +213,8 @@ class DrPlannerIteration:
 
         # set default prompt parts
         user_prompt.set(
-            "cost_function", f"This is the planner's cost function code which you need to improve/rewrite:\n{cost_function}"
+            "cost_function",
+            f"This is the planner's cost function code which you need to improve/rewrite:\n{cost_function}",
         )
         diagnoses_string = ""
         for diagnosis in diagnoses:
@@ -214,8 +230,8 @@ class DrPlannerIteration:
         return user_prompt
 
     def prescribe(
-        self, diagnoses: list[dict], iteration_id: int
-    ) -> ReactiveMotionPlanner:
+            self, diagnoses: list[dict], iteration_id: int
+    ) -> Tuple[ReactiveMotionPlanner, Union[None, str]]:
         cost_function = self.motion_planner.cost_function_string
 
         # build system prompt
@@ -234,46 +250,71 @@ class DrPlannerIteration:
         messages = LLM.get_messages(
             system_prompt.__str__(), user_prompt.__str__(), None
         )
+        save_dir = os.path.join(self.save_dir, self.config.gpt_version, "prescription")
         result = self.prescription_llm.query(
-            messages, planner_id="prescribe", nr_iter=iteration_id
+            messages,
+            nr_iter=iteration_id,
+            save_dir=save_dir,
         )
+        if "solution" in result.keys():
+            solution = result["solution"]
+        else:
+            solution = None
         if "cost_function" in result.keys():
             cost_function_string = result["cost_function"]
             cost_function_string = textwrap.dedent(cost_function_string)
-            return ReactiveMotionPlanner(cost_function_string)
+            return ReactiveMotionPlanner(cost_function_string), solution
         else:
             raise ValueError("The llm did not provide an essential parameter!")
 
+    @staticmethod
+    def improved(start_cost: float, end_cost: float, min_improvement: float = 0.05) -> bool:
+        if not end_cost < math.inf:
+            improvement = -1.0
+        elif not start_cost < math.inf:
+            improvement = 1.0
+        else:
+            improvement = 1.0 - (end_cost / start_cost)
+
+        return improvement > min_improvement
+
     def run(
-        self, absolute_scenario_path: str, start_evaluation: str, iteration_id: int = 0
+            self, absolute_scenario_path: str, start_evaluation: str, start_total_cost: float, iteration_id: int = 0
     ) -> Tuple[str, str, float, list[dict[str, str]]]:
-        print(start_evaluation)
         # second let a llm analyze the reasons for this performance
         diagnosis = self.diagnose(start_evaluation, iteration_id)
         # third let a llm repair the planner given the diagnosis
-        self.motion_planner = self.prescribe(diagnosis, iteration_id)
+        self.motion_planner, solution = self.prescribe(diagnosis, iteration_id)
         # last run the repaired version and evaluate it
         end_cf = self.motion_planner.cost_function_string
         end_evaluation, end_total_cost = self.evaluate(absolute_scenario_path)
+        # if the iteration improved the planner, add its insight to memory
+        if self.iteration_config.update_memory and self.improved(start_total_cost, end_total_cost):
+            self.memory.insert(start_evaluation, diagnosis, collection_name="diagnosis")
+            if solution:
+                self.memory.insert(diagnosis, solution, collection_name="prescription")
+
         return end_cf, end_evaluation, end_total_cost, diagnosis
 
 
 def run_iteration(
         scenario_path: str = "USA_Lanker-2_19_T-1", config: DrPlannerConfiguration = None
-) -> Tuple[list[float], DrPlannerConfiguration]:
+) -> list[float]:
     if not config:
         config = DrPlannerConfiguration()
 
     if not scenario_path.endswith(".xml"):
+        scenario_id = scenario_path
         scenario_path = os.path.join(
             os.path.dirname(config.project_path), "scenarios", f"{scenario_path}.xml"
         )
-    # noinspection PyTypeChecker
+    else:
+        scenario_id = os.path.basename(scenario_path)[:-4]
+
     motion_planner = ReactiveMotionPlanner(None)
     memory = FewShotMemory()
-    dr_planner = DrPlannerIteration(
-        motion_planner, config, memory
-    )
+    save_dir = os.path.join(config.save_dir, scenario_id)
+    dr_planner = DrPlannerIteration(motion_planner, config, memory, save_dir)
     # first run the initial planner once to obtain the initial values for the loop:
     cf0 = motion_planner.cost_function_string
     e0, tc0 = dr_planner.evaluate(scenario_path)
@@ -282,18 +323,20 @@ def run_iteration(
     cost_results = [tc0]
     diagnoses = []
     iteration_id = 0
+    print(e0)
 
     while iteration_id < dr_planner.iteration_config.iterations:
         dr_planner.update_motion_planner(ReactiveMotionPlanner(cost_functions.pop()))
         cf, e, tc, d = dr_planner.run(
-            scenario_path, evaluations.pop(), iteration_id=iteration_id
+            scenario_path, evaluations.pop(), cost_results[-1], iteration_id=iteration_id
         )
+        print(e)
         cost_functions.append(cf)
         evaluations.append(e)
         cost_results.append(tc)
         diagnoses.append(d)
         iteration_id += 1
-    return cost_results, config
+    return cost_results
 
 
 def get_explorer_llm(config: DrPlannerConfiguration) -> Tuple[LLM, Prompt, Prompt]:
@@ -324,8 +367,12 @@ def get_explorer_llm(config: DrPlannerConfiguration) -> Tuple[LLM, Prompt, Promp
     return llm, system_prompt, user_prompt
 
 
-def run(scenario_path: str = "USA_Lanker-2_19_T-1"):
-    config = DrPlannerConfiguration()
+def run(
+        scenario_path: str = "USA_Lanker-2_19_T-1", config: DrPlannerConfiguration = None
+):
+    if not config:
+        config = DrPlannerConfiguration()
+
     if not scenario_path.endswith(".xml"):
         scenario_path = os.path.join(
             os.path.dirname(config.project_path), "scenarios", f"{scenario_path}.xml"
@@ -334,7 +381,8 @@ def run(scenario_path: str = "USA_Lanker-2_19_T-1"):
     explorer_llm, system_prompt, user_prompt = get_explorer_llm(config)
     cost_function_variants: list[str] = []
     messages = LLM.get_messages(system_prompt.__str__(), user_prompt.__str__(), None)
-    query = explorer_llm.query(messages, planner_id="explorer")
+    temp = os.path.join(config.save_dir, config.gpt_version, "explorer")
+    query = explorer_llm.query(messages, save_dir=str(temp))
     counter = 1
     while counter > 0:
         key = f"variant_{counter}"
@@ -353,10 +401,12 @@ def run(scenario_path: str = "USA_Lanker-2_19_T-1"):
             lines[0] = signature
             variant = "\n".join(lines)
         planner = ReactiveMotionPlanner(variant)
-        dr_planner = DrPlannerIteration(planner, config, memory)
+        dr_planner = DrPlannerIteration(planner, config, memory, config.save_dir)
         evaluation_string, start_total_cost = dr_planner.evaluate(scenario_path)
         print(f"Total initial cost of variant nr.{i}: {start_total_cost}")
-        end_cf, _, end_total_cost, _ = dr_planner.run(scenario_path, evaluation_string, iteration_id=i)
+        end_cf, _, end_total_cost, _ = dr_planner.run(
+            scenario_path, evaluation_string, start_total_cost, iteration_id=i
+        )
         print(f"Total final cost of variant nr.{i}: {end_total_cost}")
         results.append((end_cf, end_total_cost))
 

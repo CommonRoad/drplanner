@@ -228,12 +228,14 @@ class DrPlannerBase(ABC):
                 mockup_nr_iteration = nr_iteration
 
             # send request and receive response
+            scenario_id = str(self.scenario.scenario_id)
+            save_dir = os.path.join(
+                self.config.save_dir, scenario_id, self.config.gpt_version
+            )
             result = self.prompter.LLM.query(
                 messages,
-                scenario_id=str(self.scenario.scenario_id),
-                # planner_id=str(self.planner_id),
-                # start_time=run_start_time,
-                save_dir=self.config.save_dir,
+                scenario_id=scenario_id,
+                save_dir=save_dir,
                 nr_iter=nr_iteration,
                 mockup_nr_iter=mockup_nr_iteration,
             )

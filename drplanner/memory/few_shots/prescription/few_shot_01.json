@@ -2,11 +2,11 @@
   "few_shots": [
     {
       "key": "Problem: Frequent actuation of the throttle leads to high acceleration costs.\nReason: The partial cost functions influencing jerk do not have sufficient influence on the total cost.\nApproach: Strongly increase the weights of jerk_costs, lateral_jerk_costs and longitudinal_jerk_costs while decreasing weights of other factors.",
-      "value": "Solution: Increase weights of jerk_costs, lateral_jerk_costs, longitudinal_jerk_costs to 30. Decrease weights of other non-related factors to 5."
+      "value": "Solution: Increase weights of jerk_costs, lateral_jerk_costs, longitudinal_jerk_costs by 30. Set weights of other non-related factors to 5."
     },
     {
       "key": "Problem: In the currently chosen trajectory the gas pedal is firmly depressed at least once.\nReason: Trajectories with high acceleration are not punished by high cost in the current cost function.\nApproach: Strongly increase the weights of acceleration_costs. Increase jerk_costs, lateral_jerk_costs and longitudinal_jerk_costs factors. Decrease weights of other unrelated factors.",
-      "value": "Solution: Increase weights of acceleration_costs to 50 and jerk_costs, lateral_jerk_costs, longitudinal_jerk_costs to 30. Decrease weights for other partial cost functions to 5."
+      "value": "Solution: Increase weights of acceleration_costs by 50 and jerk_costs, lateral_jerk_costs, longitudinal_jerk_costs by 30. Set weights for other partial cost functions to 5."
     },
     {
       "key": "Problem: There is some fundamental problem within the planner. It does not produce any results.\nReason: In this case it is difficult to reason about the concrete problem.\nApproach: Return to the standard cost function which only consists of the very basic partial costs.",
@@ -14,7 +14,7 @@
     },
     {
       "key": "Problem: Planning took to much time. Therefore, it was terminated and the planner failed.\nReason: The vehicle might not be moving. This could be caused by only choosing 0-velocity trajectories.\nApproach: Because acceleration should be encouraged, decrease its cost-weight.",
-      "value": "Solution: Decrease weights of acceleration_costs to 1. Also if desired_velocity_costs is not included or has low weight, increase its weight considerably."
+      "value": "Solution: Decrease weights of acceleration_costs by 30. Also if desired_velocity_costs is not included or has low weight, increase its weight considerably."
     },
     {
       "key": "Problem: The planner failed since he could not find any trajectory satisfying the constraints.\nReason: Because of constant re-planning, a bad cost function maneuvers the car into a critical state from where it can not continue driving.\nApproach: Identify extreme weightings inside the cost function and correct them. Adopt a more conservative approach.",
@@ -22,7 +22,7 @@
     },
     {
       "key": "Problem: The length of the driven trajectory is unnecessarily long.\nReason: This is due to the car making a lot of turns instead of driving a straight line.\nApproach: Increase cost for frequent steering and for changing the orientation. Heavily increase cost for path length.",
-      "value": "Solution: Increase weights of orientation_offset_costs, steering_angle_costs and steering_velocity_costs to 10. Increase path_length_costs to 50."
+      "value": "Solution: Increase weights of orientation_offset_costs, steering_angle_costs and steering_velocity_costs by 10. Increase path_length_costs by 50."
     },
     {
       "key": "problem: Planner fails to execute the cost function code due to an compilation error.\nreason: The function 'acceleration_costs' is actually a method owned by the class executing the code.\napproach: Turn function call into a method call by adding \"self.\".",

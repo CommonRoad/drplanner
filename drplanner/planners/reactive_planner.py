@@ -115,17 +115,13 @@ class ReactiveMotionPlanner:
     def apply(
         self, planner_config: ReactivePlannerConfiguration
     ) -> Tuple[ReactivePlanner, Type[ReactiveCostFunction | None]]:
-        # todo adjust confog parameters before get_planner()
+        # todo adjust config parameters before get_planner()
 
         planner = get_planner(planner_config)
         # Create a namespace dictionary to hold the compiled function
         function_namespace = {}
         function_namespace.update(planner.__dict__)
-        # initialize imports: todo: check how many are needed
-        # function_namespace["np"] = np
-        # function_namespace["Optional"] = Optional
         function_namespace["TrajectorySample"] = TrajectorySample
-        g = globals()
         exec(self.cost_function_string, globals(), function_namespace)
         # Extract the new function
         cost_function_code = function_namespace["evaluate"]

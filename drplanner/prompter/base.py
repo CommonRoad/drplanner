@@ -114,7 +114,7 @@ class PrompterBase(ABC):
         desired_cost: int,
         a_version: str = "initial",
     ) -> str:
-        return self.trajectory_description.update(a, a_version, b, desired_cost)
+        return self.trajectory_description.compare(a, a_version, b, desired_cost)
 
     @staticmethod
     def generate_exception_description(e: Exception):

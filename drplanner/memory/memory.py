@@ -82,3 +82,10 @@ class FewShotMemory:
         key = self.preprocess_key(key)
         query = collection.query(query_texts=[key], n_results=n, include=["documents"])
         return query["documents"][0]
+
+    def insert(self, key, value, collection_name="few_shots"):
+        collection = self.select_collection(collection_name)
+        default_ef = embedding_functions.DefaultEmbeddingFunction()
+        embeddings = [default_ef([key])[0]]
+        ids = [f"{collection_name}{collection.count()}"]
+        collection.add(documents=[value], embeddings=embeddings, ids=ids)

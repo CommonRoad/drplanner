@@ -27,6 +27,10 @@
     {
       "key": "!AN EXCEPTION OCCURRED!\nname 'acceleration_costs' is not defined\nTYPE: <class 'NameError'> METHOD: run_planner LINE: optimal = planner.plan()",
       "value": "problem: Planner fails to execute the cost function code due to an compilation error.\nreason: The function 'acceleration_costs' is actually a method owned by the class executing the code.\napproach: Turn function call into a method call by adding \"self.\"."
+    },
+    {
+      "key": "!AN EXCEPTION OCCURRED!\nlist index out of range\nTYPE: <class 'IndexError'> METHOD: compute_curvilinear_coordinates LINE: c_tmp = cosys[i_c]",
+      "value": "Problem: There is some fundamental problem within the planner. It does not produce any results.\nReason: In this case it is difficult to reason about the concrete problem.\nApproach: Return to the standard cost function which only consists of the very basic partial costs."
     }
   ]
 }

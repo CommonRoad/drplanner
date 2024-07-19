@@ -20,14 +20,18 @@ def results_to_csv(filename: str, data: list):
         write.writerow(data)
 
 
-def run_dr_sampling_planner(scenario_filepath: str):
+def run_dr_sampling_planner(scenario_filepath: str, result_filepath: str):
     scenario, planning_problem_set = CommonRoadFileReader(scenario_filepath).open(True)
     config = DrPlannerConfiguration()
     dr_planner = DrSamplingPlanner(
-        FewShotMemory(), scenario, scenario_filepath, planning_problem_set, config, "planner_id"
+        FewShotMemory(),
+        scenario,
+        scenario_filepath,
+        planning_problem_set,
+        config,
+        "planner_id",
     )
     dr_planner.diagnose_repair()
-    filename = config.save_dir + "results.csv"
 
     if len(dr_planner.cost_list) <= 0:
         print("This scenario needs no repairs!")
@@ -36,7 +40,7 @@ def run_dr_sampling_planner(scenario_filepath: str):
             str(config.gpt_version),
             dr_planner.initial_cost,
         ]
-        results_to_csv(filename, row)
+        results_to_csv(result_filepath, row)
 
     row = [
         str(scenario.scenario_id),
@@ -46,12 +50,14 @@ def run_dr_sampling_planner(scenario_filepath: str):
     ]
     for c in dr_planner.cost_list:
         row.append(c)
-    results_to_csv(filename, row)
+    results_to_csv(result_filepath, row)
     print(dr_planner.cost_list, min(dr_planner.cost_list), dr_planner.initial_cost)
 
 
-def run_dr_iteration_planner(scenario_filepath: str):
-    cost_results, config = run_iteration(scenario_filepath)
+def run_dr_iteration_planner(scenario_filepath: str, result_filepath: str):
+    config = DrPlannerConfiguration()
+    config.save_dir = os.path.dirname(result_filepath)
+    cost_results = run_iteration(scenario_filepath, config=config)
     initial_cost_result = cost_results.pop(0)
     best_cost_result = min(cost_results)
     scenario_id = os.path.basename(scenario_filepath)[:-4]
@@ -63,13 +69,14 @@ def run_dr_iteration_planner(scenario_filepath: str):
     ]
     for c in cost_results:
         row.append(c)
-    filename = config.save_dir + "results.csv"
-    results_to_csv(filename, row)
+    results_to_csv(result_filepath, row)
 
 
 PATH_TO_SCENARIOS = (
-    "/home/sebastian/Documents/Uni/Bachelorarbeit/Scenarios/Datasets/Batch"
+    "/home/sebastian/Documents/Uni/Bachelorarbeit/Scenarios/Datasets/***"
 )
+SAVE_DIR_NAME = "IterationV02"
+COMMIT_HASH = "1f0fcff1030c7c4ebde1ec022b350690ba472b9e"
 NR_ITERATIONS = 3
 MODE = 1
 
@@ -77,7 +84,15 @@ MODE = 1
 row_data = ["scenario", "gpt-version", "initial_cost", "final_cost"]
 for i in range(NR_ITERATIONS):
     row_data.append(f"iter_{i}")
-result_filename = DrPlannerConfiguration().save_dir + "results.csv"
+data_set = PATH_TO_SCENARIOS.split("/")[-1].lower()
+result_filename = os.path.join(
+    DrPlannerConfiguration().save_dir,
+    SAVE_DIR_NAME,
+    data_set,
+    f"results-{data_set}-{COMMIT_HASH}.csv",
+)
+if not os.path.exists(os.path.dirname(result_filename)):
+    os.makedirs(os.path.dirname(result_filename), exist_ok=True)
 result_file = open(result_filename, "w+", newline="")
 with result_file:
     w = csv.writer(result_file)
@@ -90,6 +105,6 @@ scenarios = [os.path.abspath(file) for file in xml_files]
 for p in scenarios:
     print(p)
     if MODE == 0:
-        run_dr_sampling_planner(p)
+        run_dr_sampling_planner(p, result_filename)
     elif MODE == 1:
-        run_dr_iteration_planner(p)
+        run_dr_iteration_planner(p, result_filename)

@@ -23,7 +23,6 @@ def mockup_query(
     iteration,
     directory="/home/sebastian/Documents/Uni/Bachelorarbeit/DrPlanner_Data/mockup/debug",
 ):
-    directory = "/home/sebastian/Documents/Uni/Bachelorarbeit/DrPlanner_Data/USA_Lanker-2_19_T-1/gpt-4o/jsons"
     filenames = []
     # finds all .jsons in the directory and assumes them to be mockup responses
     for file_name in os.listdir(directory):
@@ -153,9 +152,6 @@ class LLM:
     def query(
         self,
         messages: List[Dict[str, str]],
-        scenario_id=None,
-        planner_id=None,
-        start_time=None,
         save_dir: str = "../../outputs/",
         nr_iter: int = 1,
         mockup_nr_iter: int = -1,
@@ -188,19 +184,9 @@ class LLM:
                     f"*\t <Prompt> Iteration {nr_iter} succeeds, "
                     f"{response.usage.total_tokens} tokens are used"
                 )
-            path_variables = [
-                save_dir,
-                planner_id,
-                scenario_id,
-                self.gpt_version,
-                start_time,
-            ]
-            path_variables = [x for x in path_variables if x is not None]
 
-            self._save_iteration_as_json(
-                messages, content_json, nr_iter, path_variables
-            )
-            self._save_iteration_as_txt(messages, content_json, nr_iter, path_variables)
+            self._save_iteration_as_json(messages, content_json, nr_iter, save_dir)
+            self._save_iteration_as_txt(messages, content_json, nr_iter, save_dir)
             return content_json
         else:
             print(f"*\t <Prompt> Iteration {nr_iter} failed, no response is generated")
@@ -237,18 +223,15 @@ class LLM:
 
     # helper function to save both prompts and responses in a human-readable form
     @staticmethod
-    def _save_iteration_as_txt(messages, content_json, nr_iter, path_variables: list):
+    def _save_iteration_as_txt(messages, content_json, nr_iter, save_dir: str):
         messages = LLM.extract_text_from_messages(messages)
         text_filename_result = f"result_iter-{nr_iter}.txt"
         text_filename_prompt = f"prompt_iter-{nr_iter}.txt"
-        path_variables.append("texts")
-        path_variables.append(text_filename_result)
-        # Parse the saved content into a txt file
-        txt_save_dir = os.path.dirname(os.path.join(*path_variables))
+        save_dir = os.path.join(save_dir, "texts")
 
-        if not os.path.exists(txt_save_dir):
-            os.makedirs(txt_save_dir, exist_ok=True)
-        with open(os.path.join(txt_save_dir, text_filename_result), "w") as txt_file:
+        if not os.path.exists(save_dir):
+            os.makedirs(save_dir, exist_ok=True)
+        with open(os.path.join(save_dir, text_filename_result), "w") as txt_file:
             for value in content_json.values():
                 if isinstance(value, str):
                     txt_file.write(value + "\n")
@@ -256,7 +239,7 @@ class LLM:
                     for item in value:
                         txt_file.write(json.dumps(item) + "\n")
 
-        with open(os.path.join(txt_save_dir, text_filename_prompt), "w") as txt_file:
+        with open(os.path.join(save_dir, text_filename_prompt), "w") as txt_file:
             for d in messages:
                 for value in d.values():
                     if type(value) is str:
@@ -267,22 +250,19 @@ class LLM:
 
     # helper function to save both prompts and responses as parsable json
     @staticmethod
-    def _save_iteration_as_json(messages, content_json, nr_iter, path_variables: list):
+    def _save_iteration_as_json(messages, content_json, nr_iter, save_dir: str):
         messages = LLM.extract_text_from_messages(messages)
         filename_result = f"result_iter-{nr_iter}.json"
         filename_prompt = f"prompt_iter-{nr_iter}.json"
-        paths = path_variables.copy()
-        paths.append("jsons")
-        paths.append(filename_result)
+        save_dir = os.path.join(save_dir, "jsons")
         # Save the content to a JSON file
-        json_save_dir = os.path.dirname(os.path.join(*paths))
-        if not os.path.exists(json_save_dir):
-            os.makedirs(json_save_dir, exist_ok=True)
+        if not os.path.exists(save_dir):
+            os.makedirs(save_dir, exist_ok=True)
         # save the prompt
-        with open(os.path.join(json_save_dir, filename_prompt), "w") as file:
+        with open(os.path.join(save_dir, filename_prompt), "w") as file:
             json.dump(messages, file)
         # save the result
-        with open(os.path.join(json_save_dir, filename_result), "w") as file:
+        with open(os.path.join(save_dir, filename_result), "w") as file:
             json.dump(content_json, file)
 
     @staticmethod

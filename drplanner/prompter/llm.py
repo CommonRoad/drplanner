@@ -97,6 +97,11 @@ class LLMFunction:
             items, parameter_description
         )
 
+    def add_object_parameter(self, parameter_name: str, properties: dict):
+        self.parameters["properties"][
+            parameter_name
+        ] = LLMFunction.get_object_parameter(properties)
+
     @staticmethod
     def get_number_parameter(description: str) -> dict:
         return {"type": "number", "description": description}

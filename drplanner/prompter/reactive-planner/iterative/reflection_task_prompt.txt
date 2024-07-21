@@ -1,0 +1,3 @@
+1) Analyze the repair process in three steps. First, compare both ratings and determine where improvements have been made. Second, compare both cost functions in order to figure out, what has caused the change of ratings and whether the repair has been successful. Third, come to a conclusion by listing and evaluating all important changes which affected the planner.
+2) Closely analyze the diagnosis. Which of its assumptions and conclusions were valid, which were not and why?. Write an improved version of the diagnosis.
+3) Closely analyze the prescription. How can the cost function be changed more effectively? Write an improved version of the cost function.

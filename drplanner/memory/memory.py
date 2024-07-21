@@ -51,16 +51,16 @@ class FewShotMemory:
         embeddings = []
         ids: list[str] = []
         collection = self.select_collection(collection_name)
-        for file_name in os.listdir(path_to_few_shots):
-            with open(os.path.join(path_to_few_shots, file_name), "r") as file:
-                examples: list = json.load(file)["few_shots"]
-                for data in examples:
-                    key: str = data["key"]
-                    value: str = data["value"]
-                    embedding = default_ef([key])[0]
-                    docs.append(value)
-                    embeddings.append(embedding)
-                    ids.append(f"{collection_name}{len(ids)}")
+
+        with open(os.path.join(path_to_few_shots, "few_shots.json"), "r") as file:
+            examples: list = json.load(file)["few_shots"]
+            for data in examples:
+                key: str = data["key"]
+                value: str = data["value"]
+                embedding = default_ef([key])[0]
+                docs.append(value)
+                embeddings.append(embedding)
+                ids.append(f"{collection_name}{len(ids)}")
 
         collection.add(documents=docs, embeddings=embeddings, ids=ids)
 
@@ -83,7 +83,7 @@ class FewShotMemory:
         query = collection.query(query_texts=[key], n_results=n, include=["documents"])
         return query["documents"][0]
 
-    def insert(self, key, value, collection_name="few_shots"):
+    def insert(self, key: str, value: str, collection_name="few_shots"):
         collection = self.select_collection(collection_name)
         default_ef = embedding_functions.DefaultEmbeddingFunction()
         embeddings = [default_ef([key])[0]]

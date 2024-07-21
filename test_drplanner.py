@@ -77,7 +77,7 @@ PATH_TO_SCENARIOS = (
 )
 SAVE_DIR_NAME = "IterationV02"
 COMMIT_HASH = "1f0fcff1030c7c4ebde1ec022b350690ba472b9e"
-NR_ITERATIONS = 3
+NR_ITERATIONS = 4
 MODE = 1
 
 # initialize results.csv

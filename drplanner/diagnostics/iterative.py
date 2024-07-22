@@ -105,13 +105,7 @@ class DrPlannerIteration:
 
         llm_function = LLMFunction(custom=True)
         llm_function.add_string_parameter(
-            "analysis", "Comparison of the planners rating"
-        )
-        llm_function.add_string_parameter(
-            "diagnosis", "Improvement of the diagnosis"
-        )
-        llm_function.add_string_parameter(
-            "prescription", "Improvement of the prescription"
+            "analysis", "Reflection on the repair process"
         )
         self.reflection_llm = LLM(
             self.config.gpt_version,
@@ -341,9 +335,8 @@ class DrPlannerIteration:
         prescription_prompt += f"{self.separator}{final_e}\n{self.separator}"
         user_prompt.set("prescription", prescription_prompt)
 
-        task_prompt = "Now your task is as follows:\n"
         with open(os.path.join(self.path_to_prompts, "reflection_task_prompt.txt"), "r") as file:
-            task_prompt += file.read()
+            task_prompt = file.read()
         user_prompt.set("task", task_prompt)
         return user_prompt
 

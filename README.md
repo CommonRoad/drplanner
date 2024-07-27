@@ -45,13 +45,11 @@ pip install . # or poetry install
 
 ### 2. Configuration ⚙️ 
 
-All configurable parameters are located in `drplanner/utils/config.py`.
-
-Before running DrPlanner, set up your `OpenAI API keys`.
+All configurable parameters are located in `drplanner/utils/config.py`. 
+Before running DrPlanner, set up your `OpenAI API keys` following the way described in the config file.
 
 Configure as below:
 ```
-api_key: # 'sk-xxxxxx'
 gpt_version: # "gpt4-xxx"
 token_limit: 8000
 ```

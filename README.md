@@ -1,29 +1,15 @@
-# DrPlanner 🩺: Diagnosis and Repair of Motion Planners Using LLMs (add reflection and memory module)
+# DrPlanner+ 🩺: Diagnosis and Repair of Motion Planners Using LLMs (add reflection and memory module)
 
-[![Static Badge](https://img.shields.io/badge/Arxiv-pdf-8A2BE2?logo=arxiv)](https://arxiv.org/abs/2403.07470)
-[![Custom badge](https://img.shields.io/badge/Project%20Page-white?logo=GitHub&color=yellow)](https://commonroad.github.io/drplanner/)
-[![GitHub issues](https://img.shields.io/github/issues/CommonRoad/drplanner)](https://github.com/CommonRoad/drplanner/issues)
 ## 🔍 Framework Overview
-
-
-<img src="./docs/figures/framework.png" width=92%>
 
 **With reflection and memory module**:
 <img src="./docs/figures/framework(new version).png" width=92%>
 
-**DrPlanner**: the first framework to autonomously **d**iagnose and **r**epair motion **planner**s 📍, harnessing the power of LLMs that improve as they scale.
+**DrPlanner+**: an enhanced framework includes reflection module and memory module based on DrPlanner.
 
 
 ## 🌟 Highlights
-- **`2024-03-13`** Our paper is available on [Arxiv](https://arxiv.org/abs/2403.07470)📄!
-
-<table style="border-collapse: collapse; border: none;">
-  <tr style="border: none;">
-    <td align="center"><img src="./docs/figures/DEU_Guetersloh-15_2_T-1_itr0.gif" alt="First GIF" width="300"/><br>Initial Planner</td>
-    <td align="center"><img src="./docs/figures/DEU_Guetersloh-15_2_T-1_itr1.gif" alt="Second GIF" width="300"/><br>First Iteration</td>
-    <td align="center"><img src="./docs/figures/DEU_Guetersloh-15_2_T-1_itr3.gif" alt="Third GIF" width="300"/><br>Third Iteration</td>
-  </tr>
-</table>
+- **`2024-03-13`** The paper about DrPlanner is available on [Arxiv](https://arxiv.org/abs/2403.07470)📄!
 
 ## 🚀 Getting Started
 ### 1. Requirements 📦
@@ -43,7 +29,7 @@ git submodule update
 ```bash
 conda create -n drplanner python=3.10 -y
 conda activate drplanner
-pip install . # or poetry install
+pip install . 
 pip install -r requirements.txt
 ```
 
@@ -209,20 +195,6 @@ region by linking motion primitives.This is the code of the heuristic function:
  
 </details>
 
-
-
-
-## 🔖 Citation
-If you find our paper and codes useful, we highly encourage you to cite our paper:
-
-```bibtex
-@article{DrPlanner,
-  title = {{DrPlanner}: Diagnosis and Repair of Motion Planners Using Large Language Models },
-  author = {Yuanfei Lin and Chenran Li and Mingyu Ding and Masayoshi Tomizuka and Wei Zhan and Matthias Althoff},
-  archivePrefix = {arXiv},
-  journal = {arXiv preprint arXiv:2403.07470},
-  year = {2024}}
-```
 
 
 ## 📝 License

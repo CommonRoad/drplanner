@@ -11,8 +11,8 @@ class ReflectionAgent:
     def __init__(
         self, temperature: float = 0.0, verbose: bool = False
     ) -> None: 
-        #todo:change the instantiate according to config
         self.config = DrPlannerConfiguration()
+        #Initialize the LLM
         self.llm = ChatOpenAI(
             openai_api_key=self.config.openai_api_key,
             temperature=temperature,
@@ -24,6 +24,7 @@ class ReflectionAgent:
 
     def reflection(self, human_message: str, llm_response: str):
         delimiter = "####"
+        # ----- system message -----
         system_message = textwrap.dedent(f"""\
         You are ChatGPT, a large language model trained by OpenAI. Now you act as a mature driving assistant, who can give accurate and correct advice for human driver in complex urban driving scenarios.
         You will be given a detailed description of the motion planner and heuristic function of current solution. 
@@ -36,6 +37,7 @@ class ReflectionAgent:
 
         Make sure to include {delimiter} to separate every step.
         """)
+        # ----- human message -----
         human_message = textwrap.dedent(f"""\
             ``` Human Message ```
             {human_message}
@@ -59,10 +61,12 @@ class ReflectionAgent:
             SystemMessage(content=system_message),
             HumanMessage(content=human_message),
         ]
+        #response according to the messages
         response = self.llm(messages)
         target_phrase = f"{delimiter} What should ChatGPT do to avoid such errors in the future:"
         substring = response.content[response.content.find(
             target_phrase)+len(target_phrase):].strip()
+        #Intercept part of the text as corrected memory
         corrected_memory = f"{delimiter} I have made a mistake before and below is my self-reflection:\n{substring}"
         print("Reflection done. Time taken: {:.2f}s".format(
             time.time() - start_time))

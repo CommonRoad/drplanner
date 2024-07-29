@@ -19,6 +19,7 @@ class PlanningMemory:
             )
         
     def retrieveMemory(self, prompt_planner:str, top_k):
+        #search for similar memories
         similarity_results = self.scenario_memory.similarity_search_with_score(
             prompt_planner,top_k)
         fewshot_results = []
@@ -40,13 +41,14 @@ class PlanningMemory:
             }
         )
         if len(get_results['ids']) > 0:
-            # already have one
+            # if already have one, modify it
             id = get_results['ids'][0]
             self.scenario_memory._collection.update(
                 ids=id, metadatas={"human_question": human_question,'LLM_response': result,  'comments': comments}
             )
             print("Modify a memory item.")
         else:
+            # else add a new item
             doc = Document(
                 page_content=prompt_planner,
                 metadata={"human_question": human_question,'LLM_response': result,  'comments': comments}

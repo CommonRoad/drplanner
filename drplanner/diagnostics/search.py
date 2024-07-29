@@ -114,7 +114,7 @@ class DrSearchPlanner(DrPlannerBase):
         diagnoses_prescriptions_records = ""
 
         print("Retreive similar memories...")
-        #todo:change to agent memory after testing
+        #retrieve similar memories
         fewshot_results = self.agent_memory.retrieveMemory(  
             prompt_planner=prompt_planner, top_k=self.few_shot_num) if self.few_shot_num > 0 else []  
         fewshot_messages = []
@@ -123,6 +123,7 @@ class DrSearchPlanner(DrPlannerBase):
         for fewshot_result in fewshot_results:
             fewshot_messages.append(fewshot_result["human_question"])
             fewshot_answers.append(fewshot_result["LLM_response"])
+        #determine if memory is needed
         if self.few_shot_num == 0:
             print("Now in the zero-shot mode, no few-shot memories.")
             with_memory = False
@@ -201,10 +202,13 @@ class DrSearchPlanner(DrPlannerBase):
                     print("Now running reflection agent...")
                     if abs(self.current_cost - self.desired_cost) > self.THRESHOLD: 
                         print("pass")
+                        #Corrected responses using reflective modules 
                         corrected_response = RA.reflection(
                             human_message, result)
+
                         choice = input("Do you want to add this new memory item to update memory module? (Y/N): ").strip().upper()
                         if choice == 'Y':
+                            #add a new memory
                             self.updated_memory.addMemory(
                                 prompt_planner,
                                 human_message,
@@ -221,7 +225,7 @@ class DrSearchPlanner(DrPlannerBase):
                         print("Do you want to add 1 new memory item to update memory module?",end="")
                         choice = input("(Y/N): ").strip().upper()
                         if choice == 'Y':
-                            
+                            #add a new memory
                             self.updated_memory.addMemory(
                                 prompt_planner,
                                 human_message,
@@ -247,6 +251,7 @@ class DrSearchPlanner(DrPlannerBase):
         fewshot_messages: List[str] = None, 
         fewshot_answers: List[str] = None
         ):
+         # ----- human message -----
         if with_memory:
             human_message = f"""\
             Above messages are some examples of how you make a decision successfully in the past. Those scenarios are similar to the current scenario. You should refer to those examples to make a decision for the current scenario. 
@@ -278,12 +283,14 @@ class DrSearchPlanner(DrPlannerBase):
             ] 
         if with_memory:             
             for i in range(len(fewshot_messages)):
+                #append memories
                 messages.append(
                     {"role": "user", "content": fewshot_messages[i]},                
                 )
                 messages.append(
                     {"role": "assistant", "content": fewshot_answers[i]},
                 )
+        #append human message
         messages.append(
             {"role": "user", "content": human_message},  
         )
@@ -354,12 +361,13 @@ class DrSearchPlanner(DrPlannerBase):
             self, planned_trajectory: Union[Trajectory, None]
     ) -> (str, PlanningProblemCostResult):
         template = self.prompter.astar_template
-
+         # ----- description of planner-----
         planner_description = self.prompter.generate_planner_description(
             self.StudentMotionPlanner, self.motion_primitives_id
         )
         template = template.replace("[PLANNER]", planner_description)
 
+        # ----- description of planned trajectory-----
         if planned_trajectory:
             evaluation_trajectory = self.evaluate_trajectory(planned_trajectory)
             traj_description = self.prompter.generate_cost_description(

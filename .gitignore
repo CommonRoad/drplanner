@@ -4,5 +4,6 @@ __pycache__
 public
 .coverage
 build/
+dist/
 
 outputs/

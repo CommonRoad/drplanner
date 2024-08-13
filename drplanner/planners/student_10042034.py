@@ -8,8 +8,7 @@ from SMP.motion_planner.search_algorithms.best_first_search import AStarSearch
 import numpy as np
 
 
-
-#class StudentMotionPlanner(GreedyBestFirstSearch):
+# class StudentMotionPlanner(GreedyBestFirstSearch):
 class StudentMotionPlanner(AStarSearch):
     """
     Motion planner implementation by students.
@@ -17,17 +16,29 @@ class StudentMotionPlanner(AStarSearch):
     Here as an example, the planner is inherited from the GreedyBestFirstSearch planner.
     """
 
-    def __init__(self, scenario, planningProblem, automata, plot_config=DefaultPlotConfig):
-        super().__init__(scenario=scenario, planningProblem=planningProblem, automaton=automata,
-                         plot_config=plot_config)
+    def __init__(
+        self, scenario, planningProblem, automata, plot_config=DefaultPlotConfig
+    ):
+        super().__init__(
+            scenario=scenario,
+            planningProblem=planningProblem,
+            automaton=automata,
+            plot_config=plot_config,
+        )
 
     def evaluation_function(self, node_current: PriorityNode) -> float:
         if self.reached_goal(node_current.list_paths[-1]):
-            node_current.list_paths = self.remove_states_behind_goal(node_current.list_paths)
+            node_current.list_paths = self.remove_states_behind_goal(
+                node_current.list_paths
+            )
         # calculate g(n)
-        node_current.priority += (len(node_current.list_paths[-1]) - 1) * self.scenario.dt
+        node_current.priority += (
+            len(node_current.list_paths[-1]) - 1
+        ) * self.scenario.dt
         # f(n) = g(n) + h(n)
-        return node_current.priority + self.heuristic_function(node_current=node_current)
+        return node_current.priority + self.heuristic_function(
+            node_current=node_current
+        )
 
     def heuristic_function(self, node_current: PriorityNode) -> float:
 
@@ -44,7 +55,9 @@ class StudentMotionPlanner(AStarSearch):
         else:
             # a = self.planningProblem.goal
             angle_diff = self.calc_angle_to_goal(node_last)
-            orientationToGoalDiff = self.calc_orientation_diff(angle_diff, node_last.orientation)
+            orientationToGoalDiff = self.calc_orientation_diff(
+                angle_diff, node_last.orientation
+            )
 
             velocity = node_current.list_paths[-1][-1].velocity
             dist_to_goal = self.calc_euclidean_distance(current_node=node_current)
@@ -55,14 +68,3 @@ class StudentMotionPlanner(AStarSearch):
                 return np.inf
             else:
                 return dist_to_goal / velocity + orient_disc + dist_to_goal_disc
-
-
-
-
-
-
-
-
-
-
-

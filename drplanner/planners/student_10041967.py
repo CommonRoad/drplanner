@@ -7,6 +7,7 @@ from commonroad.geometry.shape import Rectangle, Polygon, ShapeGroup, Circle
 import numpy as np
 import math
 
+
 class StudentMotionPlanner(AStarSearch):
     """
     Motion planner implementation by students.
@@ -14,20 +15,29 @@ class StudentMotionPlanner(AStarSearch):
     Here as an example, the planner is inherited from the GreedyBestFirstSearch planner.
     """
 
-    def __init__(self, scenario, planningProblem, automata, plot_config=DefaultPlotConfig):
-        super().__init__(scenario=scenario, planningProblem=planningProblem, automaton=automata,
-                         plot_config=plot_config)
-        
+    def __init__(
+        self, scenario, planningProblem, automata, plot_config=DefaultPlotConfig
+    ):
+        super().__init__(
+            scenario=scenario,
+            planningProblem=planningProblem,
+            automaton=automata,
+            plot_config=plot_config,
+        )
 
     def evaluation_function(self, node_current: PriorityNode) -> float:
         ########################################################################
         # todo: Implement your own evaluation function here.                   #
         ########################################################################
         if self.reached_goal(node_current.list_paths[-1]):
-            node_current.list_paths = self.remove_states_behind_goal(node_current.list_paths)
+            node_current.list_paths = self.remove_states_behind_goal(
+                node_current.list_paths
+            )
 
-        node_current.priority += (len(node_current.list_paths[-1]) - 1) * self.scenario.dt
-       
+        node_current.priority += (
+            len(node_current.list_paths[-1]) - 1
+        ) * self.scenario.dt
+
         return self.heuristic_function(node_current=node_current)
 
     def heuristic_function(self, node_current: PriorityNode) -> float:
@@ -52,8 +62,9 @@ class StudentMotionPlanner(AStarSearch):
                 time_to_goal = distance_to_goal / velocity
 
                 # returns id of the start lanelet
-                cur_lanelet_id = self.scenario.lanelet_network.find_lanelet_by_position([node_current.
-                                                                                        list_paths[-1][-1].position])[0]
+                cur_lanelet_id = self.scenario.lanelet_network.find_lanelet_by_position(
+                    [node_current.list_paths[-1][-1].position]
+                )[0]
                 if not cur_lanelet_id:
                     return time_to_goal
                 else:
@@ -63,7 +74,8 @@ class StudentMotionPlanner(AStarSearch):
                     pos = node_current.list_paths[-1][-1].position
                     obstacles_in_lanelet = self.get_obstacles(
                         self.scenario.lanelet_network.find_lanelet_by_id(lanelet_id),
-                        time_step)
+                        time_step,
+                    )
 
                     shortestDist = math.inf
                     for obstacleObj in obstacles_in_lanelet:

@@ -5,11 +5,13 @@ import SMP.batch_processing.helper_functions as helper
 from SMP.motion_planner.plot_config import DefaultPlotConfig
 from SMP.motion_planner.search_algorithms.best_first_search import AStarSearch
 
+
 def get_last_time_step_in_scenario(scenario):
     time_steps = [
         len(obs.prediction.occupancy_set) for obs in scenario.dynamic_obstacles
     ]
     return max(time_steps)
+
 
 class StudentMotionPlanner(AStarSearch):
     """
@@ -18,21 +20,33 @@ class StudentMotionPlanner(AStarSearch):
     Here as an example, the planner is inherited from the GreedyBestFirstSearch planner.
     """
 
-    def __init__(self, scenario, planningProblem, automata, plot_config=DefaultPlotConfig):
-        super().__init__(scenario=scenario, planningProblem=planningProblem, automaton=automata,
-                         plot_config=plot_config)
+    def __init__(
+        self, scenario, planningProblem, automata, plot_config=DefaultPlotConfig
+    ):
+        super().__init__(
+            scenario=scenario,
+            planningProblem=planningProblem,
+            automaton=automata,
+            plot_config=plot_config,
+        )
 
     def evaluation_function(self, node_current: PriorityNode) -> float:
         ########################################################################
         # todo: Implement your own evaluation function here.                   #
         ########################################################################
         if self.reached_goal(node_current.list_paths[-1]):
-            node_current.list_paths = self.remove_states_behind_goal(node_current.list_paths)
+            node_current.list_paths = self.remove_states_behind_goal(
+                node_current.list_paths
+            )
         # calculate g(n)
-        node_current.priority += (len(node_current.list_paths[-1]) - 1) * self.scenario.dt
+        node_current.priority += (
+            len(node_current.list_paths[-1]) - 1
+        ) * self.scenario.dt
 
         # f(n) = g(n) + h(n)
-        return node_current.priority + self.heuristic_function(node_current=node_current)
+        return node_current.priority + self.heuristic_function(
+            node_current=node_current
+        )
 
     def heuristic_function(self, node_current: PriorityNode) -> float:
         survival = False
@@ -40,11 +54,14 @@ class StudentMotionPlanner(AStarSearch):
         alignment = 0
         num_obst = 0
 
-
         path_last = node_current.list_paths[-1]
-        cost_lanelet, final_lanelet_id, start_lanelet_id = self.calc_heuristic_lanelet(path_last)
+        cost_lanelet, final_lanelet_id, start_lanelet_id = self.calc_heuristic_lanelet(
+            path_last
+        )
         distStartState = self.calc_heuristic_distance(path_last[0])
-        distLastStateManhattan = self.calc_heuristic_distance(path_last[-1], distance_type=1)
+        distLastStateManhattan = self.calc_heuristic_distance(
+            path_last[-1], distance_type=1
+        )
         distLastStateEuclidean = self.calc_heuristic_distance(path_last[-1])
 
         if len(path_last) > 5:
@@ -52,12 +69,18 @@ class StudentMotionPlanner(AStarSearch):
         else:
             vel_avg = self.calc_path_efficiency(path_last) * 10
 
-        cur_lanelet = self.scenario.lanelet_network.find_lanelet_by_position([path_last[-1].position])[0][0]
+        cur_lanelet = self.scenario.lanelet_network.find_lanelet_by_position(
+            [path_last[-1].position]
+        )[0][0]
 
         if cur_lanelet is not None:
             try:
-                num_obst = self.num_obstacles_in_lanelet_at_time_step(path_last[-1].time_step, cur_lanelet)
-                laneletObj = self.scenario.lanelet_network.find_lanelet_by_id(cur_lanelet)
+                num_obst = self.num_obstacles_in_lanelet_at_time_step(
+                    path_last[-1].time_step, cur_lanelet
+                )
+                laneletObj = self.scenario.lanelet_network.find_lanelet_by_id(
+                    cur_lanelet
+                )
                 llAngle = laneletObj.orientation_by_position(path_last[-1].position)
                 myAngle = path_last[-1].orientation
                 alignment = self.calc_orientation_diff(llAngle, myAngle)
@@ -79,15 +102,21 @@ class StudentMotionPlanner(AStarSearch):
             if abs(alignment) > np.radians(45):
                 multiplier *= 500
 
-            weights_scores = np.array([[20, num_obst],
-                                       [10, max(0., 15. - vel_avg)],
-                                       [10, 10 * abs(alignment)]])
+            weights_scores = np.array(
+                [
+                    [20, num_obst],
+                    [10, max(0.0, 15.0 - vel_avg)],
+                    [10, 10 * abs(alignment)],
+                ]
+            )
         else:
             # NOT SURVIVAL, GOAL-ORIENTED
             time_total = 10 * helper.get_last_time_step_in_scenario(self.scenario)
             reqd_avg = distStartState / time_total
 
-            if distStartState < distLastStateEuclidean and not self.reached_goal(path_last):
+            if distStartState < distLastStateEuclidean and not self.reached_goal(
+                path_last
+            ):
                 multiplier *= 1e7
 
             if vel_avg > 40 and not reqd_avg > 40:
@@ -113,12 +142,16 @@ class StudentMotionPlanner(AStarSearch):
             if abs(alignment) > np.radians(45):
                 multiplier *= 1e4
 
-            weights_scores = np.array([[80, defEuclidean / path_last[-1].velocity],
-                                       [10, num_obst],
-                                       [10, defEuclidean],
-                                       [3, 100 * (1 - pc_cov)],
-                                       [1, max(0., reqd_avg - vel_avg)],
-                                       [1, 10 * abs(alignment)]])
+            weights_scores = np.array(
+                [
+                    [80, defEuclidean / path_last[-1].velocity],
+                    [10, num_obst],
+                    [10, defEuclidean],
+                    [3, 100 * (1 - pc_cov)],
+                    [1, max(0.0, reqd_avg - vel_avg)],
+                    [1, 10 * abs(alignment)],
+                ]
+            )
 
         # print(weights_scores)
         # print(defEuclidean - distLastStateEuclidean)

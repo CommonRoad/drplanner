@@ -8,7 +8,7 @@ from SMP.motion_planner.search_algorithms.best_first_search import GreedyBestFir
 
 class StudentMotionPlanner(GreedyBestFirstSearch):
     def __init__(
-            self, scenario, planningProblem, automata, plot_config=DefaultPlotConfig
+        self, scenario, planningProblem, automata, plot_config=DefaultPlotConfig
     ):
         super().__init__(
             scenario=scenario,

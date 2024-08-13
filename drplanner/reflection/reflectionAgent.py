@@ -6,13 +6,10 @@ from langchain.chat_models import ChatOpenAI
 from langchain.schema import HumanMessage, SystemMessage
 
 
-
 class ReflectionAgent:
-    def __init__(
-        self, temperature: float = 0.0, verbose: bool = False
-    ) -> None: 
+    def __init__(self, temperature: float = 0.0, verbose: bool = False) -> None:
         self.config = DrPlannerConfiguration()
-        #Initialize the LLM
+        # Initialize the LLM
         self.llm = ChatOpenAI(
             openai_api_key=self.config.openai_api_key,
             temperature=temperature,
@@ -21,11 +18,11 @@ class ReflectionAgent:
             request_timeout=60,
         )
 
-
     def reflection(self, human_message: str, llm_response: str):
         delimiter = "####"
         # ----- system message -----
-        system_message = textwrap.dedent(f"""\
+        system_message = textwrap.dedent(
+            f"""\
         You are ChatGPT, a large language model trained by OpenAI. Now you act as a mature driving assistant, who can give accurate and correct advice for human driver in complex urban driving scenarios.
         You will be given a detailed description of the motion planner and heuristic function of current solution. 
 
@@ -36,9 +33,11 @@ class ReflectionAgent:
         Response to user:{delimiter} <only output identify diagnoses and recommend prescriptions for the motion planner> 
 
         Make sure to include {delimiter} to separate every step.
-        """)
+        """
+        )
         # ----- human message -----
-        human_message = textwrap.dedent(f"""\
+        human_message = textwrap.dedent(
+            f"""\
             ``` Human Message ```
             {human_message}
             ``` ChatGPT Response ```
@@ -53,7 +52,8 @@ class ReflectionAgent:
             <Your answer>
             {delimiter} Corrected version of ChatGPT response:
             <Your corrected version of ChatGPT response>
-        """)
+        """
+        )
 
         print("Self-reflection is running, may take time...")
         start_time = time.time()
@@ -61,15 +61,17 @@ class ReflectionAgent:
             SystemMessage(content=system_message),
             HumanMessage(content=human_message),
         ]
-        #response according to the messages
+        # response according to the messages
         response = self.llm(messages)
-        target_phrase = f"{delimiter} What should ChatGPT do to avoid such errors in the future:"
-        substring = response.content[response.content.find(
-            target_phrase)+len(target_phrase):].strip()
-        #Intercept part of the text as corrected memory
+        target_phrase = (
+            f"{delimiter} What should ChatGPT do to avoid such errors in the future:"
+        )
+        substring = response.content[
+            response.content.find(target_phrase) + len(target_phrase) :
+        ].strip()
+        # Intercept part of the text as corrected memory
         corrected_memory = f"{delimiter} I have made a mistake before and below is my self-reflection:\n{substring}"
-        print("Reflection done. Time taken: {:.2f}s".format(
-            time.time() - start_time))
+        print("Reflection done. Time taken: {:.2f}s".format(time.time() - start_time))
         print("corrected_memory:", corrected_memory)
 
         return corrected_memory

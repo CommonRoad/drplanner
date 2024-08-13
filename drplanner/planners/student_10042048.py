@@ -14,21 +14,33 @@ class StudentMotionPlanner(GreedyBestFirstSearch):
     Here as an example, the planner is inherited from the GreedyBestFirstSearch planner.
     """
 
-    def __init__(self, scenario, planningProblem, automata, plot_config=DefaultPlotConfig):
-        super().__init__(scenario=scenario, planningProblem=planningProblem, automaton=automata,
-                         plot_config=plot_config)
+    def __init__(
+        self, scenario, planningProblem, automata, plot_config=DefaultPlotConfig
+    ):
+        super().__init__(
+            scenario=scenario,
+            planningProblem=planningProblem,
+            automaton=automata,
+            plot_config=plot_config,
+        )
 
     def evaluation_function(self, node_current: PriorityNode) -> float:
         ########################################################################
         # todo: Implement your own evaluation function here.                   #
         ########################################################################
         if self.reached_goal(node_current.list_paths[-1]):
-            node_current.list_paths = self.remove_states_behind_goal(node_current.list_paths)
+            node_current.list_paths = self.remove_states_behind_goal(
+                node_current.list_paths
+            )
         # calculate g(n)
-        node_current.priority += (len(node_current.list_paths[-1]) - 1) * self.scenario.dt
+        node_current.priority += (
+            len(node_current.list_paths[-1]) - 1
+        ) * self.scenario.dt
 
         # f(n) = g(n) + h(n)
-        return node_current.priority + self.heuristic_function(node_current=node_current)
+        return node_current.priority + self.heuristic_function(
+            node_current=node_current
+        )
 
     def heuristic_function(self, node_current: PriorityNode) -> float:
 
@@ -44,17 +56,25 @@ class StudentMotionPlanner(GreedyBestFirstSearch):
             if np.isclose(velocity, 0):
                 return np.inf
 
-            euclDistance =  self.calc_euclidean_distance(current_node=node_current) / velocity
+            euclDistance = (
+                self.calc_euclidean_distance(current_node=node_current) / velocity
+            )
 
-            if hasattr(self.planningProblem.goal.state_list[0], 'velocity'):
-                v_mean_goal = (self.planningProblem.goal.state_list[0].velocity.start +
-                            self.planningProblem.goal.state_list[0].velocity.end) / 2
-                diff_vel = abs(node_current.list_paths[-1][-1].velocity - v_mean_goal)**2
+            if hasattr(self.planningProblem.goal.state_list[0], "velocity"):
+                v_mean_goal = (
+                    self.planningProblem.goal.state_list[0].velocity.start
+                    + self.planningProblem.goal.state_list[0].velocity.end
+                ) / 2
+                diff_vel = (
+                    abs(node_current.list_paths[-1][-1].velocity - v_mean_goal) ** 2
+                )
             else:
                 diff_vel = 0
 
             angleToGoal = self.calc_angle_to_goal(node_current.list_paths[-1][-1])
-            orientationToGoalDiff = self.calc_orientation_diff(angleToGoal, node_current.list_paths[-1][-1].orientation)
+            orientationToGoalDiff = self.calc_orientation_diff(
+                angleToGoal, node_current.list_paths[-1][-1].orientation
+            )
 
             weights = np.zeros(3)
 
@@ -65,6 +85,8 @@ class StudentMotionPlanner(GreedyBestFirstSearch):
             total = np.sum(weights)
             weights /= total
 
-            cost =  weights[0] * euclDistance + \
-                    weights[1] * orientationToGoalDiff + \
-                    weights[2] * diff_vel
+            cost = (
+                weights[0] * euclDistance
+                + weights[1] * orientationToGoalDiff
+                + weights[2] * diff_vel
+            )

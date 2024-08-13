@@ -7,7 +7,6 @@ import json
 from datetime import datetime
 
 
-
 def check_openai_api_key(api_key):
     openai.api_key = api_key
     try:
@@ -34,7 +33,7 @@ class LLM:
 
         self.temperature = temperature
 
-        self.HEURISTIC_FUNCTION = "improved_heuristic_function"    
+        self.HEURISTIC_FUNCTION = "improved_heuristic_function"
         self.MOTION_PRIMITIVES = "motion_primitives"
         self.EXTRA_INFORMATION = "extra_information"
         self.functions = [
@@ -61,9 +60,6 @@ class LLM:
                             },
                             "description": "Diagnostic and prescriptive summary",
                         },
-
-                        
-
                         self.HEURISTIC_FUNCTION: {
                             "type": "string",
                             "format": "python-code",
@@ -83,8 +79,7 @@ class LLM:
         ]
 
         self._save = True
-    
-    
+
     def query(
         self,
         scenario_id: str,
@@ -92,9 +87,8 @@ class LLM:
         messages: List[Dict[str, str]],
         nr_iter: int = 1,
         save_dir: str = "../outputs/",
-        
     ):
-        
+
         response = openai.chat.completions.create(
             model=self.gpt_version,
             messages=messages,

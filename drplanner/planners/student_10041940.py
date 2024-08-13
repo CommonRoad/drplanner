@@ -13,9 +13,15 @@ class StudentMotionPlanner(GreedyBestFirstSearch):
     Here as an example, the planner is inherited from the GreedyBestFirstSearch planner.
     """
 
-    def __init__(self, scenario, planningProblem, automata, plot_config=DefaultPlotConfig):
-        super().__init__(scenario=scenario, planningProblem=planningProblem, automaton=automata,
-                         plot_config=plot_config)
+    def __init__(
+        self, scenario, planningProblem, automata, plot_config=DefaultPlotConfig
+    ):
+        super().__init__(
+            scenario=scenario,
+            planningProblem=planningProblem,
+            automaton=automata,
+            plot_config=plot_config,
+        )
 
     def evaluation_function(self, node_current: PriorityNode) -> float:
         """
@@ -36,11 +42,17 @@ class StudentMotionPlanner(GreedyBestFirstSearch):
         position_difference = self.calc_euclidean_distance(current_node=node_current)
 
         velocity = node_current.list_paths[-1][-1].velocity
-        mean_end_velocity = (self.velocity_desired.start + self.velocity_desired.end) / 2
+        mean_end_velocity = (
+            self.velocity_desired.start + self.velocity_desired.end
+        ) / 2
         velocity_difference = abs(velocity - mean_end_velocity)
 
         angle = self.calc_angle_to_goal(node_current.list_paths[-1][-1])
-        orientation_difference = abs(self.calc_orientation_diff(angle, node_current.list_paths[-1][-1].orientation))
+        orientation_difference = abs(
+            self.calc_orientation_diff(
+                angle, node_current.list_paths[-1][-1].orientation
+            )
+        )
 
         time_difference = mean_time - node_current.list_paths[-1][-1].time_step
 
@@ -49,10 +61,15 @@ class StudentMotionPlanner(GreedyBestFirstSearch):
         weights[1] = 6
         weights[2] = 15
         weights[3] = 0
-        cost = weights[0] * position_difference + weights[1] * position_difference / velocity * math.sin(
-            orientation_difference) - weights[2] * velocity_difference
+        cost = (
+            weights[0] * position_difference
+            + weights[1]
+            * position_difference
+            / velocity
+            * math.sin(orientation_difference)
+            - weights[2] * velocity_difference
+        )
 
         factor = 1 / self.calc_path_efficiency(node_current.list_paths[-1])
 
         return cost
-

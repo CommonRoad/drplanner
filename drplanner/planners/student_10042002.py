@@ -14,9 +14,15 @@ class StudentMotionPlanner(GreedyBestFirstSearch):
     Here as an example, the planner is inherited from the GreedyBestFirstSearch planner.
     """
 
-    def __init__(self, scenario, planningProblem, automata, plot_config=DefaultPlotConfig):
-        super().__init__(scenario=scenario, planningProblem=planningProblem, automaton=automata,
-                         plot_config=plot_config)
+    def __init__(
+        self, scenario, planningProblem, automata, plot_config=DefaultPlotConfig
+    ):
+        super().__init__(
+            scenario=scenario,
+            planningProblem=planningProblem,
+            automaton=automata,
+            plot_config=plot_config,
+        )
 
     def evaluation_function(self, node_current: PriorityNode) -> float:
         node_current.priority = self.heuristic_function(node_current=node_current)
@@ -38,11 +44,16 @@ class StudentMotionPlanner(GreedyBestFirstSearch):
         if distStartState < distLastState:
             return self.calc_euclidean_distance(current_node=node_current)
 
-        cost_lanelet, final_lanelet_id, start_lanelet_id = self.calc_heuristic_lanelet(last_path)
+        cost_lanelet, final_lanelet_id, start_lanelet_id = self.calc_heuristic_lanelet(
+            last_path
+        )
 
         if cost_lanelet is None or final_lanelet_id[0] is None:
-            if hasattr(self.planningProblem.goal.state_list[0], 'time_step'):
-                return abs(last_path[-1].time_step - self.planningProblem.goal.state_list[0].time_step.start)
+            if hasattr(self.planningProblem.goal.state_list[0], "time_step"):
+                return abs(
+                    last_path[-1].time_step
+                    - self.planningProblem.goal.state_list[0].time_step.start
+                )
             return numpy.inf
 
         # Fastet path and closest to the destination
@@ -53,33 +64,41 @@ class StudentMotionPlanner(GreedyBestFirstSearch):
         else:
             try:
                 # A: time to reach goal
-                time_diff = self.calc_euclidean_distance(current_node=node_current) / velocity
+                time_diff = (
+                    self.calc_euclidean_distance(current_node=node_current) / velocity
+                )
                 # normalize: time to goal / (time until now + time to goal)
                 now_time = self.calc_time_cost(last_path)
-                time_diff = time_diff / ( now_time + time_diff )
+                time_diff = time_diff / (now_time + time_diff)
 
                 # B: orientational diff to goal
                 angle = self.calc_angle_to_goal(last_path[-1])
-                orientation_diff = abs(self.calc_orientation_diff(angle, last_path[-1].orientation))
+                orientation_diff = abs(
+                    self.calc_orientation_diff(angle, last_path[-1].orientation)
+                )
                 # normalize: orientation diff / 180°
                 orientation_diff = orientation_diff / math.pi
 
                 # C: velocity difference to goal
-                if hasattr(self.planningProblem.goal.state_list[0], 'velocity'):
-                    v_mean_goal = (self.planningProblem.goal.state_list[0].velocity.start +
-                           self.planningProblem.goal.state_list[0].velocity.end) / 2
+                if hasattr(self.planningProblem.goal.state_list[0], "velocity"):
+                    v_mean_goal = (
+                        self.planningProblem.goal.state_list[0].velocity.start
+                        + self.planningProblem.goal.state_list[0].velocity.end
+                    ) / 2
                     vel_diff = abs(last_path[-1].velocity - v_mean_goal)
                 else:
                     vel_diff = 0
 
                 factor = 10
                 weights = numpy.zeros(3)
-                weights[0] = .49  # A: time to reach goal
-                weights[1] = .5   # B: orientation diff to goal
-                weights[2] = .01  # C: velocity difference
-                cost = weights[0] * time_diff + \
-                       weights[1] * orientation_diff  + \
-                       weights[2] * vel_diff
+                weights[0] = 0.49  # A: time to reach goal
+                weights[1] = 0.5  # B: orientation diff to goal
+                weights[2] = 0.01  # C: velocity difference
+                cost = (
+                    weights[0] * time_diff
+                    + weights[1] * orientation_diff
+                    + weights[2] * vel_diff
+                )
 
                 return cost * factor
             except Exception as error:

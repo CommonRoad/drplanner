@@ -1,5 +1,5 @@
 import math
-from typing import Union,List
+from typing import Union, List
 import importlib
 import traceback
 import copy
@@ -78,15 +78,17 @@ class DrSearchPlanner(DrPlannerBase):
         planner_name = f"drplanner.planners.student_{self.planner_id}"
         planner_module = importlib.import_module(planner_name)
         automaton = ManeuverAutomaton.generate_automaton(motion_primitives_id)
-        #initialize the reflection agent  
-        self.agent_memory = agent_memory      
+        # initialize the reflection agent
+        self.agent_memory = agent_memory
         self.updated_memory = updated_memory
         # use StudentMotionPlanner from the dynamically imported module
         self.StudentMotionPlanner = getattr(planner_module, "StudentMotionPlanner")
         self.motion_planner = self.StudentMotionPlanner(
             self.scenario, self.planning_problem, automaton, DefaultPlotConfig
         )
-        self.prompter=Prompter(self.scenario,self.planning_problem,self.config.openai_api_key)
+        self.prompter = Prompter(
+            self.scenario, self.planning_problem, self.config.openai_api_key
+        )
 
         # initialize the vehicle parameters and the cost function
         self.cost_type = CostFunction.SM1
@@ -96,7 +98,7 @@ class DrSearchPlanner(DrPlannerBase):
             self.cost_type, VehicleType.BMW_320i
         )
 
-    def diagnose_repair(self):       
+    def diagnose_repair(self):
         nr_iteration = 0
         print("[DrPlanner] Starts the diagnosis and repair process.")
         try:
@@ -114,22 +116,26 @@ class DrSearchPlanner(DrPlannerBase):
         diagnoses_prescriptions_records = ""
 
         print("Retreive similar memories...")
-        #retrieve similar memories
-        fewshot_results = self.agent_memory.retrieveMemory(  
-            prompt_planner=prompt_planner, top_k=self.few_shot_num) if self.few_shot_num > 0 else []  
+        # retrieve similar memories
+        fewshot_results = (
+            self.agent_memory.retrieveMemory(
+                prompt_planner=prompt_planner, top_k=self.few_shot_num
+            )
+            if self.few_shot_num > 0
+            else []
+        )
         fewshot_messages = []
         fewshot_answers = []
-        
+
         for fewshot_result in fewshot_results:
             fewshot_messages.append(fewshot_result["human_question"])
             fewshot_answers.append(fewshot_result["LLM_response"])
-        #determine if memory is needed
+        # determine if memory is needed
         if self.few_shot_num == 0:
             print("Now in the zero-shot mode, no few-shot memories.")
             with_memory = False
         elif len(fewshot_messages) != 0:
-            print("Successfully find", len(
-                fewshot_messages), "similar memories!")
+            print("Successfully find", len(fewshot_messages), "similar memories!")
             with_memory = True
         else:
             print("No similar memories found!")
@@ -141,26 +147,26 @@ class DrSearchPlanner(DrPlannerBase):
             and nr_iteration < self.ITERATION_MAX
         ):
             print(f"*\t -----------iteration {nr_iteration}-----------")
-                             
+
             print(
                 f"*\t <{nr_iteration}>: total cost {self.current_cost} (desired: {self.desired_cost})\n"
                 f"*\t used tokens {self.token_count} (limit: {self.TOKEN_LIMIT})"
             )
 
             # get message and human question
-            message,human_message = self.human_question(
+            message, human_message = self.human_question(
                 with_memory=with_memory,
                 prompt_planner=prompt_planner,
-                diagnoses_prescriptions_records=diagnoses_prescriptions_records,               
+                diagnoses_prescriptions_records=diagnoses_prescriptions_records,
                 fewshot_messages=fewshot_messages,
                 fewshot_answers=fewshot_answers,
             )
-                       
-            # count the used token            
+
+            # count the used token
             self.token_count += num_tokens_from_messages(
                 message, self.prompter.LLM.gpt_version
             )
-            
+
             # query the LLM
             result = self.prompter.LLM.query(
                 str(self.scenario.scenario_id),
@@ -170,7 +176,6 @@ class DrSearchPlanner(DrPlannerBase):
                 save_dir=self.dir_output + "prompts/",
             )
 
-            
             self.prompter.reload_LLM()
             # add nr of iteration
             nr_iteration += 1
@@ -180,7 +185,7 @@ class DrSearchPlanner(DrPlannerBase):
             )
             try:
                 diagnoses_prescriptions_records += f" {result['summary']}"
-                #summary = str(result["summary"])
+                # summary = str(result["summary"])
                 self.repair(result)
                 planned_trajectory = self.plan(nr_iteration)
                 # add feedback
@@ -200,45 +205,70 @@ class DrSearchPlanner(DrPlannerBase):
             finally:
                 if self.reflection:
                     print("Now running reflection agent...")
-                    if abs(self.current_cost - self.desired_cost) > self.THRESHOLD: 
+                    if abs(self.current_cost - self.desired_cost) > self.THRESHOLD:
                         print("pass")
-                        #Corrected responses using reflective modules 
-                        corrected_response = RA.reflection(
-                            human_message, result)
+                        # Corrected responses using reflective modules
+                        corrected_response = RA.reflection(human_message, result)
 
-                        choice = input("Do you want to add this new memory item to update memory module? (Y/N): ").strip().upper()
-                        if choice == 'Y':
-                            #add a new memory
+                        choice = (
+                            input(
+                                "Do you want to add this new memory item to update memory module? (Y/N): "
+                            )
+                            .strip()
+                            .upper()
+                        )
+                        if choice == "Y":
+                            # add a new memory
                             self.updated_memory.addMemory(
                                 prompt_planner,
                                 human_message,
                                 corrected_response,
-                                comments="mistake-correction"
+                                comments="mistake-correction",
                             )
 
-                            print("Successfully add a new memory item to updated memory module.")
+                            print(
+                                "Successfully add a new memory item to updated memory module."
+                            )
                         else:
                             print("Ignore these new memory items.")
-                        print("Now the database has ", len(
-                                        self.updated_memory.scenario_memory._collection.get(include=['embeddings'])['embeddings']), " items.")
+                        print(
+                            "Now the database has ",
+                            len(
+                                self.updated_memory.scenario_memory._collection.get(
+                                    include=["embeddings"]
+                                )["embeddings"]
+                            ),
+                            " items.",
+                        )
                     else:
-                        print("Do you want to add 1 new memory item to update memory module?",end="")
+                        print(
+                            "Do you want to add 1 new memory item to update memory module?",
+                            end="",
+                        )
                         choice = input("(Y/N): ").strip().upper()
-                        if choice == 'Y':
-                            #add a new memory
+                        if choice == "Y":
+                            # add a new memory
                             self.updated_memory.addMemory(
                                 prompt_planner,
                                 human_message,
                                 str(result),
-                                comments="no-mistake-correction"
+                                comments="no-mistake-correction",
                             )
-                            print("Successfully add a new memory item to updated memory module.")
+                            print(
+                                "Successfully add a new memory item to updated memory module."
+                            )
                         else:
                             print("Ignore these new memory items.")
-                        print("Now the database has ", len(
-                                        self.updated_memory.scenario_memory._collection.get(include=['embeddings'])['embeddings']), " items.")
-                
-            
+                        print(
+                            "Now the database has ",
+                            len(
+                                self.updated_memory.scenario_memory._collection.get(
+                                    include=["embeddings"]
+                                )["embeddings"]
+                            ),
+                            " items.",
+                        )
+
             self.cost_list.append(self.current_cost)
         print("[DrPlanner] Ends.")
         return result
@@ -247,11 +277,11 @@ class DrSearchPlanner(DrPlannerBase):
         self,
         with_memory: bool,
         prompt_planner: any = "Not available",
-        diagnoses_prescriptions_records: str = "Not available",        
-        fewshot_messages: List[str] = None, 
-        fewshot_answers: List[str] = None
-        ):
-         # ----- human message -----
+        diagnoses_prescriptions_records: str = "Not available",
+        fewshot_messages: List[str] = None,
+        fewshot_answers: List[str] = None,
+    ):
+        # ----- human message -----
         if with_memory:
             human_message = f"""\
             Above messages are some examples of how you make a decision successfully in the past. Those scenarios are similar to the current scenario. You should refer to those examples to make a decision for the current scenario. 
@@ -263,7 +293,7 @@ class DrSearchPlanner(DrPlannerBase):
             {diagnoses_prescriptions_records}
 
             You can stop reasoning once you have a solution. 
-            """           
+            """
         else:
             human_message = f"""\
             No similar memories found. You should reason based on the current scenario.
@@ -277,25 +307,24 @@ class DrSearchPlanner(DrPlannerBase):
             You can stop reasoning once you have a solution. 
             """
         human_message = human_message.replace("        ", "")
-           
+
         messages = [
-                {"role": "system", "content": self.prompter.prompt_system},
-            ] 
-        if with_memory:             
+            {"role": "system", "content": self.prompter.prompt_system},
+        ]
+        if with_memory:
             for i in range(len(fewshot_messages)):
-                #append memories
+                # append memories
                 messages.append(
-                    {"role": "user", "content": fewshot_messages[i]},                
+                    {"role": "user", "content": fewshot_messages[i]},
                 )
                 messages.append(
                     {"role": "assistant", "content": fewshot_answers[i]},
                 )
-        #append human message
+        # append human message
         messages.append(
-            {"role": "user", "content": human_message},  
+            {"role": "user", "content": human_message},
         )
-        return messages,human_message
-    
+        return messages, human_message
 
     def repair(self, diagnosis_result: Union[str, None]):
         # ----- heuristic function -----
@@ -356,12 +385,11 @@ class DrSearchPlanner(DrPlannerBase):
         )
         self.motion_planner.frontier = PriorityQueue()
 
-
     def describe(
-            self, planned_trajectory: Union[Trajectory, None]
+        self, planned_trajectory: Union[Trajectory, None]
     ) -> (str, PlanningProblemCostResult):
         template = self.prompter.astar_template
-         # ----- description of planner-----
+        # ----- description of planner-----
         planner_description = self.prompter.generate_planner_description(
             self.StudentMotionPlanner, self.motion_primitives_id
         )
@@ -378,7 +406,6 @@ class DrSearchPlanner(DrPlannerBase):
             evaluation_trajectory = None
         template = template.replace("[PLANNED_TRAJECTORY]", traj_description)
         return template, evaluation_trajectory
-
 
     def add_feedback(self, updated_trajectory: Trajectory, iteration: int):
         feedback = "After applying this diagnostic result,"
@@ -400,7 +427,6 @@ class DrSearchPlanner(DrPlannerBase):
         # update the current cost
         self.current_cost = evaluation_trajectory.total_costs
         return feedback
-
 
     def plan(self, nr_iter: int) -> Trajectory:
         list_paths_primitives, _, _ = self.motion_planner.execute_search()
@@ -453,7 +479,6 @@ class DrSearchPlanner(DrPlannerBase):
                 overwrite=True,
             )
         return trajectory_solution
-
 
     def evaluate_trajectory(self, trajectory: Trajectory) -> PlanningProblemCostResult:
         return self.cost_evaluator.evaluate_pp_solution(

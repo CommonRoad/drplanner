@@ -14,9 +14,15 @@ class StudentMotionPlanner(GreedyBestFirstSearch):
     Here as an example, the planner is inherited from the GreedyBestFirstSearch planner.
     """
 
-    def __init__(self, scenario, planningProblem, automata, plot_config=DefaultPlotConfig):
-        super().__init__(scenario=scenario, planningProblem=planningProblem, automaton=automata,
-                         plot_config=plot_config)
+    def __init__(
+        self, scenario, planningProblem, automata, plot_config=DefaultPlotConfig
+    ):
+        super().__init__(
+            scenario=scenario,
+            planningProblem=planningProblem,
+            automaton=automata,
+            plot_config=plot_config,
+        )
 
     def evaluation_function(self, node_current: PriorityNode) -> float:
         ########################################################################
@@ -36,7 +42,7 @@ class StudentMotionPlanner(GreedyBestFirstSearch):
         cost_time = abs(self.calc_time_cost(last_path))
         cost_vel = self.calc_velocity_difference(last_path[-1])
 
-        #Preliminary checks
+        # Preliminary checks
         if cost_dist_to_LastState is None:
             return np.inf
 
@@ -45,28 +51,35 @@ class StudentMotionPlanner(GreedyBestFirstSearch):
 
         weights = np.zeros(5)
 
-        #Weigth definition
-        weights[0] = 5  #Path efficiency [Is alredy between 0 and 1]
-        weights[1] = 30 #Orientation Radians very low value, so we need a high weight to balance out
-        weights[2] = 3  #Distance to last state
+        # Weigth definition
+        weights[0] = 5  # Path efficiency [Is alredy between 0 and 1]
+        weights[1] = (
+            30  # Orientation Radians very low value, so we need a high weight to balance out
+        )
+        weights[2] = 3  # Distance to last state
         weights[3] = 3
         weights[4] = 2
 
-        cost = weights[0] * 1/cost_path_efficiency + \
-               weights[1] * cost_orientation + \
-               weights[2] * cost_dist_to_LastState + \
-               weights[3] * cost_time + \
-               weights[4] * cost_vel
+        cost = (
+            weights[0] * 1 / cost_path_efficiency
+            + weights[1] * cost_orientation
+            + weights[2] * cost_dist_to_LastState
+            + weights[3] * cost_time
+            + weights[4] * cost_vel
+        )
 
         return cost
 
-    #Defined alternative functions for Velocity and angle calculation
+    # Defined alternative functions for Velocity and angle calculation
 
     def calc_velocity_difference(self, state: KSState) -> float:
         """Calculates the velocity diff to the goal."""
-        if hasattr(self.planningProblem.goal.state_list[0], 'velocity'):
+        if hasattr(self.planningProblem.goal.state_list[0], "velocity"):
             statevelocity = state.velocity
-            targetvelocity = (self.planningProblem.goal.state_list[-1].velocity.start + self.planningProblem.goal.state_list[-1].velocity.end) / 2
+            targetvelocity = (
+                self.planningProblem.goal.state_list[-1].velocity.start
+                + self.planningProblem.goal.state_list[-1].velocity.end
+            ) / 2
             velocity_difference = abs(statevelocity - targetvelocity)
             return velocity_difference
         else:
@@ -74,13 +87,16 @@ class StudentMotionPlanner(GreedyBestFirstSearch):
 
     def calc_orientation_diff(self, state: KSState) -> float:
         """Calculates the orientation diff to the goal."""
-        if hasattr(self.planningProblem.goal.state_list[0], 'orientation'):
+        if hasattr(self.planningProblem.goal.state_list[0], "orientation"):
 
             stateorientation = state.orientation
-            targetorientation = (self.planningProblem.goal.state_list[0].orientation.start + self.planningProblem.goal.state_list[0].orientation.end) / 2
-            orientation_difference = SearchBaseClass.calc_orientation_diff(stateorientation, targetorientation)
+            targetorientation = (
+                self.planningProblem.goal.state_list[0].orientation.start
+                + self.planningProblem.goal.state_list[0].orientation.end
+            ) / 2
+            orientation_difference = SearchBaseClass.calc_orientation_diff(
+                stateorientation, targetorientation
+            )
             return orientation_difference
         else:
             return 0
-
-

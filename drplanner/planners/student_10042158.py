@@ -1,4 +1,3 @@
-
 import numpy as np
 from SMP.motion_planner.node import PriorityNode
 from SMP.motion_planner.plot_config import DefaultPlotConfig
@@ -14,9 +13,15 @@ class StudentMotionPlanner(GreedyBestFirstSearch):
     Here as an example, the planner is inherited from the GreedyBestFirstSearch planner.
     """
 
-    def __init__(self, scenario, planningProblem, automata, plot_config=DefaultPlotConfig):
-        super().__init__(scenario=scenario, planningProblem=planningProblem, automaton=automata,
-                         plot_config=plot_config)
+    def __init__(
+        self, scenario, planningProblem, automata, plot_config=DefaultPlotConfig
+    ):
+        super().__init__(
+            scenario=scenario,
+            planningProblem=planningProblem,
+            automaton=automata,
+            plot_config=plot_config,
+        )
 
     def evaluation_function(self, node_current: PriorityNode) -> float:
         node_current.priority = self.heuristic_function(node_current=node_current)
@@ -29,11 +34,16 @@ class StudentMotionPlanner(GreedyBestFirstSearch):
 
         goaldistLastState = self.calc_heuristic_distance(path_last[-1])
 
-        current_lanelet = self.scenario.lanelet_network.find_lanelet_by_position([path_last[-1].position])[0]
+        current_lanelet = self.scenario.lanelet_network.find_lanelet_by_position(
+            [path_last[-1].position]
+        )[0]
         current_lanelet = current_lanelet[0]
-        dist_closest_obstacle = self.calc_dist_to_closest_obstacle(current_lanelet, path_last[-1].position,
-                                                                   path_last[-1].time_step)
-        number_of_obstacles = self.num_obstacles_in_lanelet_at_time_step(path_last[-1].time_step, current_lanelet)
+        dist_closest_obstacle = self.calc_dist_to_closest_obstacle(
+            current_lanelet, path_last[-1].position, path_last[-1].time_step
+        )
+        number_of_obstacles = self.num_obstacles_in_lanelet_at_time_step(
+            path_last[-1].time_step, current_lanelet
+        )
 
         ##########################
 
@@ -54,10 +64,16 @@ class StudentMotionPlanner(GreedyBestFirstSearch):
             velocity = node_current.list_paths[-1][-1].velocity
 
             if goaldistLastState > 0.1:
-                heu_dist = goaldistLastState / self.calc_heuristic_distance(node_current.list_paths[0][0])
+                heu_dist = goaldistLastState / self.calc_heuristic_distance(
+                    node_current.list_paths[0][0]
+                )
 
             if goaldistLastState < 0.1:
-                heu_dist = goaldistLastState / self.calc_heuristic_distance(node_current.list_paths[0][0]) * 0.5
+                heu_dist = (
+                    goaldistLastState
+                    / self.calc_heuristic_distance(node_current.list_paths[0][0])
+                    * 0.5
+                )
             if dist_heu_lanelet != None:
                 heu_lanelet = dist_heu_lanelet
 
@@ -70,7 +86,9 @@ class StudentMotionPlanner(GreedyBestFirstSearch):
                 heu_time = 10
 
             if velocity > 0.1:
-                heu_time = (self.calc_euclidean_distance(current_node=node_current) / velocity)
+                heu_time = (
+                    self.calc_euclidean_distance(current_node=node_current) / velocity
+                )
 
             if goal == True:
                 heu_goal = 1
@@ -79,7 +97,8 @@ class StudentMotionPlanner(GreedyBestFirstSearch):
                 heu_goal = 2
 
             if (self.calc_euclidean_distance(current_node=node_current) / 20) > (
-                    max(self.time_desired) - node_current.list_paths[-1][-1].time_step):
+                max(self.time_desired) - node_current.list_paths[-1][-1].time_step
+            ):
                 return np.inf
 
             # heu_orient = abs((self.calc_angle_to_goal(path_last[-1]) - path_last[-1].orientation / self.calc_angle_to_goal(path_last[-1])))

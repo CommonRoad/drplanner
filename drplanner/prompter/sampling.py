@@ -31,7 +31,7 @@ class PrompterSampling(PrompterBase):
             ("d_bound", "range bound for distance to reference in [m]"),
         ]
         template = [
-            "constraints",
+            #            "constraints",
             "algorithm",
             "planner",
             "trajectory",
@@ -43,7 +43,7 @@ class PrompterSampling(PrompterBase):
             template.insert(4, "memory")
             template.insert(4, "documentation")
         else:
-            template.insert(4, "few_shots")
+            template.insert(4, "documentation")
 
         super().__init__(
             scenario,

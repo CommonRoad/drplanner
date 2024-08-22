@@ -1,5 +1,6 @@
 # adapt from https://github.com/real-stanford/reflect
 import base64
+import shutil
 from typing import List, Dict, Union
 
 import os
@@ -159,6 +160,7 @@ class LLM:
         messages: List[Dict[str, str]],
         save_dir: str = "../../outputs/",
         nr_iter: int = 1,
+        path_to_plot: str = "",
         mockup_nr_iter: int = -1,
     ):
         # check whether this is a mockup run
@@ -192,6 +194,8 @@ class LLM:
 
             self._save_iteration_as_json(messages, content_json, nr_iter, save_dir)
             self._save_iteration_as_txt(messages, content_json, nr_iter, save_dir)
+            if path_to_plot:
+                self._save_iteration_as_png(path_to_plot, nr_iter, save_dir)
             return content_json
         else:
             print(f"*\t <Prompt> Iteration {nr_iter} failed, no response is generated")
@@ -269,6 +273,15 @@ class LLM:
         # save the result
         with open(os.path.join(save_dir, filename_result), "w") as file:
             json.dump(content_json, file)
+
+    @staticmethod
+    def _save_iteration_as_png(path_to_plot: str, nr_iter, save_dir: str):
+        filename = f"prompt_iter-{nr_iter}.png"
+        save_dir = os.path.join(save_dir, "pngs")
+        # Save the content to a JSON file
+        if not os.path.exists(save_dir):
+            os.makedirs(save_dir, exist_ok=True)
+        shutil.copy(path_to_plot, os.path.join(save_dir, filename))
 
     @staticmethod
     def _encode_image(image_path):

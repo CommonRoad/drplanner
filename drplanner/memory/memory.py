@@ -1,8 +1,11 @@
+import base64
 import json
 import os
 
 import chromadb
+import replicate
 from chromadb.utils import embedding_functions
+from utils.config import DrPlannerConfiguration
 
 
 class FewShotMemory:
@@ -17,11 +20,13 @@ class FewShotMemory:
         except ValueError as _:
             self.few_shot_collection = self.client.create_collection(name="few_shots")
             self.init_collection("few_shots")
+            print("MEMORY: Initialized <few-shot> collection successfully!")
         try:
             self.diagnosis_collection = self.client.get_collection(name="diagnosis")
         except ValueError as _:
             self.diagnosis_collection = self.client.create_collection(name="diagnosis")
             self.init_collection("diagnosis")
+            print("MEMORY: Initialized <diagnosis> collection successfully!")
         try:
             self.prescription_collection = self.client.get_collection(
                 name="prescription"
@@ -31,6 +36,59 @@ class FewShotMemory:
                 name="prescription"
             )
             self.init_collection("prescription")
+            print("MEMORY: Initialized <prescription> collection successfully!")
+        try:
+            self.plot_collection = self.client.get_collection(name="plot")
+        except ValueError as _:
+            self.plot_collection = self.client.create_collection(name="plot")
+            path_to_plots = os.path.join(script_dir, "plots")
+            filenames = [
+                "DEU_Frankfurt-191_12_I-1.cr",
+                "DEU_Frankfurt-11_8_I-1.cr",
+                "DEU_Muc-19_1_I-1-1.cr",
+                "DEU_Frankfurt-95_9_I-1.cr",
+                "ESP_Mad-1_8_I-1-1.cr",
+            ]
+
+            for filename in filenames:
+                fp = os.path.join(path_to_plots, filename + ".png")
+                dc = os.path.join(path_to_plots, filename + ".txt")
+                with open(dc, "r") as file:
+                    cf_string = file.read()
+                self.insert_image(fp, cf_string)
+            print("MEMORY: Initialized <plot> collection successfully!")
+
+    def insert_image(self, filepath, document: str):
+        with open(filepath, "rb") as file:
+            data = base64.b64encode(file.read()).decode("utf-8")
+            input = f"data:application/octet-stream;base64,{data}"
+        input = {"input": input}
+
+        output = replicate.run(
+            "daanelson/imagebind:0383f62e173dc821ec52663ed22a076d9c970549c209666ac3db181618b7a304",
+            input=input,
+        )
+        print(f"generated embedding for {os.path.basename(filepath)}")
+        collection = self.plot_collection
+        docs = [document]
+        embeddings = [output]
+        ids = [f"plot{collection.count()}"]
+        collection.add(ids=ids, embeddings=embeddings, documents=docs)
+
+    def retrieve_with_image(self, filepath: str):
+        with open(filepath, "rb") as file:
+            data = base64.b64encode(file.read()).decode("utf-8")
+            input = f"data:application/octet-stream;base64,{data}"
+        input = {"input": input}
+
+        output = replicate.run(
+            "daanelson/imagebind:0383f62e173dc821ec52663ed22a076d9c970549c209666ac3db181618b7a304",
+            input=input,
+        )
+        query = self.plot_collection.query(
+            query_embeddings=[output], n_results=1, include=["documents"]
+        )
+        return query["documents"][0], query["ids"][0]
 
     def select_collection(self, collection_name):
         if collection_name == "few_shots":

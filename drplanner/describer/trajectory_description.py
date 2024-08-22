@@ -77,7 +77,9 @@ class TrajectoryCostDescription(DescriptionBase):
         for (item, initial_cost), (_, repaired_cost) in zip(
             a.partial_costs.items(), b.partial_costs.items()
         ):
-            item = f"{CostFunctionMeaningMapping[item]} weighted at {a.weights[item]}"
+            initial_cost *= a.weights[item]
+            repaired_cost *= a.weights[item]
+            item = f"{CostFunctionMeaningMapping[item]}"
             description += self._compare(item, initial_cost, repaired_cost, version)
         self.description = description[:-2] + ". "
 
@@ -106,11 +108,16 @@ class TrajectoryCostDescription(DescriptionBase):
 
     @staticmethod
     def _compare(item: str, initial: float, repaired: float, version: str):
-        threshold = 0.01
-        if abs(initial - repaired) < threshold:
-            compare = "equal to"
+        threshold_1 = 1.0
+        threshold_2 = 0.1
+        if abs(initial - repaired) < threshold_2:
+            compare = "about equal to"
+        elif threshold_1 > repaired - initial > 0:
+            compare = "slightly worse than"
         elif repaired > initial:
             compare = "worse than"
+        elif threshold_1 > initial - repaired > 0:
+            compare = "slightly better than"
         else:
             compare = "better than"
         return f"- {item}: current result ({repaired:.2f}) is {compare} {version} result ({initial:.2f})\n"

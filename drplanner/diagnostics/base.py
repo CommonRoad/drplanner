@@ -10,7 +10,6 @@ from abc import ABC, abstractmethod
 from commonroad.common.solution import VehicleType, VehicleModel, CostFunction
 from commonroad.scenario.scenario import Scenario
 from commonroad.planning.planning_problem import PlanningProblemSet
-from commonroad.scenario.trajectory import Trajectory
 from commonroad_dc.costs.evaluation import (
     CostFunctionEvaluator,
     PlanningProblemCostResult,
@@ -107,17 +106,17 @@ class DrPlannerBase(ABC):
         pass
 
     @abstractmethod
-    def plan(self, nr_iter: int) -> Trajectory:
+    def plan(self, nr_iter: int) -> Union[PlanningProblemCostResult, Exception]:
         """
         Wrapper method to run the motion planner
         """
         pass
 
-    def describe_trajectory(self, planned_trajectory: Union[Trajectory, Exception]):
+    def describe_trajectory(self, planned_trajectory: Union[None, Exception]):
         """
         Describes the state of the initial planner. Should only be used once at the start.
         """
-        if isinstance(planned_trajectory, Trajectory):
+        if not planned_trajectory:
             description = self.prompter.generate_cost_description(
                 self.cost_result_current, self.desired_cost
             )
@@ -131,14 +130,12 @@ class DrPlannerBase(ABC):
 
         self.prompter.user_prompt.set("feedback", description)
 
-    def add_feedback(self, updated_trajectory: Trajectory):
+    def add_feedback(self, cost_result: PlanningProblemCostResult):
         """
         Evaluates the result of the repair process
         """
         # retrieve current cost result
-        self.cost_result_current = self.cost_evaluator.evaluate_pp_solution(
-            self.scenario, self.planning_problem, updated_trajectory
-        )
+        self.cost_result_current = cost_result
         if self.config.feedback_mode == 1:
             version = "last"
         else:
@@ -161,7 +158,7 @@ class DrPlannerBase(ABC):
         """
         Full DrPlanner session:
         It first describes the current state of the patient.
-        After that it runs an iterative repairing cycle:
+        After that it runs a prompts repairing cycle:
         Plan. Repair. Evaluate.
         until the patient is cured, or the doctor runs out of tokens/time
         """
@@ -173,21 +170,19 @@ class DrPlannerBase(ABC):
         result = None
 
         # test the initial motion planner once
-        try:
-            planned_trajectory = self.plan(nr_iteration)
-            self.cost_result_current = self.cost_evaluator.evaluate_pp_solution(
-                self.scenario, self.planning_problem, planned_trajectory
-            )
-            self.cost_result_previous = self.cost_result_current
-            self.describe_planner(improved=True)
-            self.describe_trajectory(planned_trajectory)
-            self.current_cost = self.cost_result_current.total_costs
-        except Exception as e:
+        planning_result = self.plan(nr_iteration)
+        if isinstance(planning_result, Exception):
             self.cost_result_current = get_infinite_cost_result(self.cost_type)
             self.cost_result_previous = self.cost_result_current
-            self.describe_planner(improved=True)
-            self.describe_trajectory(e)
+            self.describe_planner(update=True, improved=True)
+            self.describe_trajectory(planning_result)
             self.current_cost = np.inf
+        else:
+            self.cost_result_current = planning_result
+            self.cost_result_previous = self.cost_result_current
+            self.describe_planner(update=True, improved=True)
+            self.describe_trajectory(None)
+            self.current_cost = self.cost_result_current.total_costs
 
         self.initial_cost = self.current_cost
         self.lowest_cost = self.current_cost
@@ -218,7 +213,6 @@ class DrPlannerBase(ABC):
                 self.prompter.user_prompt.__str__(),
                 path_to_plots,
             )
-            # todo: get the token from the openai interface
             self.token_count += num_tokens_from_messages(
                 LLM.extract_text_from_messages(messages),
                 self.prompter.LLM.gpt_version,
@@ -234,25 +228,25 @@ class DrPlannerBase(ABC):
             )
             result = self.prompter.LLM.query(
                 messages,
-                scenario_id=scenario_id,
                 save_dir=save_dir,
                 nr_iter=nr_iteration,
+                path_to_plot=path_to_plots,
                 mockup_nr_iter=mockup_nr_iteration,
             )
             self.diagnosis_result = result
             self.add_memory(result)
             # reset some variables
             self.prompter.reload_LLM()
-            prompt_feedback = "Diagnoses and prescriptions from the last iteration:\n"
             nr_iteration += 1
 
             # repair the motion planner and test the result
             try:
-                prompt_feedback += f" {result['summary']}\n"
                 self.repair()
-                planned_trajectory = self.plan(nr_iteration)
+                cost_result = self.plan(nr_iteration)
+                if isinstance(cost_result, Exception):
+                    raise cost_result
                 # add feedback
-                prompt_feedback += self.add_feedback(planned_trajectory)
+                prompt_feedback = self.add_feedback(cost_result)
                 # determine whether the current cost function prompt needs an update
                 improved = self.current_cost <= self.lowest_cost
                 update = self.config.feedback_mode % 2 == 1 or (
@@ -266,7 +260,7 @@ class DrPlannerBase(ABC):
                 self.describe_planner(update=update, improved=improved)
 
             except Exception as e:
-                prompt_feedback += (
+                prompt_feedback = (
                     "Usually here would be an evaluation of the repair, but..."
                 )
                 prompt_feedback += self.prompter.generate_exception_description(e)

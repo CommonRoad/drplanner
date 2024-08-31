@@ -30,7 +30,6 @@ def run_dr_sampling_planner(scenario_filepath: str, result_filepath: str):
     scenario, planning_problem_set = CommonRoadFileReader(scenario_filepath).open(True)
     config = DrPlannerConfiguration()
     dr_planner = DrSamplingPlanner(
-        FewShotMemory(),
         scenario,
         scenario_filepath,
         planning_problem_set,
@@ -64,13 +63,13 @@ def run_dr_iteration_planner(scenario_filepath: str, result_filepath: str):
     config = DrPlannerConfiguration()
     config.save_dir = os.path.dirname(result_filepath)
 
-    cost_results = run_iterative_repair(scenario_filepath)
+    cost_results = run_iterative_repair(scenario_filepath, config=config)
+    cost_results = [x.total_costs for x in cost_results]
     initial_cost_result = cost_results.pop(0)
     best_cost_result = min(cost_results)
     scenario_id = os.path.basename(scenario_filepath)[:-4]
     row = [
         scenario_id,
-        config.gpt_version,
         initial_cost_result,
         best_cost_result,
     ]
@@ -82,7 +81,7 @@ def run_dr_iteration_planner(scenario_filepath: str, result_filepath: str):
 def run_simple_dr_planner(scenario_filepaths: list[str], result_filepath: str):
     memory = FewShotMemory()
     config = DrPlannerConfiguration()
-    evaluation_module = EvaluationModule()
+    evaluation_module = EvaluationModule(config)
     filenames = [
         "DEU_Frankfurt-191_12_I-1.cr",
         "DEU_Frankfurt-11_8_I-1.cr",
@@ -105,7 +104,7 @@ def run_simple_dr_planner(scenario_filepaths: list[str], result_filepath: str):
         cf_string = cf_string[0]
         relative = int(relative[0][4:])
         # evaluate
-        motion_planner = ReactiveMotionPlanner(cf_string)
+        motion_planner = ReactiveMotionPlanner(cf_string, None, None)
         print("start eval")
         _, total_cost = evaluation_module.run(scenario_filepath, motion_planner)
         print(total_cost)
@@ -116,7 +115,7 @@ def run_simple_dr_planner(scenario_filepaths: list[str], result_filepath: str):
 
 def run_brute_force_dr_planner(scenario_filepaths: list[str], result_filepath: str):
     config = DrPlannerConfiguration()
-    evaluation_module = EvaluationModule()
+    evaluation_module = EvaluationModule(config)
     filenames = [
         "DEU_Frankfurt-191_12_I-1.cr.txt",
         "DEU_Frankfurt-11_8_I-1.cr.txt",
@@ -140,11 +139,11 @@ def run_brute_force_dr_planner(scenario_filepaths: list[str], result_filepath: s
         for index in range(len(filenames)):
             template_cf = templates[index]
             template_scenario = filenames[index]
-            motion_planner = ReactiveMotionPlanner(template_cf)
+            motion_planner = ReactiveMotionPlanner(template_cf, None, None)
             _, total_cost = evaluation_module.run(scenario_filepath, motion_planner)
             print(total_cost)
             row.append(total_cost)
-            if best > total_cost:
+            if best > total_cost.total_costs:
                 best = total_cost
                 best_scenario = template_scenario
 
@@ -154,12 +153,12 @@ def run_brute_force_dr_planner(scenario_filepaths: list[str], result_filepath: s
 
 
 PATH_TO_SCENARIOS = (
-    "/home/sebastian/Documents/Uni/Bachelorarbeit/Scenarios/Datasets/Batch_Feasible"
+    "/home/sebastian/Documents/Uni/Bachelorarbeit/Scenarios/Datasets/Small_Batch_Feasible"
 )
-SAVE_DIR_NAME = "TEST"
-COMMIT_HASH = ""
-NR_ITERATIONS = 0
-MODE = 2
+SAVE_DIR_NAME = "TEST_old"
+COMMIT_HASH = "classic"
+NR_ITERATIONS = 4
+MODE = 0
 
 # file1 = os.path.join(
 #     DrPlannerConfiguration().save_dir,
@@ -233,8 +232,8 @@ MODE = 2
 #
 # exit(0)
 # initialize results.csv
-row_data = ["scenario", "best", "template"]
-# row_data = ["scenario", "a", "b", "c", "d", "e", "best_score", "best_template"]
+# row_data = ["scenario", "best", "template"]
+row_data = ["scenario", "initial", "best"]
 
 for i in range(NR_ITERATIONS):
     row_data.append(f"iter_{i}")
@@ -258,6 +257,8 @@ with result_file:
 # collect all scenarios
 xml_files = glob.glob(os.path.join(PATH_TO_SCENARIOS, "**", "*.xml"), recursive=True)
 scenarios = [os.path.abspath(file) for file in xml_files]
+# scenarios = ["DEU_Flensburg-71_1_I-1-1.cr.xml"]
+# scenarios = [os.path.join(PATH_TO_SCENARIOS, x) for x in scenarios]
 
 if MODE > 1:
     if MODE == 2:

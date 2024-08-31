@@ -10,7 +10,6 @@ from commonroad.scenario.scenario import Scenario
 
 from drplanner.describer.base import DescriptionBase
 
-
 CostFunctionMeaningMapping = {
     PartialCostFunction.A: "squared sum of acceleration",
     PartialCostFunction.J: "squared sum of jerk",
@@ -51,6 +50,8 @@ class TrajectoryCostDescription(DescriptionBase):
         description += "It consists of "
         for item, cost in cost_result.partial_costs.items():
             cost = cost * cost_result.weights[item]
+            if cost == 0.0:
+                continue
             description += f"{CostFunctionMeaningMapping[item]}, valued at {cost:.2f}; "
         self.description = description[:-2] + ". "
         self.description += (
@@ -62,44 +63,12 @@ class TrajectoryCostDescription(DescriptionBase):
     def compare(
         self,
         a: PlanningProblemCostResult,
-        version: str,
+        version_a: str,
         b: PlanningProblemCostResult,
         desired_cost: int,
+
     ):
-        description = (
-            f"What follows is a performance comparison between the {version} planner and the current "
-            "planner.\n"
-        )
-        description += self._compare(
-            "total cost", a.total_costs, b.total_costs, version
-        )
-        description += "Total cost is calculated by a weighted sum of:\n"
-        for (item, initial_cost), (_, repaired_cost) in zip(
-            a.partial_costs.items(), b.partial_costs.items()
-        ):
-            initial_cost *= a.weights[item]
-            repaired_cost *= a.weights[item]
-            item = f"{CostFunctionMeaningMapping[item]}"
-            description += self._compare(item, initial_cost, repaired_cost, version)
-        self.description = description[:-2] + ". "
-
-        threshold = 1.0
-        if abs(a.total_costs - b.total_costs) < threshold:
-            self.description += (
-                f"The performance of the motion planner is stagnating. You might need to try "
-                f"something completely new!"
-            )
-        elif a.total_costs < b.total_costs:
-            self.description += (
-                f"The performance of the motion planner is getting worse. Please reconsider your last "
-                f"changes and keep trying!"
-            )
-        elif a.total_costs > b.total_costs:
-            self.description += (
-                f"The performance of the motion planner is getting better. Great job, continue like "
-                f"that!"
-            )
-
+        self.description = TrajectoryCostDescription.evaluate(a, b, version_a, "current")
         self.description += (
             f"The objective is to adjust the total cost of the planned trajectory to closely "
             f"align with the desired value {desired_cost}.\n"
@@ -107,7 +76,31 @@ class TrajectoryCostDescription(DescriptionBase):
         return self.description
 
     @staticmethod
-    def _compare(item: str, initial: float, repaired: float, version: str):
+    def evaluate(a: PlanningProblemCostResult, b: PlanningProblemCostResult, a_name: str, b_name: str) -> str:
+        description = f"Here is a performance comparison between the {a_name} and {b_name} version\n"
+        description += TrajectoryCostDescription._compare("total cost", a.total_costs, b.total_costs, a_name, b_name)
+        description += "Total cost is calculated by a weighted sum of:\n"
+        for (item, a_cost), (_, b_cost) in zip(
+                a.partial_costs.items(), b.partial_costs.items()
+        ):
+            a_cost *= a.weights[item]
+            b_cost *= a.weights[item]
+            if a_cost == 0.0 and b_cost == 0.0:
+                continue
+            description += TrajectoryCostDescription._compare(CostFunctionMeaningMapping[item], a_cost, b_cost, a_name, b_name)
+        description = description[:-2] + ". "
+
+        threshold = 1.0
+        if abs(a.total_costs - b.total_costs) < threshold:
+            description += "The performance of the motion planner is stagnating."
+        elif a.total_costs < b.total_costs:
+            description += "The performance of the motion planner is getting worse."
+        elif a.total_costs > b.total_costs:
+            description += "The performance of the motion planner is getting better."
+        return description
+
+    @staticmethod
+    def _compare(item: str, initial: float, repaired: float, version_initial: str, version_repaired: str):
         threshold_1 = 1.0
         threshold_2 = 0.1
         if abs(initial - repaired) < threshold_2:
@@ -120,7 +113,7 @@ class TrajectoryCostDescription(DescriptionBase):
             compare = "slightly better than"
         else:
             compare = "better than"
-        return f"- {item}: current result ({repaired:.2f}) is {compare} {version} result ({initial:.2f})\n"
+        return f"- {item}: {version_repaired} result ({repaired:.2f}) is {compare} {version_initial} result ({initial:.2f})\n"
 
 
 class TrajectoryStateDescription(DescriptionBase):

@@ -49,7 +49,7 @@ class PrompterSearch(PrompterBase):
             "algorithm",
             "planner",
             "trajectory",
-            "few_shots",
+            "emergency_prescriptions",
             "feedback",
         ]
         super().__init__(

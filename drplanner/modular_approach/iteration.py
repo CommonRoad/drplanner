@@ -1,110 +1,46 @@
-import itertools
 import math
 import os
-import textwrap
-from typing import Tuple, Union
 
-from drplanner.prompter.llm import LLM, LLMFunction
-
-from drplanner.prompter.base import PrompterBase, Prompt
-
-from drplanner.describer.trajectory_description import TrajectoryCostDescription
+from commonroad_dc.costs.evaluation import PlanningProblemCostResult
 
 from drplanner.utils.config import DrPlannerConfiguration
 from drplanner.planners.reactive_planner import ReactiveMotionPlanner
 from drplanner.memory.memory import FewShotMemory
 
-from dataclasses import dataclass
-from commonroad.common.solution import CostFunction
-
-from modular_approach.module import (
-    EvaluationModule,
-    DiagnosisModule,
-    PrescriptionModule,
-    ReflectionModule,
-)
-
-
-@dataclass
-class DrPlannerIterationConfiguration:
-    documentation = False
-    memory = True
-    reflect = True
-    update_memory = False
-    diagnosis_shots = 2
-    prescription_shots = 0
-    cost_function = CostFunction.SM1
-    iterations = 4
-
-
-class Reflection:
-    def __init__(
-        self,
-        general: Union[str, None],
-        diagnosis: Union[str, None],
-        prescription: Union[str, None],
-    ):
-        self.general = general
-        self.diagnosis = diagnosis
-        self.prescription = prescription
+from drplanner.modular_approach.diagnosis import DiagnosisModule
+from drplanner.modular_approach.module import EvaluationModule, Reflection
+from drplanner.modular_approach.prescription import PrescriptionModule
+from drplanner.modular_approach.reflection import ReflectionModule
 
 
 class Iteration:
-    def __init__(self, memory: FewShotMemory, save_dir: str):
+    def __init__(self, config: DrPlannerConfiguration, memory: FewShotMemory, save_dir: str):
         self.memory = memory
         self.save_dir = save_dir
-        self.general_config = DrPlannerConfiguration()
-        self.iteration_config = DrPlannerIterationConfiguration()
-        diagnosis_prompt_structure = ["general", "specific", "strategy", "advice"]
-        prescription_prompt_structure = ["cost_function", "diagnoses"]
-        reflection_prompt_structure = ["initial", "diagnosis", "prescription", "task"]
+        self.config = config
 
-        if self.iteration_config.reflect:
-            diagnosis_prompt_structure.insert(0, "reflection")
-            prescription_prompt_structure.insert(0, "reflection")
-        if self.iteration_config.documentation:
-            diagnosis_prompt_structure.insert(0, "documentation")
-            prescription_prompt_structure.insert(0, "documentation")
-        if self.iteration_config.memory:
-            diagnosis_prompt_structure.insert(0, "memory")
-            prescription_prompt_structure.insert(0, "memory")
-
-        self.evaluation_module = EvaluationModule()
+        self.evaluation_module = EvaluationModule(config)
         self.diagnosis_module = DiagnosisModule(
+            config,
             memory,
-            diagnosis_prompt_structure,
-            self.iteration_config.diagnosis_shots,
             self.save_dir,
-            self.general_config.gpt_version,
-            self.general_config.temperature,
+            self.config.gpt_version,
+            self.config.temperature,
         )
         self.prescription_module = PrescriptionModule(
+            config,
             memory,
-            prescription_prompt_structure,
-            self.iteration_config.prescription_shots,
             self.save_dir,
-            self.general_config.gpt_version,
-            self.general_config.temperature,
+            self.config.gpt_version,
+            0.2,
         )
         self.reflection_module = ReflectionModule(
+            config,
             memory,
-            reflection_prompt_structure,
             self.save_dir,
-            self.general_config.gpt_version,
-            self.general_config.temperature,
+            self.config.gpt_version,
+            self.config.temperature,
         )
-
-    @staticmethod
-    def diagnoses_array_to_str(diagnoses_array: list[dict[str, str]]):
-        # turn diagnosis into string
-        diagnosis = diagnoses_array[0]
-        diagnosis_string = ""
-        for key, value in diagnosis.items():
-            if value.lower().startswith(key):
-                diagnosis_string += value + "\n"
-            else:
-                diagnosis_string += f"{key}: {value}\n"
-        return diagnosis_string
 
     @staticmethod
     def improved(
@@ -124,53 +60,57 @@ class Iteration:
         absolute_scenario_path: str,
         motion_planner: ReactiveMotionPlanner,
         initial_evaluation: str,
-        initial_total_cost: float,
-        previous_reflection: Reflection,
+        initial_cost_result: PlanningProblemCostResult,
+        previous_reflections: list[Reflection],
         iteration_id: int,
     ):
+        last_reflection = previous_reflections[-1]
         initial_cost_function = motion_planner.cost_function_string
+
         # generate diagnosis
-        diagnoses_array = self.diagnosis_module.run(
-            initial_evaluation, initial_cost_function, iteration_id
-        )
-        # format diagnosis
-        diagnosis = self.diagnoses_array_to_str(diagnoses_array)
+        try:
+            diagnosis, max_time_steps = self.diagnosis_module.run(
+                initial_evaluation, initial_cost_function, last_reflection.summary, iteration_id
+            )
+        except ValueError as _:
+            diagnosis = None
+            max_time_steps = motion_planner.max_time_steps
+
         # repair the planner
-        repaired_motion_planner, description = self.prescription_module.run(
-            diagnosis, initial_cost_function, iteration_id
-        )
-        repaired_cost_function = repaired_motion_planner.cost_function_string
+        try:
+            repaired_motion_planner = self.prescription_module.run(
+                diagnosis.__str__(), initial_cost_function, "", iteration_id
+            )
+        except ValueError as _:
+            repaired_motion_planner = motion_planner
+
+        repaired_motion_planner.max_time_steps = max_time_steps
         # evaluate the repair
-        repair_evaluation, repair_total_cost = self.evaluation_module.run(
+        repair_evaluation, repair_cost_result = self.evaluation_module.run(
             absolute_scenario_path, repaired_motion_planner
         )
-        # reflect on the repair
-        (
-            analysis,
-            diagnosis_reflection,
-            prescription_reflection,
-        ) = self.reflection_module.run(
-            initial_cost_function,
-            initial_evaluation,
-            diagnosis,
-            repaired_cost_function,
-            repair_evaluation,
-            iteration_id,
-        )
-        reflection = Reflection(analysis, diagnosis_reflection, prescription_reflection)
-        # if the iteration was successful, add its insights to memory
-        if self.iteration_config.update_memory and self.improved(
-            initial_total_cost, repair_total_cost
-        ):
-            self.memory.insert(
-                initial_evaluation, diagnosis, collection_name="diagnosis"
-            )
-            if description:
-                self.memory.insert(
-                    diagnosis, description, collection_name="prescription"
-                )
 
-        return repair_evaluation, repair_total_cost, repaired_motion_planner, reflection
+        # reflect on the repair
+        try:
+            reflection = self.reflection_module.run(
+                initial_cost_result,
+                repair_cost_result,
+                diagnosis.__str__(),
+                repaired_motion_planner.__str__(),
+                previous_reflections,
+                iteration_id,
+            )
+        except ValueError as _:
+            reflection = Reflection("")
+        # if the iteration was successful, add its insights to memory
+        # if self.config.update_memory_module and self.improved(
+        #     initial_total_cost, repair_total_cost
+        # ):
+        #     self.memory.insert(
+        #         initial_evaluation, diagnosis.__str__(), collection_name="diagnosis"
+        #     )
+
+        return repair_evaluation, repair_cost_result, repaired_motion_planner, reflection
 
 
 def run_iterative_repair(
@@ -178,7 +118,7 @@ def run_iterative_repair(
     config: DrPlannerConfiguration = None,
     templates: list[str] = None,
     motion_planner: ReactiveMotionPlanner = None,
-) -> list[float]:
+) -> list[PlanningProblemCostResult]:
     if not config:
         config = DrPlannerConfiguration()
 
@@ -195,37 +135,37 @@ def run_iterative_repair(
 
     memory = FewShotMemory()
     save_dir = os.path.join(config.save_dir, scenario_id)
-    iteration = Iteration(memory, save_dir)
+    iteration = Iteration(config, memory, save_dir)
 
     if not motion_planner:
-        motion_planner = determine_template_cost_function(
-            scenario_path, templates, iteration
-        )
+        motion_planner = ReactiveMotionPlanner(None, None, None)
 
-    reflection = Reflection("", "", "")
+    reflection = Reflection("")
     # first run the initial planner once to obtain the initial values for the loop:
     cf0 = motion_planner.cost_function_string
-    e0, tc0 = iteration.evaluation_module.run(scenario_path, motion_planner)
+    e0, cr0 = iteration.evaluation_module.run(scenario_path, motion_planner)
     # collect all interesting data produced throughout the loop
     cost_functions = [cf0]
     evaluations = [e0]
-    cost_results = [tc0]
+    cost_results = [cr0]
+    reflections = [reflection]
     iteration_id = 0
     print(e0)
 
-    while iteration_id < iteration.iteration_config.iterations:
-        e, tc, motion_planner, reflection = iteration.run(
+    while iteration_id < config.iteration_max:
+        e, tc, motion_planner, new_reflection = iteration.run(
             scenario_path,
             motion_planner,
             evaluations.pop(),
             cost_results[-1],
-            reflection,
+            reflections,
             iteration_id=iteration_id,
         )
         print(e)
         cost_functions.append(motion_planner.cost_function_string)
         evaluations.append(e)
         cost_results.append(tc)
+        reflections.append(new_reflection)
         iteration_id += 1
     return cost_results
 
@@ -256,10 +196,10 @@ def determine_template_cost_function(
     best_score = math.inf
     best_planner = None
     for template in templates:
-        planner = ReactiveMotionPlanner(template)
-        _, score = iteration.evaluation_module.run(absolute_scenario_path, planner)
-        if score < best_score:
-            best_score = score
+        planner = ReactiveMotionPlanner(template, [], None)
+        _, score = iteration.evaluation_module.run(absolute_scenario_path, planner, plot=False)
+        if score.total_costs < best_score:
+            best_score = score.total_costs
             best_planner = planner
 
     return best_planner

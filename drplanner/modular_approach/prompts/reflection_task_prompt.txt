@@ -1,5 +1,1 @@
-Your task is now to produce structured chain-of-thought reasoning of the following form:
-1) Compare the rating of the initial planner and the repaired version. Did the repair work out? Which aspects did (not) improve? In general, reduction of penalty of 10, 20 or more points can already be considered a huge success. Furthermore, penalty can rarely be reduced to zero, therefore figure out if there are any factors which can not be further decreased and could be ignored in the future.
-2) Compare both cost functions to figure out which parts of the implementation was changed during repairs. Usually the changes consist of tuning the partial cost function weights. The higher a weight for e.g. steering_angle_costs, the less likely the planner is to abruptly steer in different directions etc...
-3) Give a recommendation on how to proceed: If the repair strategy worked, it is probably beneficial to continue like that. If nothing changed, maybe the currently tackled flaw can not be improved any further and it is more promising to tackle something else. If the repair worsened the performance, the changes need to be reverted.
-For each of the points provide exactly 3 sentences.
+Next, on the basis of your previous analysis, generate short advice for the diagnosis-system.

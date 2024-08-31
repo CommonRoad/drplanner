@@ -22,9 +22,10 @@ def check_openai_api_key(api_key, mockup=False):
 
 def mockup_query(
     iteration,
-    directory="/home/sebastian/Documents/Uni/Bachelorarbeit/DrPlanner_Data/mockup/debug",
+    directory,
 ):
     filenames = []
+    directory = os.path.join(directory, "jsons")
     # finds all .jsons in the directory and assumes them to be mockup responses
     for file_name in os.listdir(directory):
         if file_name.endswith(".json") and file_name.startswith("result"):
@@ -161,29 +162,43 @@ class LLM:
         save_dir: str = "../../outputs/",
         nr_iter: int = 1,
         path_to_plot: str = "",
-        mockup_nr_iter: int = -1,
+        mockup_path: str = "",
+        response_format=None,
     ):
         # check whether this is a mockup run
-        if mockup_nr_iter > -1:
-            response = mockup_query(mockup_nr_iter)
+        if mockup_path:
+            response = mockup_query(nr_iter, mockup_path)
         # otherwise send the query
         else:
             functions = self.llm_function.get_function_as_list()
-            response = openai.chat.completions.create(
-                model=self.gpt_version,
-                messages=messages,
-                functions=functions,
-                function_call={"name": functions[0]["name"]},
-                temperature=self.temperature,
-            )
+            if response_format:
+                response = openai.chat.completions.create(
+                    model=self.gpt_version,
+                    messages=messages,
+                    functions=functions,
+                    function_call={"name": functions[0]["name"]},
+                    temperature=self.temperature,
+                    response_format=response_format
+                )
+            else:
+                response = openai.chat.completions.create(
+                    model=self.gpt_version,
+                    messages=messages,
+                    functions=functions,
+                    function_call={"name": functions[0]["name"]},
+                    temperature=self.temperature,
+                )
 
         print("RESPONSE: ", response)
 
         # save the result to save_dir with a structure specified by the input parameters:
         # planner_id/scenario_id/gpt_version/start_time
         if self._save and response:
-            if mockup_nr_iter > -1:
-                content_json = response
+
+            print(f"saving request at {save_dir}")
+
+            if mockup_path:
+                return response
             else:
                 content = response.choices[0].message.function_call.arguments
                 content_json = json.loads(content)
@@ -247,6 +262,9 @@ class LLM:
                 elif isinstance(value, list):
                     for item in value:
                         txt_file.write(json.dumps(item) + "\n")
+                elif isinstance(value, dict):
+                    for k, v in value.items():
+                        txt_file.write(f"{k}: {v}\n")
 
         with open(os.path.join(save_dir, text_filename_prompt), "w") as txt_file:
             for d in messages:

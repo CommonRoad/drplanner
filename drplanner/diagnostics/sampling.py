@@ -1,4 +1,5 @@
 import os
+import textwrap
 from typing import Union
 
 from commonroad.planning.planning_problem import PlanningProblemSet
@@ -9,14 +10,12 @@ from drplanner.describer.base import MissingParameterException
 from drplanner.diagnostics.base import DrPlannerBase
 from drplanner.prompter.sampling import PrompterSampling
 from drplanner.utils.config import DrPlannerConfiguration
-from drplanner.memory.memory import FewShotMemory
 from drplanner.planners.reactive_planner import ReactiveMotionPlanner
 
 
 class DrSamplingPlanner(DrPlannerBase):
     def __init__(
         self,
-        memory: FewShotMemory,
         scenario: Scenario,
         scenario_path: str,
         planning_problem_set: PlanningProblemSet,
@@ -32,14 +31,13 @@ class DrSamplingPlanner(DrPlannerBase):
             )
         else:
             self.absolute_save_path = None
-        self.motion_planner = ReactiveMotionPlanner(None)
+        self.motion_planner = ReactiveMotionPlanner(None, None, None)
         self.last_motion_planner = None
 
         # initialize prompter
         self.prompter = PrompterSampling(
             self.scenario,
             self.planning_problem,
-            memory,
             self.config,
         )
 
@@ -48,12 +46,22 @@ class DrSamplingPlanner(DrPlannerBase):
             return
         try:
             updated_cost_function = self.diagnosis_result[self.prompter.COST_FUNCTION]
+            updated_cost_function = textwrap.dedent(updated_cost_function)
+            helper_methods = self.diagnosis_result[self.prompter.HELPER_METHODS]
+            helper_methods = [textwrap.dedent(x) for x in helper_methods]
+            if self.prompter.PLANNER_CONFIG in self.diagnosis_result.keys():
+                max_time_steps = self.diagnosis_result[self.prompter.PLANNER_CONFIG]
+                max_time_steps = int(max_time_steps * 10)
+            else:
+                max_time_steps = self.motion_planner.max_time_steps
         except Exception as _:
             raise MissingParameterException(self.prompter.COST_FUNCTION)
         self.last_motion_planner = ReactiveMotionPlanner(
-            self.motion_planner.cost_function_string
+            self.motion_planner.cost_function_string,
+            self.motion_planner.helper_methods,
+            self.motion_planner.max_time_steps
         )
-        self.motion_planner = ReactiveMotionPlanner(updated_cost_function)
+        self.motion_planner = ReactiveMotionPlanner(updated_cost_function, helper_methods, max_time_steps)
 
     def describe_planner(
         self,
@@ -61,8 +69,8 @@ class DrSamplingPlanner(DrPlannerBase):
         improved: bool = False,
     ):
         if update:
-            if not self.last_motion_planner or not improved:
-                last_cf = self.motion_planner.cost_function_string
+            if not self.last_motion_planner:
+                last_cf = None
             else:
                 last_cf = self.last_motion_planner.cost_function_string
             self.prompter.update_planner_prompt(
@@ -70,10 +78,7 @@ class DrSamplingPlanner(DrPlannerBase):
                 last_cf,
                 self.config.feedback_mode,
             )
-
-    def add_memory(self, diagnosis_result: dict):
-        summary = diagnosis_result["summary"]
-        self.prompter.update_memory_prompt(summary)
+            self.prompter.update_config_prompt(self.motion_planner.max_time_steps)
 
     def plan(self, nr_iter: int) -> Union[PlanningProblemCostResult, Exception]:
         try:
@@ -87,3 +92,6 @@ class DrSamplingPlanner(DrPlannerBase):
             )
 
         return solution
+
+    def generate_emergency_prescription(self) -> str:
+        return self.motion_planner.cost_function_string

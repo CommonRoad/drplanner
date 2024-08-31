@@ -3,18 +3,42 @@ These are some pre-defined helper methods which you can use with ```self.```:
 ```jerk_costs(trajectory: TrajectorySample) -> float```,
 ```lateral_jerk_costs(trajectory: TrajectorySample) -> float```,
 ```longitudinal_jerk_costs(trajectory: TrajectorySample) -> float```,
-# Prefers trajectories where the car does not use the steering wheel a lot
 ```orientation_offset_costs(trajectory: TrajectorySample) -> float```,
 ```steering_angle_costs(trajectory: TrajectorySample) -> float```,
 ```steering_velocity_costs(trajectory: TrajectorySample) -> float```,
-# Prefers trajectories which closely follow the road's center line
 ```distance_to_reference_path_costs(trajectory: TrajectorySample) -> float```,
-# Prefers short trajectories
 ```path_length_costs(trajectory: TrajectorySample) -> float```
-# Prefers trajectories with constant velocity, should NEVER be zero since it is very important
+# desired velocity / desired path length weight should NEVER be zero
 ```desired_velocity_costs(self, trajectory: TrajectorySample) -> float:```
-# Prefers trajectories which end in center of the goal area
 ```desired_path_length_costs(self, trajectory: TrajectorySample) -> float:```
 
-When choosing from the pool of helper methods or adjusting their weights it is helpful to look at the cost evaluation as a reference.
-Also keep in mind that the helper methods do not return normalized values and their outputs can vary greatly in size.
+You can also define some custom static helper functions.
+You are allowed to use the "np" library and the "simps" function for integration.
+To do this, access the following attributes of the trajectory parameter:
+```
+trajectory.dt # time-step
+trajectory.cartesian.x
+trajectory.cartesian.y
+trajectory.cartesian.theta # orientation
+trajectory.cartesian.v # velocity
+trajectory.cartesian.a # acceleration
+trajectory.cartesian.kappa # curvature
+trajectory.cartesian.kappa_dot
+```
+All of these attributes are of type "np.ndarray" and hold the trajectory values from start time (index = 0) to end time (index = -1)
+If you define custom functions, please make sure to only use the allowed attributes, libraries and function!
+Here is a short demonstration of what you could do:
+```
+def acceleration_costs2(trajectory: TrajectorySample) -> float:
+    # get acceleration over time
+    acceleration = trajectory.cartesian.a
+    # exclude the first half of the trajectory to give the vehicle more freedom at the beginning
+    midpoint = len(acceleration) // 2
+    acceleration = acceleration[midpoint:]
+    # square the values to avoid negative numbers
+    acceleration_sq = np.square(acceleration)
+    # sum them up using numerical integration
+    cost = simps(acceleration_sq, dx=trajectory.dt)
+    return cost
+```
+It can then be called inside the cost function code as "self.acceleration_costs2(trajectory)"

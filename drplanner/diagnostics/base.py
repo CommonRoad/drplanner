@@ -20,6 +20,7 @@ from drplanner.utils.config import DrPlannerConfiguration
 from drplanner.prompter.search import PrompterSearch
 from drplanner.prompter.llm import LLM
 from drplanner.utils.gpt import num_tokens_from_messages
+from drplanner.memory.memory import FewShotMemory
 
 
 class DrPlannerBase(ABC):
@@ -30,6 +31,7 @@ class DrPlannerBase(ABC):
         config: DrPlannerConfiguration,
         planner_id: str,
     ):
+        self.memory = FewShotMemory()
         self.scenario = scenario
         self.planning_problem_set = planning_problem_set
         # otherwise the planning problem might be changed during the initialization of the planner
@@ -136,7 +138,7 @@ class DrPlannerBase(ABC):
         """
         # retrieve current cost result
         self.cost_result_current = cost_result
-        if self.config.feedback_mode == 1:
+        if self.config.feedback_mode > 0:
             version = "last"
         else:
             version = "initial"
@@ -146,12 +148,14 @@ class DrPlannerBase(ABC):
             self.desired_cost,
             a_version=version,
         )
+        if self.config.feedback_mode > 2:
+            feedback += "Based on all provided information about the last and current repair, try to identify which weights are responsible for a better performance!"
         print(f"*\t Feedback: {feedback}")
         # update the current cost
         self.current_cost = self.cost_result_current.total_costs
         return feedback
 
-    def add_memory(self, diagnosis_result: dict):
+    def generate_emergency_prescription(self) -> str:
         pass
 
     def diagnose_repair(self):
@@ -168,6 +172,10 @@ class DrPlannerBase(ABC):
             f"[DrPlanner] Starts the diagnosis and repair process at {run_start_time}."
         )
         result = None
+        emergency_flag = False
+        update_memory = False
+        new_emergency_prescriptions: list = []
+        last_exception_description = ""
 
         # test the initial motion planner once
         planning_result = self.plan(nr_iteration)
@@ -217,24 +225,24 @@ class DrPlannerBase(ABC):
                 LLM.extract_text_from_messages(messages),
                 self.prompter.LLM.gpt_version,
             )
-            mockup_nr_iteration = -1
-            if self.config.mockup_openAI:
-                mockup_nr_iteration = nr_iteration
 
             # send request and receive response
             scenario_id = str(self.scenario.scenario_id)
             save_dir = os.path.join(
                 self.config.save_dir, scenario_id, self.config.gpt_version
             )
+            mock_up_path = ""
+            if self.config.mockup_openAI:
+                mock_up_path = save_dir
+
             result = self.prompter.LLM.query(
                 messages,
                 save_dir=save_dir,
                 nr_iter=nr_iteration,
                 path_to_plot=path_to_plots,
-                mockup_nr_iter=mockup_nr_iteration,
+                mockup_path=mock_up_path,
             )
             self.diagnosis_result = result
-            self.add_memory(result)
             # reset some variables
             self.prompter.reload_LLM()
             nr_iteration += 1
@@ -258,19 +266,37 @@ class DrPlannerBase(ABC):
                     self.cost_result_previous = self.cost_result_current
 
                 self.describe_planner(update=update, improved=improved)
+                if update_memory is not None and update_memory and emergency_flag:
+                    k, _, _ = new_emergency_prescriptions[-1]
+                    new_emergency_prescriptions.append((k, self.generate_emergency_prescription(), path_to_plots))
+                    update_memory = None
+                emergency_flag = False
 
             except Exception as e:
                 prompt_feedback = (
                     "Usually here would be an evaluation of the repair, but..."
                 )
-                prompt_feedback += self.prompter.generate_exception_description(e)
+                exception_description = self.prompter.generate_exception_description(e)
+                prompt_feedback += f"{exception_description}\n"
+                emergency_prescription = self.memory.retrieve(exception_description, image_file_path=path_to_plots)
+                prompt_feedback += f"Here is some advice on how to deal with this exception:\n{emergency_prescription}"
+
                 self.cost_result_current = get_infinite_cost_result(self.cost_type)
                 self.current_cost = np.inf
                 update = self.config.feedback_mode == 1
                 self.describe_planner(update=update)
+                if update_memory is not None and not update_memory and emergency_flag and exception_description == last_exception_description:
+                    update_memory = True
+                    new_emergency_prescriptions.append((exception_description, None, None))
+                emergency_flag = True
+                last_exception_description = exception_description
 
             self.prompter.user_prompt.set("feedback", prompt_feedback)
             self.cost_list.append(self.current_cost)
+
+        if update_memory and new_emergency_prescriptions:
+            for k, v, p in new_emergency_prescriptions:
+                self.memory.insert(k, v, image_file_path=p)
 
         print("[DrPlanner] Ends.")
         return result

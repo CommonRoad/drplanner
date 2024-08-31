@@ -81,7 +81,7 @@ class PrompterBase(ABC):
                 with open(template_path, "r") as file:
                     self.user_prompt.set(part, file.read())
 
-        self.trajectory_description = None
+        self.trajectory_description = TrajectoryCostDescription()
 
     def reload_LLM(self):
         print("*\t <LLM> The LLM is reloaded")
@@ -104,7 +104,6 @@ class PrompterBase(ABC):
     def generate_cost_description(
         self, initial: PlanningProblemCostResult, desired_cost: int
     ) -> str:
-        self.trajectory_description = TrajectoryCostDescription()
         return self.trajectory_description.generate(initial, desired_cost)
 
     def update_cost_description(

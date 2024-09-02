@@ -10,7 +10,7 @@ from drplanner.modular_approach.module import Module
 from drplanner.prompter.base import Prompt
 from drplanner.prompter.llm import LLMFunction
 from drplanner.planners.reactive_planner import ReactiveMotionPlanner
-from modular_approach.module import Reflection
+from drplanner.modular_approach.module import Reflection
 
 
 # module that generates a prescription based on diagnosis

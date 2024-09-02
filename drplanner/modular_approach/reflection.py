@@ -3,13 +3,13 @@ import os
 from commonroad_dc.costs.evaluation import PlanningProblemCostResult
 from drplanner.utils.config import DrPlannerConfiguration
 
-from describer.trajectory_description import TrajectoryCostDescription
+from drplanner.describer.trajectory_description import TrajectoryCostDescription
 from drplanner.prompter.llm import LLM
 
 from drplanner.modular_approach.module import Module
 from drplanner.prompter.base import Prompt
 from drplanner.prompter.llm import LLMFunction
-from modular_approach.iteration import Reflection
+from drplanner.modular_approach.iteration import Reflection
 
 
 # module that generates a diagnosis based on reactive planner performance

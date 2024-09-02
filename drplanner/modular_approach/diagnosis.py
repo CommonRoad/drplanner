@@ -8,7 +8,7 @@ from drplanner.prompter.llm import LLM
 from drplanner.modular_approach.module import Module, Diagnosis
 from drplanner.prompter.base import Prompt
 from drplanner.prompter.llm import LLMFunction
-from modular_approach.module import Reflection
+from drplanner.modular_approach.module import Reflection
 
 
 # module that generates a diagnosis based on reactive planner performance

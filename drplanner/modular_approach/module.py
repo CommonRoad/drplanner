@@ -5,15 +5,15 @@ from typing import Tuple
 from commonroad.common.solution import CostFunction
 from commonroad_dc.costs.evaluation import PlanningProblemCostResult
 
-from describer.trajectory_description import get_infinite_cost_result
+from drplanner.describer.trajectory_description import get_infinite_cost_result
 from drplanner.prompter.base import PrompterBase
 
 from drplanner.describer.trajectory_description import TrajectoryCostDescription
-from planners.reactive_planner import (
+from drplanner.planners.reactive_planner import (
     ReactiveMotionPlanner,
     get_basic_configuration_path,
 )
-from utils.config import DrPlannerConfiguration
+from drplanner.utils.config import DrPlannerConfiguration
 
 
 class Reflection:

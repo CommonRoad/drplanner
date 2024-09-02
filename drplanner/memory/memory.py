@@ -27,22 +27,22 @@ class FewShotMemory:
             self.collection = self.client.get_collection(name="few_shots")
         except ValueError as _:
             self.collection = self.client.create_collection(name="few_shots")
-            path_to_plots = os.path.join(script_dir, "plots")
-            filenames = [
-                "DEU_Frankfurt-191_12_I-1.cr",
-                "DEU_Frankfurt-11_8_I-1.cr",
-                "DEU_Muc-19_1_I-1-1.cr",
-                "DEU_Lohmar-34_1_I-1-1.cr",
-                "DEU_Frankfurt-95_9_I-1.cr",
-                "ESP_Mad-1_8_I-1-1.cr",
-            ]
-            for filename in filenames:
-                fp = os.path.join(path_to_plots, filename + ".png")
-                dc = os.path.join(path_to_plots, filename + ".txt")
-                with open(dc, "r") as file:
-                    cf_string = file.read()
-                inserted = self.insert(filename, cf_string, 100, cf_string, fp)
-                print(f"{filename}:{inserted}")
+            #path_to_plots = os.path.join(script_dir, "plots")
+            #filenames = [
+            #    "DEU_Frankfurt-191_12_I-1.cr",
+            #    "DEU_Frankfurt-11_8_I-1.cr",
+            #    "DEU_Muc-19_1_I-1-1.cr",
+            #    "DEU_Lohmar-34_1_I-1-1.cr",
+            #    "DEU_Frankfurt-95_9_I-1.cr",
+            #    "ESP_Mad-1_8_I-1-1.cr",
+            #]
+            #for filename in filenames:
+            #    fp = os.path.join(path_to_plots, filename + ".png")
+            #    dc = os.path.join(path_to_plots, filename + ".txt")
+            #    with open(dc, "r") as file:
+            #        cf_string = file.read()
+            #    inserted = self.insert(filename, cf_string, 100, cf_string, fp)
+            #    print(f"{filename}:{inserted}")
             print("MEMORY: Initialized collection successfully!")
         # try:
         #     self.prescription_collection = self.client.get_collection(

@@ -7,7 +7,6 @@ from describer.trajectory_description import TrajectoryCostDescription
 from drplanner.prompter.llm import LLM
 
 from drplanner.modular_approach.module import Module
-from drplanner.memory.memory import FewShotMemory
 from drplanner.prompter.base import Prompt
 from drplanner.prompter.llm import LLMFunction
 from modular_approach.iteration import Reflection
@@ -18,14 +17,13 @@ class ReflectionModule(Module):
     def __init__(
         self,
         config: DrPlannerConfiguration,
-        memory: FewShotMemory,
         save_dir: str,
         gpt_version: str,
         temperature: float,
     ):
         super().__init__(config)
+        self.reflect_at = 3
         self.prompt_structure = ["evaluation", "analysis"]
-        self.memory = memory
         self.save_dir = save_dir
         self.gpt_version = gpt_version
 
@@ -37,44 +35,51 @@ class ReflectionModule(Module):
         with open(path_to_system_prompt, "r") as file:
             self.system_prompt.set("base", file.read())
 
-        llm_function = LLMFunction(custom=True)
-
+        feedback_llm_function = LLMFunction(custom=True)
         analysis_structure = {
-            "evaluation": llm_function.get_string_parameter(
+            "evaluation": feedback_llm_function.get_string_parameter(
                 "Short analysis of the evaluation"
             ),
-            "diagnosis-repair": llm_function.get_string_parameter(
+            "diagnosis-repair": feedback_llm_function.get_string_parameter(
                 "4-step Analysis of the repair-system"
             ),
         }
-        llm_function.add_object_parameter("analysis", analysis_structure)
-
-        reflection_structure = {
-            "diagnosis_reflection": llm_function.get_string_parameter(
-                "Reflection on the diagnosis process"
-            ),
-            #"repair_reflection": llm_function.get_string_parameter(
-            #    "Reflection on the repair process"
-            #),
-        }
-        llm_function.add_string_parameter(
-            "reflection", "summary of the previous analysis"
+        feedback_llm_function.add_object_parameter("analysis", analysis_structure)
+        feedback_llm_function.add_string_parameter(
+            "analysis_summary", "summary of the previous analysis"
         )
 
-        self.reflection_llm = LLM(
+        self.feedback_llm = LLM(
             self.gpt_version,
             self.config.openai_api_key,
-            llm_function,
+            feedback_llm_function,
             temperature=temperature,
             mockup=self.config.mockup_openAI,
         )
 
-    def generate_user_prompt(
+        reflection_llm_function = LLMFunction(custom=True)
+        reflection_structure = {
+            "diagnosis": feedback_llm_function.get_string_parameter(
+                "reflection on the diagnosis process"
+            ),
+            "repair": feedback_llm_function.get_string_parameter(
+                "reflection on the repair process"
+            ),
+        }
+        reflection_llm_function.add_object_parameter("reflection", reflection_structure)
+        self.reflection_llm = LLM(
+            self.gpt_version,
+            self.config.openai_api_key,
+            reflection_llm_function,
+            temperature=temperature,
+            mockup=self.config.mockup_openAI,
+        )
+
+    def generate_feedback_user_prompt(
         self,
         evaluation: str,
         diagnosis: str,
         repair: str,
-        past_reflections: list[Reflection],
     ) -> Prompt:
         user_prompt = Prompt(self.prompt_structure)
 
@@ -96,6 +101,20 @@ class ReflectionModule(Module):
         user_prompt.set("analysis", analysis_prompt)
         return user_prompt
 
+    def generate_reflection_user_prompt(
+        self,
+        past_reflections: list[Reflection]
+    ) -> Prompt:
+        user_prompt = Prompt(self.prompt_structure)
+        eval_prompt = "Here are the summaries of all previous iterations:\n"
+        for i, reflection in enumerate(past_reflections):
+            eval_prompt += f"Iteration nr. {i}:\n"
+            eval_prompt += f"{self.separator}{reflection.summary}\n{self.separator}"
+
+        eval_prompt += "Now for both the diagnosis and the repair process, briefly reflect on what went well and what did not!"
+        user_prompt.set("evaluation", eval_prompt)
+        return user_prompt
+
     def run(
         self,
         cr_initial: PlanningProblemCostResult,
@@ -105,27 +124,58 @@ class ReflectionModule(Module):
         past_reflections: list[Reflection],
         iteration_id: int,
     ) -> Reflection:
-        evaluation = TrajectoryCostDescription.evaluate(cr_initial, cr_repaired, "initial", "repaired")
-        user_prompt = self.generate_user_prompt(
-            evaluation, diagnosis, repair, past_reflections
-        )
-        # query the llm
-        messages = LLM.get_messages(
-            self.system_prompt.__str__(), user_prompt.__str__(), None
-        )
-        save_dir = os.path.join(self.save_dir, self.config.gpt_version, "reflection")
-        mockup_path = ""
-        if self.config.mockup_openAI:
-            mockup_path = save_dir
+        if (iteration_id + 1) % self.reflect_at == 0:
+            user_prompt = self.generate_reflection_user_prompt(past_reflections)
+            # query the llm
+            messages = LLM.get_messages(
+                self.system_prompt.__str__(), user_prompt.__str__(), None
+            )
+            save_dir = os.path.join(self.save_dir, self.config.gpt_version, "reflection")
+            mockup_path = ""
+            if self.config.mockup_openAI:
+                mockup_path = save_dir
 
-        result: dict = self.reflection_llm.query(
-            messages,
-            nr_iter=iteration_id,
-            save_dir=save_dir,
-            mockup_path=mockup_path
-        )
-        if "reflection" in result.keys():
-            reflection = result["reflection"]
+            result: dict = self.reflection_llm.query(
+                messages,
+                nr_iter=iteration_id,
+                save_dir=save_dir,
+                mockup_path=mockup_path
+            )
+            if "reflection" in result.keys():
+                reflection = result["reflection"]
+                diagnosis_reflection = ""
+                if "diagnosis" in reflection.keys():
+                    diagnosis_reflection = reflection["diagnosis"]
+
+                repair_reflection = ""
+                if "repair" in reflection.keys():
+                    repair_reflection = reflection["repair"]
+            else:
+                raise ValueError("Reflection module did not reflect")
+
+            return Reflection("", diagnosis_reflection=diagnosis_reflection, repair_reflection=repair_reflection)
         else:
-            raise ValueError("Reflection module did not reflect")
-        return Reflection(reflection)
+            evaluation = TrajectoryCostDescription.evaluate(cr_initial, cr_repaired, "initial", "repaired")
+            user_prompt = self.generate_feedback_user_prompt(
+                evaluation, diagnosis, repair
+            )
+            # query the llm
+            messages = LLM.get_messages(
+                self.system_prompt.__str__(), user_prompt.__str__(), None
+            )
+            save_dir = os.path.join(self.save_dir, self.config.gpt_version, "reflection")
+            mockup_path = ""
+            if self.config.mockup_openAI:
+                mockup_path = save_dir
+
+            result: dict = self.feedback_llm.query(
+                messages,
+                nr_iter=iteration_id,
+                save_dir=save_dir,
+                mockup_path=mockup_path
+            )
+            if "analysis_summary" in result.keys():
+                summary = result["analysis_summary"]
+            else:
+                raise ValueError("Reflection module did not reflect")
+            return Reflection(summary)

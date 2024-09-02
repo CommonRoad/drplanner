@@ -20,8 +20,12 @@ class Reflection:
     def __init__(
         self,
         summary: str,
+        diagnosis_reflection: str = "",
+        repair_reflection: str = "",
     ):
         self.summary = summary
+        self.diagnosis_reflection = diagnosis_reflection
+        self.repair_reflection = repair_reflection
 
 
 class Diagnosis:
@@ -45,6 +49,20 @@ class Diagnosis:
         for step in self.prescriptions:
             description += f"{step}\n"
         return f"{self.separator}{description}{self.separator}"
+
+    def to_few_shot(self) -> str:
+        description = ""
+        if self.scenario_analysis:
+            description += f"SCENARIO: {self.scenario_analysis}\n"
+        if self.evaluation_analysis:
+            description += f"EVALUATION: {self.evaluation_analysis}\n"
+        if self.cost_function_analysis:
+            description += f"COST FUNCTION: {self.cost_function_analysis}\n"
+        if self.problem:
+            description += f"PROBLEM: {self.problem}\n"
+
+        description += self.__str__()
+        return description
 
 
 class Module(ABC):

@@ -6,9 +6,9 @@ from drplanner.utils.config import DrPlannerConfiguration
 from drplanner.prompter.llm import LLM
 
 from drplanner.modular_approach.module import Module, Diagnosis
-from drplanner.memory.memory import FewShotMemory
 from drplanner.prompter.base import Prompt
 from drplanner.prompter.llm import LLMFunction
+from modular_approach.module import Reflection
 
 
 # module that generates a diagnosis based on reactive planner performance
@@ -16,13 +16,11 @@ class DiagnosisModule(Module):
     def __init__(
         self,
         config: DrPlannerConfiguration,
-        memory: FewShotMemory,
         save_dir: str,
         gpt_version: str,
         temperature: float,
     ):
         super().__init__(config)
-        self.memory = memory
         self.save_dir = save_dir
         self.gpt_version = gpt_version
 
@@ -68,7 +66,7 @@ class DiagnosisModule(Module):
             mockup=self.config.mockup_openAI,
         )
 
-    def generate_user_prompt(self, cost_function: str, evaluation: str, reflection: str) -> Prompt:
+    def generate_user_prompt(self, cost_function: str, evaluation: str, reflection: str, memories: list[str]) -> Prompt:
         user_prompt = Prompt(self.prompt_structure)
 
         path_to_advice_prompt = os.path.join(
@@ -87,13 +85,7 @@ class DiagnosisModule(Module):
 
         user_prompt.set("advice", reflection_prompt)
 
-        # set memory prompt
-        if self.config.diagnosis_shots > 0:
-            memories = self.memory.retrieve(
-                evaluation,
-                collection_name="diagnosis",
-                n=self.config.diagnosis_shots,
-            )
+        if memories:
             memory_prompt = "Here are some example diagnoses which might be helpful:\n"
             for m in memories:
                 memory_prompt += f"{self.separator}{m}\n{self.separator}"
@@ -118,10 +110,18 @@ class DiagnosisModule(Module):
         return user_prompt
 
     def run(
-        self, evaluation: str, cost_function: str, reflection: str, iteration_id: int
+        self, evaluation: str, cost_function: str, reflection: Reflection, few_shots: list[Tuple[str, str]], iteration_id: int
     ) -> Tuple[Diagnosis, int]:
+        memories = [x[0] for x in few_shots]
         # build user prompt
-        user_prompt = self.generate_user_prompt(cost_function, evaluation, reflection)
+        if reflection.summary:
+            reflection = reflection.summary
+        elif reflection.diagnosis_reflection:
+            reflection = reflection.diagnosis_reflection
+        else:
+            reflection = ""
+
+        user_prompt = self.generate_user_prompt(cost_function, evaluation, reflection, memories)
 
         # query the llm
         messages = LLM.get_messages(

@@ -172,10 +172,6 @@ class DrPlannerBase(ABC):
             f"[DrPlanner] Starts the diagnosis and repair process at {run_start_time}."
         )
         result = None
-        emergency_flag = False
-        update_memory = False
-        new_emergency_prescriptions: list = []
-        last_exception_description = ""
 
         # test the initial motion planner once
         planning_result = self.plan(nr_iteration)
@@ -266,11 +262,6 @@ class DrPlannerBase(ABC):
                     self.cost_result_previous = self.cost_result_current
 
                 self.describe_planner(update=update, improved=improved)
-                if update_memory is not None and update_memory and emergency_flag:
-                    k, _, _ = new_emergency_prescriptions[-1]
-                    new_emergency_prescriptions.append((k, self.generate_emergency_prescription(), path_to_plots))
-                    update_memory = None
-                emergency_flag = False
 
             except Exception as e:
                 prompt_feedback = (
@@ -278,25 +269,13 @@ class DrPlannerBase(ABC):
                 )
                 exception_description = self.prompter.generate_exception_description(e)
                 prompt_feedback += f"{exception_description}\n"
-                emergency_prescription = self.memory.retrieve(exception_description, image_file_path=path_to_plots)
-                prompt_feedback += f"Here is some advice on how to deal with this exception:\n{emergency_prescription}"
-
                 self.cost_result_current = get_infinite_cost_result(self.cost_type)
                 self.current_cost = np.inf
                 update = self.config.feedback_mode == 1
                 self.describe_planner(update=update)
-                if update_memory is not None and not update_memory and emergency_flag and exception_description == last_exception_description:
-                    update_memory = True
-                    new_emergency_prescriptions.append((exception_description, None, None))
-                emergency_flag = True
-                last_exception_description = exception_description
 
             self.prompter.user_prompt.set("feedback", prompt_feedback)
             self.cost_list.append(self.current_cost)
-
-        if update_memory and new_emergency_prescriptions:
-            for k, v, p in new_emergency_prescriptions:
-                self.memory.insert(k, v, image_file_path=p)
 
         print("[DrPlanner] Ends.")
         return result

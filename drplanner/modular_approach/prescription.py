@@ -1,15 +1,16 @@
 import os
 import textwrap
+from typing import Tuple
 
 from drplanner.utils.config import DrPlannerConfiguration
 
 from drplanner.prompter.llm import LLM
 
 from drplanner.modular_approach.module import Module
-from drplanner.memory.memory import FewShotMemory
 from drplanner.prompter.base import Prompt
 from drplanner.prompter.llm import LLMFunction
 from drplanner.planners.reactive_planner import ReactiveMotionPlanner
+from modular_approach.module import Reflection
 
 
 # module that generates a prescription based on diagnosis
@@ -17,13 +18,11 @@ class PrescriptionModule(Module):
     def __init__(
         self,
         config: DrPlannerConfiguration,
-        memory: FewShotMemory,
         save_dir: str,
         gpt_version: str,
         temperature: float,
     ):
         super().__init__(config)
-        self.memory = memory
         self.prompt_structure = ["documentation", "cost_function", "diagnoses", "advice"]
 
         if self.config.memory_module:
@@ -52,22 +51,16 @@ class PrescriptionModule(Module):
             mockup=self.config.mockup_openAI,
         )
 
-    def generate_user_prompt(self, cost_function: str, diagnosis: str, reflection: str) -> Prompt:
+    def generate_user_prompt(self, cost_function: str, diagnosis: str, reflection: str, memories: list[str]) -> Prompt:
         user_prompt = Prompt(self.prompt_structure)
 
-        # set reflection prompt
         if reflection:
             reflection_prompt = "After analyzing what you did in the previous iteration, here is some advice you should follow:\n"
             reflection_prompt += f"{self.separator}{reflection}{self.separator}"
             user_prompt.set("advice", reflection_prompt)
 
         # set memory prompt
-        if self.config.prescription_shots > 0:
-            memories = self.memory.retrieve(
-                diagnosis,
-                collection_name="prescription",
-                n=self.config.prescription_shots,
-            )
+        if memories:
             memory_prompt = "For reference, here are excerpts of changes which you made in similar situations:\n"
             for m in memories:
                 memory_prompt += m + "\n"
@@ -91,9 +84,16 @@ class PrescriptionModule(Module):
         return user_prompt
 
     def run(
-        self, diagnosis: str, cost_function: str, reflection: str, iteration_id: int
+        self, diagnosis: str, cost_function: str, reflection: Reflection, few_shots: list[Tuple[str, str]], iteration_id: int
     ) -> ReactiveMotionPlanner:
-        user_prompt = self.generate_user_prompt(cost_function, diagnosis, reflection)
+        memories = [x[1] for x in few_shots]
+
+        if reflection.repair_reflection:
+            reflection = reflection.repair_reflection
+        else:
+            reflection = ""
+
+        user_prompt = self.generate_user_prompt(cost_function, diagnosis, reflection, memories)
 
         # query the llm
         messages = LLM.get_messages(

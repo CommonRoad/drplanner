@@ -7,4 +7,6 @@ build/
 
 outputs/
 /drplanner/memory/store/
-/plots/
+/drplanner/memory/plots/
+/drplanner/memory/few_shots/
+/drplanner/modular_approach/templates/

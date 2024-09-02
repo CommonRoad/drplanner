@@ -22,21 +22,18 @@ class Iteration:
         self.evaluation_module = EvaluationModule(config)
         self.diagnosis_module = DiagnosisModule(
             config,
-            memory,
             self.save_dir,
             self.config.gpt_version,
             self.config.temperature,
         )
         self.prescription_module = PrescriptionModule(
             config,
-            memory,
             self.save_dir,
             self.config.gpt_version,
             0.2,
         )
         self.reflection_module = ReflectionModule(
             config,
-            memory,
             self.save_dir,
             self.config.gpt_version,
             self.config.temperature,
@@ -66,22 +63,28 @@ class Iteration:
     ):
         last_reflection = previous_reflections[-1]
         initial_cost_function = motion_planner.cost_function_string
-
+        # retrieve few_shots
+        if self.config.memory_module:
+            few_shots = self.memory.get_few_shots(initial_evaluation, self.evaluation_module.path_to_plot, self.config.n_shots)
+        else:
+            few_shots = []
         # generate diagnosis
         try:
             diagnosis, max_time_steps = self.diagnosis_module.run(
-                initial_evaluation, initial_cost_function, last_reflection.summary, iteration_id
+                initial_evaluation, initial_cost_function, last_reflection.summary, few_shots, iteration_id
             )
         except ValueError as _:
+            print("No diagnosis provided")
             diagnosis = None
             max_time_steps = motion_planner.max_time_steps
 
         # repair the planner
         try:
             repaired_motion_planner = self.prescription_module.run(
-                diagnosis.__str__(), initial_cost_function, "", iteration_id
+                diagnosis.__str__(), initial_cost_function, few_shots, iteration_id
             )
         except ValueError as _:
+            print("No repair provided")
             repaired_motion_planner = motion_planner
 
         repaired_motion_planner.max_time_steps = max_time_steps
@@ -101,14 +104,19 @@ class Iteration:
                 iteration_id,
             )
         except ValueError as _:
+            print("No reflection provided")
             reflection = Reflection("")
-        # if the iteration was successful, add its insights to memory
-        # if self.config.update_memory_module and self.improved(
-        #     initial_total_cost, repair_total_cost
-        # ):
-        #     self.memory.insert(
-        #         initial_evaluation, diagnosis.__str__(), collection_name="diagnosis"
-        #     )
+
+        if self.config.update_memory_module and self.improved(
+            initial_cost_result.total_costs, repair_cost_result.total_costs
+        ):
+            self.memory.insert(
+                diagnosis.to_few_shot(),
+                repaired_motion_planner.cost_function_string,
+                repair_cost_result.total_costs,
+                initial_evaluation,
+                self.evaluation_module.path_to_plot
+            )
 
         return repair_evaluation, repair_cost_result, repaired_motion_planner, reflection
 
@@ -116,14 +124,10 @@ class Iteration:
 def run_iterative_repair(
     scenario_path: str = "USA_Lanker-2_19_T-1",
     config: DrPlannerConfiguration = None,
-    templates: list[str] = None,
     motion_planner: ReactiveMotionPlanner = None,
 ) -> list[PlanningProblemCostResult]:
     if not config:
         config = DrPlannerConfiguration()
-
-    if not templates:
-        templates = load_templates()
 
     if not scenario_path.endswith(".xml"):
         scenario_id = scenario_path

@@ -71,7 +71,7 @@ class Iteration:
         # generate diagnosis
         try:
             diagnosis, max_time_steps = self.diagnosis_module.run(
-                initial_evaluation, initial_cost_function, last_reflection.summary, few_shots, iteration_id
+                initial_evaluation, initial_cost_function, last_reflection, few_shots, iteration_id
             )
         except ValueError as _:
             print("No diagnosis provided")
@@ -81,7 +81,7 @@ class Iteration:
         # repair the planner
         try:
             repaired_motion_planner = self.prescription_module.run(
-                diagnosis.__str__(), initial_cost_function, few_shots, iteration_id
+                diagnosis.__str__(), initial_cost_function, last_reflection, few_shots, iteration_id
             )
         except ValueError as _:
             print("No repair provided")

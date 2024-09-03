@@ -1,5 +1,7 @@
 import math
 import os
+import time
+from typing import Tuple
 
 from commonroad_dc.costs.evaluation import PlanningProblemCostResult
 
@@ -11,33 +13,41 @@ from drplanner.modular_approach.diagnosis import DiagnosisModule
 from drplanner.modular_approach.module import EvaluationModule, Reflection
 from drplanner.modular_approach.prescription import PrescriptionModule
 from drplanner.modular_approach.reflection import ReflectionModule
+from drplanner.utils.general import Statistics
 
 
 class Iteration:
-    def __init__(self, config: DrPlannerConfiguration, memory: FewShotMemory, save_dir: str):
+    def __init__(
+        self, config: DrPlannerConfiguration, statistic: Statistics, memory: FewShotMemory, save_dir: str
+    ):
         self.memory = memory
+        self.statistic = statistic
         self.save_dir = save_dir
         self.config = config
 
-        self.evaluation_module = EvaluationModule(config)
+        self.evaluation_module = EvaluationModule(config, statistic)
         self.diagnosis_module = DiagnosisModule(
             config,
+            statistic,
             self.save_dir,
             self.config.gpt_version,
             self.config.temperature,
         )
         self.prescription_module = PrescriptionModule(
             config,
-            self.save_dir,
-            self.config.gpt_version,
-            0.2,
-        )
-        self.reflection_module = ReflectionModule(
-            config,
+            statistic,
             self.save_dir,
             self.config.gpt_version,
             self.config.temperature,
         )
+        if self.config.reflection_module:
+            self.reflection_module = ReflectionModule(
+                config,
+                statistic,
+                self.save_dir,
+                self.config.gpt_version,
+                self.config.temperature,
+            )
 
     @staticmethod
     def improved(
@@ -65,36 +75,54 @@ class Iteration:
         initial_cost_function = motion_planner.cost_function_string
         # retrieve few_shots
         if self.config.memory_module:
-            few_shots = self.memory.get_few_shots(initial_evaluation, self.evaluation_module.path_to_plot, self.config.n_shots)
+            few_shots = self.memory.get_few_shots(
+                initial_evaluation,
+                self.evaluation_module.path_to_plot,
+                self.config.n_shots,
+            )
+            if not few_shots:
+                self.statistic.missing_few_shot_count += 1
         else:
             few_shots = []
         # generate diagnosis
         try:
-            diagnosis, max_time_steps = self.diagnosis_module.run(
-                initial_evaluation, initial_cost_function, last_reflection, few_shots, iteration_id
+            diagnosis, max_time_steps, sampling_d = self.diagnosis_module.run(
+                initial_evaluation,
+                initial_cost_function,
+                last_reflection,
+                few_shots,
+                iteration_id,
             )
         except ValueError as _:
             print("No diagnosis provided")
             diagnosis = None
             max_time_steps = motion_planner.max_time_steps
+            sampling_d = motion_planner.d
 
         # repair the planner
         try:
             repaired_motion_planner = self.prescription_module.run(
-                diagnosis.__str__(), initial_cost_function, last_reflection, few_shots, iteration_id
+                diagnosis.__str__(),
+                initial_cost_function,
+                last_reflection,
+                few_shots,
+                iteration_id,
             )
         except ValueError as _:
             print("No repair provided")
             repaired_motion_planner = motion_planner
 
         repaired_motion_planner.max_time_steps = max_time_steps
+        repaired_motion_planner.d = sampling_d
         # evaluate the repair
-        repair_evaluation, repair_cost_result = self.evaluation_module.run(
+        repair_evaluation, repair_cost_result, exception = self.evaluation_module.run(
             absolute_scenario_path, repaired_motion_planner
         )
 
         # reflect on the repair
         try:
+            if not self.config.reflection_module:
+                raise ValueError
             reflection = self.reflection_module.run(
                 initial_cost_result,
                 repair_cost_result,
@@ -110,24 +138,40 @@ class Iteration:
         if self.config.update_memory_module and self.improved(
             initial_cost_result.total_costs, repair_cost_result.total_costs
         ):
-            self.memory.insert(
+            inserted = self.memory.insert(
                 diagnosis.to_few_shot(),
                 repaired_motion_planner.cost_function_string,
                 repair_cost_result.total_costs,
                 initial_evaluation,
-                self.evaluation_module.path_to_plot
+                self.evaluation_module.path_to_plot,
             )
+            if inserted:
+                self.statistic.added_few_shot_count += 1
 
-        return repair_evaluation, repair_cost_result, repaired_motion_planner, reflection
+        data = repair_cost_result.total_costs
+        if not data < math.inf:
+            data = exception
+        self.statistic.update_iteration(data)
+
+        return (
+            repair_evaluation,
+            repair_cost_result,
+            repaired_motion_planner,
+            reflection,
+        )
 
 
 def run_iterative_repair(
+    statistic: Statistics = None,
     scenario_path: str = "USA_Lanker-2_19_T-1",
     config: DrPlannerConfiguration = None,
     motion_planner: ReactiveMotionPlanner = None,
-) -> list[PlanningProblemCostResult]:
+) -> Tuple[list[PlanningProblemCostResult], Statistics]:
     if not config:
         config = DrPlannerConfiguration()
+
+    if not statistic:
+        statistic = Statistics()
 
     if not scenario_path.endswith(".xml"):
         scenario_id = scenario_path
@@ -138,16 +182,18 @@ def run_iterative_repair(
         scenario_id = os.path.basename(scenario_path)[:-4]
 
     memory = FewShotMemory()
+
+    start_time = time.time()
     save_dir = os.path.join(config.save_dir, scenario_id)
-    iteration = Iteration(config, memory, save_dir)
+    iteration = Iteration(config, statistic, memory, save_dir)
 
     if not motion_planner:
-        motion_planner = ReactiveMotionPlanner(None, None, None)
+        motion_planner = ReactiveMotionPlanner(None, None, None, None)
 
     reflection = Reflection("")
     # first run the initial planner once to obtain the initial values for the loop:
     cf0 = motion_planner.cost_function_string
-    e0, cr0 = iteration.evaluation_module.run(scenario_path, motion_planner)
+    e0, cr0, _ = iteration.evaluation_module.run(scenario_path, motion_planner)
     # collect all interesting data produced throughout the loop
     cost_functions = [cf0]
     evaluations = [e0]
@@ -163,7 +209,7 @@ def run_iterative_repair(
             evaluations.pop(),
             cost_results[-1],
             reflections,
-            iteration_id=iteration_id,
+            iteration_id
         )
         print(e)
         cost_functions.append(motion_planner.cost_function_string)
@@ -171,7 +217,12 @@ def run_iterative_repair(
         cost_results.append(tc)
         reflections.append(new_reflection)
         iteration_id += 1
-    return cost_results
+
+    end_time = time.time()
+    duration = end_time - start_time
+    statistic.duration = duration / config.iteration_max
+
+    return cost_results, statistic
 
 
 def load_templates() -> list[str]:
@@ -191,22 +242,24 @@ def load_templates() -> list[str]:
     return templates
 
 
-def determine_template_cost_function(
-    absolute_scenario_path: str, templates: list[str], iteration: Iteration
-) -> ReactiveMotionPlanner:
-    if len(templates) <= 0:
-        raise ValueError("no templates provided")
-
-    best_score = math.inf
-    best_planner = None
-    for template in templates:
-        planner = ReactiveMotionPlanner(template, [], None)
-        _, score = iteration.evaluation_module.run(absolute_scenario_path, planner, plot=False)
-        if score.total_costs < best_score:
-            best_score = score.total_costs
-            best_planner = planner
-
-    return best_planner
+# def determine_template_cost_function(
+#     absolute_scenario_path: str, templates: list[str], iteration: Iteration
+# ) -> ReactiveMotionPlanner:
+#     if len(templates) <= 0:
+#         raise ValueError("no templates provided")
+#
+#     best_score = math.inf
+#     best_planner = None
+#     for template in templates:
+#         planner = ReactiveMotionPlanner(template, [], None)
+#         _, score = iteration.evaluation_module.run(
+#             absolute_scenario_path, planner, plot=False
+#         )
+#         if score.total_costs < best_score:
+#             best_score = score.total_costs
+#             best_planner = planner
+#
+#     return best_planner
 
 
 # def run_iteration(

@@ -178,7 +178,7 @@ class LLM:
                     functions=functions,
                     function_call={"name": functions[0]["name"]},
                     temperature=self.temperature,
-                    response_format=response_format
+                    response_format=response_format,
                 )
             else:
                 response = openai.chat.completions.create(

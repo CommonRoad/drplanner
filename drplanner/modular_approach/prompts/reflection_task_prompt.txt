@@ -1,1 +1,1 @@
-Next, on the basis of your previous analysis, generate short advice for the diagnosis-system.
+Next, on the basis of your previous analysis, generate advice for the diagnosis-system.

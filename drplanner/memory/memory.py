@@ -12,7 +12,7 @@ class FewShotMemory:
     def __init__(self):
         script_dir = os.path.dirname(os.path.abspath(__file__))
         path_to_storage = os.path.join(script_dir, "store")
-        self.separator = '@'
+        self.separator = "@"
         self.threshold = 0.9
         if not os.path.exists(path_to_storage):
             os.makedirs(path_to_storage, exist_ok=True)
@@ -27,16 +27,16 @@ class FewShotMemory:
             self.collection = self.client.get_collection(name="few_shots")
         except ValueError as _:
             self.collection = self.client.create_collection(name="few_shots")
-            #path_to_plots = os.path.join(script_dir, "plots")
-            #filenames = [
+            # path_to_plots = os.path.join(script_dir, "plots")
+            # filenames = [
             #    "DEU_Frankfurt-191_12_I-1.cr",
             #    "DEU_Frankfurt-11_8_I-1.cr",
             #    "DEU_Muc-19_1_I-1-1.cr",
             #    "DEU_Lohmar-34_1_I-1-1.cr",
             #    "DEU_Frankfurt-95_9_I-1.cr",
             #    "ESP_Mad-1_8_I-1-1.cr",
-            #]
-            #for filename in filenames:
+            # ]
+            # for filename in filenames:
             #    fp = os.path.join(path_to_plots, filename + ".png")
             #    dc = os.path.join(path_to_plots, filename + ".txt")
             #    with open(dc, "r") as file:
@@ -66,14 +66,15 @@ class FewShotMemory:
         #         "DEU_Frankfurt-95_9_I-1.cr",
         #         "ESP_Mad-1_8_I-1-1.cr",
         #     ]
-#
-        #     for filename in filenames:
-        #         fp = os.path.join(path_to_plots, filename + ".png")
-        #         dc = os.path.join(path_to_plots, filename + ".txt")
-        #         with open(dc, "r") as file:
-        #             cf_string = file.read()
-        #         self.insert_image(fp, cf_string)
-        #     print("MEMORY: Initialized <plot> collection successfully!")
+
+    #
+    #     for filename in filenames:
+    #         fp = os.path.join(path_to_plots, filename + ".png")
+    #         dc = os.path.join(path_to_plots, filename + ".txt")
+    #         with open(dc, "r") as file:
+    #             cf_string = file.read()
+    #         self.insert_image(fp, cf_string)
+    #     print("MEMORY: Initialized <plot> collection successfully!")
 
     # def insert_image(self, filepath, document: str):
     #     collection = self.plot_collection
@@ -81,7 +82,7 @@ class FewShotMemory:
     #     embeddings = [embedd_image(filepath)]
     #     ids = [f"plot{collection.count()}"]
     #     collection.add(ids=ids, embeddings=embeddings, documents=docs)
-#
+    #
     # def retrieve_with_image(self, filepath: str):
     #     query = self.plot_collection.query(
     #         query_embeddings=[embedd_image(filepath)], n_results=1, include=["documents"]
@@ -105,13 +106,13 @@ class FewShotMemory:
     #     embeddings = []
     #     ids: list[str] = []
     #     collection = self.select_collection(collection_name)
-#
+    #
     #     with open(os.path.join(path_to_few_shots, "few_shots.json"), "r") as file:
     #         examples: list = json.load(file)["few_shots"]
     #         for data in examples:
     #             key: str = data["key"]
     #             value: str = data["value"]
-#
+    #
     #             embedding = default_ef([key])[0]
     #             docs.append(value)
     #             embeddings.append(embedding)
@@ -161,7 +162,9 @@ class FewShotMemory:
         print(f"Similarity:{similarity}")
         return similarity
 
-    def get_few_shots(self, evaluation: str, path_to_plot: str, n: int) -> list[Tuple[str, str]]:
+    def get_few_shots(
+        self, evaluation: str, path_to_plot: str, n: int
+    ) -> list[Tuple[str, str]]:
         results, _ = self.retrieve(evaluation, path_to_plot, n=n)
         results = [x[0].split(self.separator) for x in results]
         return results[:n]
@@ -172,19 +175,42 @@ class FewShotMemory:
 
         text_embedding = self.embedd_text(text)
         image_embedding = self.embedd_image(image_file_path)
-        query = self.collection.query(query_embeddings=image_embedding, n_results=max(10, n), include=["documents", "metadatas", "embeddings"])
+        query = self.collection.query(
+            query_embeddings=image_embedding,
+            n_results=max(10, n),
+            include=["documents", "metadatas", "embeddings"],
+        )
         query_image_embeddings = query["embeddings"][0]
         query_metadata = query["metadatas"][0]
         query_text_embeddings = [self.embedd_text(x["text"]) for x in query_metadata]
         query_documents = query["documents"][0]
-        query_data = list(zip(query_documents, query_text_embeddings, query_image_embeddings, query_metadata))
-        query_data = list(filter(lambda x: self.similarity(image_embedding, x[2]) >= self.threshold, query_data))
+        query_data = list(
+            zip(
+                query_documents,
+                query_text_embeddings,
+                query_image_embeddings,
+                query_metadata,
+            )
+        )
+        query_data = list(
+            filter(
+                lambda x: self.similarity(image_embedding, x[2]) >= self.threshold,
+                query_data,
+            )
+        )
         query_data.sort(key=lambda x: self.similarity(text_embedding, x[1]))
         n = min(len(query_data), n)
         print(f"N:{n}")
         return query_data[:n], image_embedding
 
-    def insert(self, diagnosis: str, cost_function: str, total_cost: float, text: str, image_file_path: str) -> bool:
+    def insert(
+        self,
+        diagnosis: str,
+        cost_function: str,
+        total_cost: float,
+        text: str,
+        image_file_path: str,
+    ) -> bool:
         value = f"{diagnosis}{self.separator}{cost_function}"
         doc_id = f"few_shot{self.collection.count()}"
         results, image_embedding = self.retrieve(text, image_file_path)
@@ -198,7 +224,12 @@ class FewShotMemory:
             image_embedding = self.embedd_image(image_file_path)
 
         if total_cost < result_total_cost:
-            self.collection.add(documents=value, embeddings=image_embedding, metadatas={"text": text, "total_cost": total_cost}, ids=doc_id)
+            self.collection.add(
+                documents=value,
+                embeddings=image_embedding,
+                metadatas={"text": text, "total_cost": total_cost},
+                ids=doc_id,
+            )
             return True
         else:
             return False

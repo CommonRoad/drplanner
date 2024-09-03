@@ -55,9 +55,9 @@ def get_planner(config: ReactivePlannerConfiguration) -> Tuple[ReactivePlanner, 
 
 # helper function to run a ReactivePlanner with a given CostFunction
 def run_planner(
-        planner: ReactivePlanner,
-        config: ReactivePlannerConfiguration,
-        cost_function: Type[ReactiveCostFunction | None],
+    planner: ReactivePlanner,
+    config: ReactivePlannerConfiguration,
+    cost_function: Type[ReactiveCostFunction | None],
 ):
     # update cost function
     planner.set_cost_function(cost_function)
@@ -117,12 +117,12 @@ def run_planner(
 
 
 def plot_planner(
-        scenario: Scenario,
-        planning_problem: PlanningProblemSet,
-        route: Route,
-        trajectory: Union[Trajectory, None],
-        config: VehicleConfiguration,
-        abs_save_path: str,
+    scenario: Scenario,
+    planning_problem: PlanningProblemSet,
+    route: Route,
+    trajectory: Union[Trajectory, None],
+    config: VehicleConfiguration,
+    abs_save_path: str,
 ):
     lanelets_to_be_shown = route.lanelet_ids
     # remove the vehicles not in the related lanelets
@@ -182,8 +182,16 @@ def plot_planner(
 
     # visualize trajectory
     pos = np.asarray([state.position for state in state_list])
-    rnd.ax.plot(pos[:, 0], pos[:, 1], color='k', marker='x', markersize=3.0, markeredgewidth=0.4, zorder=21,
-                linewidth=0.8)
+    rnd.ax.plot(
+        pos[:, 0],
+        pos[:, 1],
+        color="k",
+        marker="x",
+        markersize=3.0,
+        markeredgewidth=0.4,
+        zorder=21,
+        linewidth=0.8,
+    )
 
     # render scenario and occupancies
     rnd.render(show=False, filename=abs_save_path)
@@ -199,6 +207,7 @@ def plot_planner(
 #     cost += 20.0 * self.desired_velocity_costs(trajectory)
 #     cost += 1.0 * self.path_length_costs(trajectory)
 #     return cost"""
+
 
 def get_basic_cost_function() -> str:
     return """def evaluate(self, trajectory: TrajectorySample) -> float:
@@ -234,19 +243,27 @@ def get_basic_method(name: str):
 
 
 class ReactiveMotionPlanner:
-    def __init__(self, cost_function_string: Union[str, None], helper_methods: Union[list[str], None], max_time_steps: Union[int, None]):
+    def __init__(
+        self,
+        cost_function_string: Union[str, None],
+        helper_methods: Union[list[str], None],
+        max_time_steps: Union[int, None],
+        d: Union[float, None],
+    ):
         if not cost_function_string and helper_methods is None:
             self.cost_function_string = get_basic_cost_function()
             self.helper_methods = []
         elif not cost_function_string:
             self.cost_function_string = get_basic_cost_function()
         elif helper_methods is None:
-            self.helper_methods = ["""def time_dependent_acceleration_costs(trajectory: TrajectorySample) -> float:
+            self.helper_methods = [
+                """def time_dependent_acceleration_costs(trajectory: TrajectorySample) -> float:
     # get acceleration over time
     acceleration = trajectory.cartesian.a
     # calculate the cost for acceleration over time
     cost = np.sum(np.square(acceleration) * trajectory.dt * np.arange(len(acceleration)))
-    return cost / np.sum(trajectory.dt)  # normalize by total time"""]
+    return cost / np.sum(trajectory.dt)  # normalize by total time"""
+            ]
         else:
             self.cost_function_string = cost_function_string
             self.helper_methods = helper_methods
@@ -254,16 +271,23 @@ class ReactiveMotionPlanner:
             self.max_time_steps = 30
         else:
             self.max_time_steps = max_time_steps
+
+        if not d:
+            self.d = 3
+        else:
+            self.d = d
+
         self.missing_helper_method = None
         self.last_missing_helper_method = None
 
     def evaluate_on_scenario(
-            self,
-            absolute_scenario_path: str,
-            absolute_config_path: str = None,
-            cost_type: CostFunction = CostFunction.SM1,
-            absolute_save_path: str = None,
-    ) -> PlanningProblemCostResult:
+        self,
+        absolute_scenario_path: str,
+        absolute_config_path: str = None,
+        cost_type: CostFunction = CostFunction.SM1,
+        absolute_save_path: str = None,
+        counter: int = 0,
+    ) -> Tuple[PlanningProblemCostResult, int]:
         if not absolute_config_path:
             absolute_config_path = get_basic_configuration_path()
 
@@ -280,6 +304,9 @@ class ReactiveMotionPlanner:
             absolute_config_path, absolute_scenario_path
         )
         planner_config.planning.time_steps_computation = self.max_time_steps
+        planner_config.sampling.d_max = self.d
+        planner_config.sampling.d_min = -self.d
+
         planner_config.update()
         planner, route, planner_cost_function = ReactiveMotionPlanner.apply(
             self.cost_function_string, self.helper_methods, planner_config
@@ -299,6 +326,7 @@ class ReactiveMotionPlanner:
                 absolute_config_path=absolute_config_path,
                 cost_type=cost_type,
                 absolute_save_path=absolute_save_path,
+                counter=(counter + 1)
             )
 
         if absolute_save_path:
@@ -313,20 +341,22 @@ class ReactiveMotionPlanner:
 
         return cost_evaluator.evaluate_pp_solution(
             scenario, planning_problem, trajectory
-        )
+        ), counter
 
     def __str__(self):
-        description = f"The planner uses a planning horizon of {self.max_time_steps/10} seconds. "
+        description = (
+            f"The planner uses a planning horizon of {self.max_time_steps/10} seconds. "
+        )
         description += f"This is its cost function:\n {self.cost_function_string}"
         return description
 
     @staticmethod
     def create_plot(
-            absolute_scenario_path: str,
-            absolute_save_path: str,
-            absolute_config_path: str = None,
-            planner_cf: str = None,
-            helper_methods: list[str] = None
+        absolute_scenario_path: str,
+        absolute_save_path: str,
+        absolute_config_path: str = None,
+        planner_cf: str = None,
+        helper_methods: list[str] = None,
     ):
         if not absolute_save_path:
             return
@@ -371,7 +401,7 @@ class ReactiveMotionPlanner:
     def extract_method_names(helper_methods: list[str]) -> list[str]:
         names = []
         for method in helper_methods:
-            match = re.search(r'def\s+(\w+)\s*\(', method)
+            match = re.search(r"def\s+(\w+)\s*\(", method)
             if match:
                 names.append(match.group(1))
             else:
@@ -387,7 +417,7 @@ class ReactiveMotionPlanner:
             if line.strip().startswith("def") and current_method:
                 methods.append(current_method)
                 current_method = ""
-            current_method += line + '\n'
+            current_method += line + "\n"
 
         if current_method:
             methods.append(current_method)
@@ -395,23 +425,25 @@ class ReactiveMotionPlanner:
         return methods
 
     @staticmethod
-    def preprocess_helper_methods(helper_methods: list[str]) -> list[Tuple[str, str, bool]]:
+    def preprocess_helper_methods(
+        helper_methods: list[str],
+    ) -> list[Tuple[str, str, bool]]:
         result = []
         if not helper_methods:
             return result
 
-        split_up_method = all(['\n' not in x for x in helper_methods])
+        split_up_method = all(["\n" not in x for x in helper_methods])
         if split_up_method:
             helper_methods = ReactiveMotionPlanner.join_method_lines(helper_methods)
 
         for method in helper_methods:
-            method = re.sub(r'\bpass\b', 'return 0.0', method)
-            match = re.search(r'def\s+(\w+)\s*\(([^)]*)\)', method)
+            method = re.sub(r"\bpass\b", "return 0.0", method)
+            match = re.search(r"def\s+(\w+)\s*\(([^)]*)\)", method)
             if match:
                 static = True
                 name = match.group(1)
-                params = match.group(2).split(',')
-                if params and params[0].strip() == 'self':
+                params = match.group(2).split(",")
+                if params and params[0].strip() == "self":
                     static = False
                 result.append((name, method, static))
             else:
@@ -420,13 +452,15 @@ class ReactiveMotionPlanner:
 
     @staticmethod
     def defuse(code: str) -> str:
-        signature = code.split('\n')[0]
+        signature = code.split("\n")[0]
         print(f"Had to defuse {signature}")
         return f"{signature}    return 0.0"
 
     @staticmethod
     def apply(
-            cost_function_string: str, helper_methods: list[str], planner_config: ReactivePlannerConfiguration
+        cost_function_string: str,
+        helper_methods: list[str],
+        planner_config: ReactivePlannerConfiguration,
     ) -> Tuple[ReactivePlanner, Route, Type[ReactiveCostFunction | None]]:
         planner, route = get_planner(planner_config)
         # Create a namespace dictionary to hold the compiled function
@@ -437,7 +471,9 @@ class ReactiveMotionPlanner:
         function_namespace["TrajectorySample"] = TrajectorySample
 
         # add helper methods to name space
-        preprocess_result = ReactiveMotionPlanner.preprocess_helper_methods(helper_methods)
+        preprocess_result = ReactiveMotionPlanner.preprocess_helper_methods(
+            helper_methods
+        )
         for name, code, static in preprocess_result:
             if not name:
                 continue

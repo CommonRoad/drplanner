@@ -45,8 +45,8 @@ class DrPlannerBase(ABC):
         self._visualize = self.config.visualize
         self._save_solution = self.config.save_solution
 
-        self.THRESHOLD = config.cost_threshold
-        self.TOKEN_LIMIT = config.token_limit
+        # self.THRESHOLD = config.cost_threshold
+        # self.TOKEN_LIMIT = config.token_limit
         self.ITERATION_MAX = config.iteration_max
 
         # todo: load from solution file
@@ -122,7 +122,7 @@ class DrPlannerBase(ABC):
             description = self.prompter.generate_cost_description(
                 self.cost_result_current, self.desired_cost
             )
-            if self.config.repair_with_plot:
+            if self.config.include_plot:
                 description += "To give you a broad understanding of the scenario which is currently used for motion planning, a plot is provided showing all lanes (grey), the planned trajectory (black line) and the goal area (light orange)"
         else:
             description = "Usually here would be an evaluation of the initial motion planning result, but..."
@@ -191,15 +191,12 @@ class DrPlannerBase(ABC):
         self.initial_cost = self.current_cost
         self.lowest_cost = self.current_cost
         # start the repairing process
-        while (
-            abs(self.current_cost - self.desired_cost) > self.THRESHOLD
-            and self.token_count < self.TOKEN_LIMIT
-            and nr_iteration < self.ITERATION_MAX
-        ):
+        while nr_iteration < self.ITERATION_MAX:
             print(f"*\t -----------iteration {nr_iteration}-----------")
             print(
                 f"*\t <{nr_iteration}>: total cost {self.current_cost} (desired: {self.desired_cost})\n"
-                f"*\t used tokens {self.token_count} (limit: {self.TOKEN_LIMIT})"
+                # f"*\t used tokens {self.token_count} (limit: {self.TOKEN_LIMIT})"
+                f"*\t used tokens {self.token_count}"
             )
 
             # prepare the API request
@@ -207,7 +204,7 @@ class DrPlannerBase(ABC):
                 os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
             )
 
-            if self.config.repair_with_plot:
+            if self.config.include_plot:
                 path_to_plots += "/plots/img.png"
             else:
                 path_to_plots = None

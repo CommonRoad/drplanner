@@ -96,9 +96,10 @@ class DrSamplingPlanner(DrPlannerBase):
 
     def plan(self, nr_iter: int) -> Union[PlanningProblemCostResult, Exception]:
         try:
-            solution, _ = self.motion_planner.evaluate_on_scenario(
+            solution, missing_hf = self.motion_planner.evaluate_on_scenario(
                 self.absolute_scenario_path, absolute_save_path=self.absolute_save_path
             )
+            self.statistic.flawed_helper_methods_count += missing_hf
         except Exception as e:
             solution = e
             ReactiveMotionPlanner.create_plot(

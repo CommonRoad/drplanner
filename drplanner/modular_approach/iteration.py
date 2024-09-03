@@ -182,8 +182,6 @@ def run_iterative_repair(
         scenario_id = os.path.basename(scenario_path)[:-4]
 
     memory = FewShotMemory()
-
-    start_time = time.time()
     save_dir = os.path.join(config.save_dir, scenario_id)
     iteration = Iteration(config, statistic, memory, save_dir)
 
@@ -201,6 +199,8 @@ def run_iterative_repair(
     reflections = [reflection]
     iteration_id = 0
     print(e0)
+
+    start_time = time.time()
 
     while iteration_id < config.iteration_max:
         e, tc, motion_planner, new_reflection = iteration.run(

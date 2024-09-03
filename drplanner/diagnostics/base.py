@@ -1,7 +1,7 @@
 import math
 import copy
 import os
-from datetime import datetime
+import time
 from typing import Union
 
 import numpy as np
@@ -15,12 +15,14 @@ from commonroad_dc.costs.evaluation import (
     PlanningProblemCostResult,
 )
 
+from drplanner.describer.base import MissingParameterException
 from drplanner.describer.trajectory_description import get_infinite_cost_result
 from drplanner.utils.config import DrPlannerConfiguration
 from drplanner.prompter.search import PrompterSearch
 from drplanner.prompter.llm import LLM
 from drplanner.utils.gpt import num_tokens_from_messages
 from drplanner.memory.memory import FewShotMemory
+from drplanner.utils.general import Statistics
 
 
 class DrPlannerBase(ABC):
@@ -32,6 +34,7 @@ class DrPlannerBase(ABC):
         planner_id: str,
     ):
         self.memory = FewShotMemory()
+        self.statistic = Statistics()
         self.scenario = scenario
         self.planning_problem_set = planning_problem_set
         # otherwise the planning problem might be changed during the initialization of the planner
@@ -167,10 +170,6 @@ class DrPlannerBase(ABC):
         until the patient is cured, or the doctor runs out of tokens/time
         """
         nr_iteration = 0
-        run_start_time = datetime.now().strftime("%Y%m%d-%H%M%S")
-        print(
-            f"[DrPlanner] Starts the diagnosis and repair process at {run_start_time}."
-        )
         result = None
 
         # test the initial motion planner once
@@ -190,6 +189,7 @@ class DrPlannerBase(ABC):
 
         self.initial_cost = self.current_cost
         self.lowest_cost = self.current_cost
+        start_time = time.time()
         # start the repairing process
         while nr_iteration < self.ITERATION_MAX:
             print(f"*\t -----------iteration {nr_iteration}-----------")
@@ -246,6 +246,7 @@ class DrPlannerBase(ABC):
                 cost_result = self.plan(nr_iteration)
                 if isinstance(cost_result, Exception):
                     raise cost_result
+                self.statistic.update_iteration(cost_result.total_costs)
                 # add feedback
                 prompt_feedback = self.add_feedback(cost_result)
                 # determine whether the current cost function prompt needs an update
@@ -261,6 +262,9 @@ class DrPlannerBase(ABC):
                 self.describe_planner(update=update, improved=improved)
 
             except Exception as e:
+                if isinstance(e, MissingParameterException):
+                    self.statistic.missing_parameter_count += 1
+                self.statistic.update_iteration(e.__class__.__name__)
                 prompt_feedback = (
                     "Usually here would be an evaluation of the repair, but..."
                 )
@@ -275,4 +279,8 @@ class DrPlannerBase(ABC):
             self.cost_list.append(self.current_cost)
 
         print("[DrPlanner] Ends.")
+        end_time = time.time()
+        duration = end_time - start_time
+        self.statistic.duration = duration / self.config.iteration_max
+        self.statistic.token_count = self.token_count
         return result

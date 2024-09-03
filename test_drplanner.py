@@ -7,7 +7,7 @@ from commonroad.common.file_reader import CommonRoadFileReader
 from drplanner.diagnostics.sampling import DrSamplingPlanner
 
 from drplanner.utils.config import DrPlannerConfiguration
-from modular_approach.iteration import run_iterative_repair
+from drplanner.modular_approach.iteration import run_iterative_repair
 
 
 def results_to_csv(filename: str, data: list):

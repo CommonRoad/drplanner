@@ -30,13 +30,13 @@ def run_dr_sampling_planner(scenario_filepath: str, result_filepath):
         config,
         "planner_id",
     )
-    statistic = dr_planner.diagnose_repair()
+    dr_planner.diagnose_repair()
     row = [
         str(scenario.scenario_id),
         dr_planner.initial_cost,
         min(dr_planner.cost_list),
     ]
-    row.extend(statistic.get_iteration_data())
+    row.extend(dr_planner.statistic.get_iteration_data())
     results_to_csv(result_filepath, row)
 
 

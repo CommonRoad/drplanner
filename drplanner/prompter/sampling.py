@@ -1,4 +1,3 @@
-
 from commonroad.scenario.scenario import Scenario
 from commonroad.planning.planning_problem import PlanningProblem
 from commonroad_rp.utility.config import ReactivePlannerConfiguration
@@ -19,7 +18,8 @@ class PrompterSampling(PrompterBase):
         self.config = config
         self.COST_FUNCTION = "improved_cost_function"
         self.HELPER_METHODS = "helper_methods"
-        self.PLANNER_CONFIG = "planning_horizon"
+        self.PLANNING_HORIZON = "planning_horizon"
+        self.SAMPLING_D = "lateral_distance"
         template = [
             #            "constraints",
             "algorithm",
@@ -29,11 +29,7 @@ class PrompterSampling(PrompterBase):
             "feedback",
         ]
 
-        if config.repair_memory:
-            template.insert(3, "memory")
-            template.insert(3, "documentation")
-        else:
-            template.insert(3, "documentation")
+        template.insert(3, "documentation")
 
         super().__init__(
             scenario,
@@ -49,9 +45,18 @@ class PrompterSampling(PrompterBase):
     def init_LLM(self) -> LLMFunction:
         llm_function = LLMFunction()
         llm_function.add_code_parameter(self.COST_FUNCTION, "updated cost function")
-        llm_function.add_array_parameter(self.HELPER_METHODS, "array to collect helper methods", llm_function.get_code_parameter("code of a custom helper method"))
+        llm_function.add_array_parameter(
+            self.HELPER_METHODS,
+            "array to collect helper methods",
+            llm_function.get_code_parameter("code of a custom helper method"),
+        )
         if self.config.repair_sampling_parameters:
-            llm_function.add_number_parameter(self.PLANNER_CONFIG, "planning horizon in [sec]")
+            llm_function.add_number_parameter(
+                self.PLANNING_HORIZON, "planning horizon in [sec]"
+            )
+            llm_function.add_number_parameter(
+                self.SAMPLING_D, "lateral distance to reference in interval [0;5] meters"
+            )
         return llm_function
 
     def update_planner_prompt(
@@ -63,21 +68,15 @@ class PrompterSampling(PrompterBase):
             else:
                 version = "currently best performing"
             cf_code = (
-                    f"This is the code of the {version} cost function:\n```\n"
-                    + cost_function
-                    + "```\n"
+                f"This is the code of the {version} cost function:\n```\n"
+                + cost_function
+                + "```\n"
             )
         else:
             cf_code = "What follows is a comparison of two recent repairs you made:\n"
+            cf_code += f"This is the current version:\n```\n" + cost_function + "```\n"
             cf_code += (
-                    f"This is the current version:\n```\n"
-                    + cost_function
-                    + "```\n"
-            )
-            cf_code += (
-                    f"This is the last version:\n```\n"
-                    + cost_function_previous
-                    + "```\n"
+                f"This is the last version:\n```\n" + cost_function_previous + "```\n"
             )
 
         self.user_prompt.set("planner", cf_code)
@@ -87,6 +86,7 @@ class PrompterSampling(PrompterBase):
         config_description = "You can also modify the length of the planning horizon. There are two options:\n"
         config_description += "If the planner failed, but you can not identify any specific reason for that, it might help to reset planning horizon to 3 seconds. "
         config_description += "If planning performance is stagnating even though major changes where made to the cost function, slightly increasing the planning horizon by 1 second might prove to be helpful.\n"
+        config_description += "Furthermore, you can modify the lateral distance which the planner can move away from the goal."
         # describe the current planning horizon
         t_max = float(0.1 * time_steps_computation)
         config_description += f"The current planning horizon is {t_max} seconds."

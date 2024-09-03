@@ -66,9 +66,10 @@ class TrajectoryCostDescription(DescriptionBase):
         version_a: str,
         b: PlanningProblemCostResult,
         desired_cost: int,
-
     ):
-        self.description = TrajectoryCostDescription.evaluate(a, b, version_a, "current")
+        self.description = TrajectoryCostDescription.evaluate(
+            a, b, version_a, "current"
+        )
         self.description += (
             f"The objective is to adjust the total cost of the planned trajectory to closely "
             f"align with the desired value {desired_cost}.\n"
@@ -76,18 +77,27 @@ class TrajectoryCostDescription(DescriptionBase):
         return self.description
 
     @staticmethod
-    def evaluate(a: PlanningProblemCostResult, b: PlanningProblemCostResult, a_name: str, b_name: str) -> str:
+    def evaluate(
+        a: PlanningProblemCostResult,
+        b: PlanningProblemCostResult,
+        a_name: str,
+        b_name: str,
+    ) -> str:
         description = f"Here is a performance comparison between the {a_name} and {b_name} version\n"
-        description += TrajectoryCostDescription._compare("total cost", a.total_costs, b.total_costs, a_name, b_name)
+        description += TrajectoryCostDescription._compare(
+            "total cost", a.total_costs, b.total_costs, a_name, b_name
+        )
         description += "Total cost is calculated by a weighted sum of:\n"
         for (item, a_cost), (_, b_cost) in zip(
-                a.partial_costs.items(), b.partial_costs.items()
+            a.partial_costs.items(), b.partial_costs.items()
         ):
             a_cost *= a.weights[item]
             b_cost *= a.weights[item]
             if a_cost == 0.0 and b_cost == 0.0:
                 continue
-            description += TrajectoryCostDescription._compare(CostFunctionMeaningMapping[item], a_cost, b_cost, a_name, b_name)
+            description += TrajectoryCostDescription._compare(
+                CostFunctionMeaningMapping[item], a_cost, b_cost, a_name, b_name
+            )
         description = description[:-2] + ". "
 
         threshold = 1.0
@@ -100,7 +110,13 @@ class TrajectoryCostDescription(DescriptionBase):
         return description
 
     @staticmethod
-    def _compare(item: str, initial: float, repaired: float, version_initial: str, version_repaired: str):
+    def _compare(
+        item: str,
+        initial: float,
+        repaired: float,
+        version_initial: str,
+        version_repaired: str,
+    ):
         threshold_1 = 1.0
         threshold_2 = 0.1
         if abs(initial - repaired) < threshold_2:

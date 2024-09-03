@@ -14,6 +14,7 @@ from drplanner.planners.reactive_planner import (
     get_basic_configuration_path,
 )
 from drplanner.utils.config import DrPlannerConfiguration
+from drplanner.utils.general import Statistics
 
 
 class Reflection:
@@ -66,8 +67,9 @@ class Diagnosis:
 
 
 class Module(ABC):
-    def __init__(self, config: DrPlannerConfiguration):
+    def __init__(self, config: DrPlannerConfiguration, statistic: Statistics):
         self.config = config
+        self.statistic = statistic
         self.separator = '"""\n'
         self.path_to_prompts = os.path.join(
             os.path.dirname(os.path.abspath(__file__)), "prompts"
@@ -83,28 +85,39 @@ class Module(ABC):
 
 # module that evaluates reactive planner on a scenario
 class EvaluationModule(Module):
-    def __init__(self, config: DrPlannerConfiguration, cost_function_type: CostFunction = CostFunction.SM1):
-        super().__init__(config)
+    def __init__(
+        self,
+        config: DrPlannerConfiguration,
+        statistic: Statistics,
+        cost_function_type: CostFunction = CostFunction.SM1,
+    ):
+        super().__init__(config, statistic)
         self.absolute_config_path = get_basic_configuration_path()
         self.cost_function_type = cost_function_type
 
     def run(
-        self, absolute_scenario_path: str, motion_planner: ReactiveMotionPlanner, plot=True
-    ) -> Tuple[str, PlanningProblemCostResult]:
+        self,
+        absolute_scenario_path: str,
+        motion_planner: ReactiveMotionPlanner,
+        plot=True,
+    ) -> Tuple[str, PlanningProblemCostResult, str]:
+        exc = ""
         try:
             path_to_plot = self.path_to_plot
             if not plot:
                 path_to_plot = None
-            cost_result = motion_planner.evaluate_on_scenario(
+            cost_result, missing_hm = motion_planner.evaluate_on_scenario(
                 absolute_scenario_path,
                 self.absolute_config_path,
                 cost_type=self.cost_function_type,
                 absolute_save_path=path_to_plot,
             )
+            self.statistic.flawed_helper_methods_count += missing_hm
             evaluation = TrajectoryCostDescription().generate(
                 cost_result, self.config.desired_cost
             )
         except Exception as e:
             evaluation = PrompterBase.generate_exception_description(e)
             cost_result = get_infinite_cost_result(self.cost_function_type)
-        return evaluation, cost_result
+            exc = e.__class__.__name__
+        return evaluation, cost_result, exc

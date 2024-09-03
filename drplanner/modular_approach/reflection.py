@@ -1,15 +1,17 @@
 import os
 
 from commonroad_dc.costs.evaluation import PlanningProblemCostResult
+from drplanner.utils.gpt import num_tokens_from_messages
+
 from drplanner.utils.config import DrPlannerConfiguration
 
 from drplanner.describer.trajectory_description import TrajectoryCostDescription
 from drplanner.prompter.llm import LLM
 
-from drplanner.modular_approach.module import Module
+from drplanner.modular_approach.module import Module, Reflection
 from drplanner.prompter.base import Prompt
 from drplanner.prompter.llm import LLMFunction
-from drplanner.modular_approach.iteration import Reflection
+from drplanner.utils.general import Statistics
 
 
 # module that generates a diagnosis based on reactive planner performance
@@ -17,12 +19,12 @@ class ReflectionModule(Module):
     def __init__(
         self,
         config: DrPlannerConfiguration,
+        statistic: Statistics,
         save_dir: str,
         gpt_version: str,
         temperature: float,
     ):
-        super().__init__(config)
-        self.reflect_at = 3
+        super().__init__(config, statistic)
         self.prompt_structure = ["evaluation", "analysis"]
         self.save_dir = save_dir
         self.gpt_version = gpt_version
@@ -46,7 +48,7 @@ class ReflectionModule(Module):
         }
         feedback_llm_function.add_object_parameter("analysis", analysis_structure)
         feedback_llm_function.add_string_parameter(
-            "analysis_summary", "summary of the previous analysis"
+            "analysis_summary", "combined summary of every part of the analysis"
         )
 
         self.feedback_llm = LLM(
@@ -93,17 +95,20 @@ class ReflectionModule(Module):
         analysis_prompt += "And here is their implementation by the repair-system:\n"
         analysis_prompt += f"{self.separator}{repair}\n{self.separator}"
         analysis_prompt += "Now analyze the following questions in-depth: "
-        analysis_prompt += "1) Which parts of the diagnosis were successfully implemented (if any)? "
+        analysis_prompt += (
+            "1) Which parts of the diagnosis were successfully implemented (if any)? "
+        )
         analysis_prompt += "2) Which parts of the diagnosis were ignored or badly implemented (if any)? "
-        analysis_prompt += "3) Were the recommendations helpful for improving the planner? "
+        analysis_prompt += (
+            "3) Were the recommendations helpful for improving the planner? "
+        )
         analysis_prompt += "4) Which recommendations affected planner performance the most in your opinion?"
         analysis_prompt += "Finally, summarize your thoughts compactly into a reflection to help improving the next iteration."
         user_prompt.set("analysis", analysis_prompt)
         return user_prompt
 
     def generate_reflection_user_prompt(
-        self,
-        past_reflections: list[Reflection]
+        self, past_reflections: list[Reflection]
     ) -> Prompt:
         user_prompt = Prompt(self.prompt_structure)
         eval_prompt = "Here are the summaries of all previous iterations:\n"
@@ -124,13 +129,19 @@ class ReflectionModule(Module):
         past_reflections: list[Reflection],
         iteration_id: int,
     ) -> Reflection:
-        if (iteration_id + 1) % self.reflect_at == 0:
+        if (iteration_id + 1) % self.config.reflect_at == 0:
             user_prompt = self.generate_reflection_user_prompt(past_reflections)
             # query the llm
             messages = LLM.get_messages(
                 self.system_prompt.__str__(), user_prompt.__str__(), None
             )
-            save_dir = os.path.join(self.save_dir, self.config.gpt_version, "reflection")
+            self.statistic.token_count += num_tokens_from_messages(
+                LLM.extract_text_from_messages(messages),
+                self.gpt_version,
+            )
+            save_dir = os.path.join(
+                self.save_dir, self.config.gpt_version, "reflection"
+            )
             mockup_path = ""
             if self.config.mockup_openAI:
                 mockup_path = save_dir
@@ -139,7 +150,7 @@ class ReflectionModule(Module):
                 messages,
                 nr_iter=iteration_id,
                 save_dir=save_dir,
-                mockup_path=mockup_path
+                mockup_path=mockup_path,
             )
             if "reflection" in result.keys():
                 reflection = result["reflection"]
@@ -151,11 +162,18 @@ class ReflectionModule(Module):
                 if "repair" in reflection.keys():
                     repair_reflection = reflection["repair"]
             else:
+                self.statistic.missing_parameter_count += 1
                 raise ValueError("Reflection module did not reflect")
 
-            return Reflection("", diagnosis_reflection=diagnosis_reflection, repair_reflection=repair_reflection)
+            return Reflection(
+                "",
+                diagnosis_reflection=diagnosis_reflection,
+                repair_reflection=repair_reflection,
+            )
         else:
-            evaluation = TrajectoryCostDescription.evaluate(cr_initial, cr_repaired, "initial", "repaired")
+            evaluation = TrajectoryCostDescription.evaluate(
+                cr_initial, cr_repaired, "initial", "repaired"
+            )
             user_prompt = self.generate_feedback_user_prompt(
                 evaluation, diagnosis, repair
             )
@@ -163,7 +181,13 @@ class ReflectionModule(Module):
             messages = LLM.get_messages(
                 self.system_prompt.__str__(), user_prompt.__str__(), None
             )
-            save_dir = os.path.join(self.save_dir, self.config.gpt_version, "reflection")
+            self.statistic.token_count += num_tokens_from_messages(
+                LLM.extract_text_from_messages(messages),
+                self.gpt_version,
+            )
+            save_dir = os.path.join(
+                self.save_dir, self.config.gpt_version, "reflection"
+            )
             mockup_path = ""
             if self.config.mockup_openAI:
                 mockup_path = save_dir
@@ -172,10 +196,11 @@ class ReflectionModule(Module):
                 messages,
                 nr_iter=iteration_id,
                 save_dir=save_dir,
-                mockup_path=mockup_path
+                mockup_path=mockup_path,
             )
             if "analysis_summary" in result.keys():
                 summary = result["analysis_summary"]
             else:
+                self.statistic.missing_parameter_count += 1
                 raise ValueError("Reflection module did not reflect")
             return Reflection(summary)

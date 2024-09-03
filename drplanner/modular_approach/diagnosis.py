@@ -12,6 +12,7 @@ from drplanner.prompter.base import Prompt
 from drplanner.prompter.llm import LLMFunction
 from drplanner.modular_approach.module import Reflection
 from drplanner.utils.general import Statistics
+from drplanner.planners.reactive_planner import ReactiveMotionPlanner
 
 
 # module that generates a diagnosis based on reactive planner performance
@@ -93,7 +94,7 @@ class DiagnosisModule(Module):
         )
 
     def generate_user_prompt(
-        self, cost_function: str, evaluation: str, reflection: str, memories: list[str]
+        self, planner: ReactiveMotionPlanner, evaluation: str, reflection: str, memories: list[str]
     ) -> Prompt:
         user_prompt = Prompt(self.prompt_structure)
 
@@ -132,8 +133,10 @@ class DiagnosisModule(Module):
         problem_prompt += "Judging from this performance rating, in which areas can the planner improve and which areas are probably not that important?"
         user_prompt.set("evaluation", problem_prompt)
 
-        reason_prompt = "Next, take a more detailed look at the cost function which the planner currently uses:\n"
-        reason_prompt += f"{self.separator}{cost_function}\n{self.separator}"
+        reason_prompt = "Next, take a more detailed look at the planner itself. Here is the cost function it currently uses:\n"
+        reason_prompt += f"{self.separator}{planner.cost_function_string}\n{self.separator}"
+        if self.config.repair_sampling_parameters:
+            reason_prompt += f"Furthermore, this is the current sampling configuration: A planning horizon of {planner.max_time_steps/10.0} seconds and an allowed deviation from the reference path of {planner.d} meters.\n"
         reason_prompt += "What are the influencing factors and how could they be causing the problem?"
         user_prompt.set("cost_function", reason_prompt)
 
@@ -146,7 +149,7 @@ class DiagnosisModule(Module):
     def run(
         self,
         evaluation: str,
-        cost_function: str,
+        planner: ReactiveMotionPlanner,
         reflection: Reflection,
         few_shots: list[Tuple[str, str]],
         iteration_id: int,
@@ -161,7 +164,7 @@ class DiagnosisModule(Module):
             reflection = ""
 
         user_prompt = self.generate_user_prompt(
-            cost_function, evaluation, reflection, memories
+            planner, evaluation, reflection, memories
         )
 
         # query the llm

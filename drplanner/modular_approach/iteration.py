@@ -88,7 +88,7 @@ class Iteration:
         try:
             diagnosis, max_time_steps, sampling_d = self.diagnosis_module.run(
                 initial_evaluation,
-                initial_cost_function,
+                motion_planner,
                 last_reflection,
                 few_shots,
                 iteration_id,

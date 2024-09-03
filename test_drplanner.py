@@ -66,8 +66,7 @@ def run_dr_iteration_planner(scenario_filepath: str, result_filepath):
         initial_cost_result,
         best_cost_result,
     ]
-    for c in cost_results:
-        row.append(c)
+    row.extend(statistics.get_iteration_data())
     results_to_csv(result_filepath, row)
 
 

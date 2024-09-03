@@ -19,9 +19,10 @@ def results_to_csv(filename: str, data: list):
         write.writerow(data)
 
 
-def run_dr_sampling_planner(scenario_filepath: str, result_filepath: str):
+def run_dr_sampling_planner(scenario_filepath: str, result_filepath):
     scenario, planning_problem_set = CommonRoadFileReader(scenario_filepath).open(True)
     config = DrPlannerConfiguration()
+    config.save_dir = os.path.dirname(result_filepath)
     dr_planner = DrSamplingPlanner(
         scenario,
         scenario_filepath,
@@ -29,27 +30,14 @@ def run_dr_sampling_planner(scenario_filepath: str, result_filepath: str):
         config,
         "planner_id",
     )
-    dr_planner.diagnose_repair()
-
-    if len(dr_planner.cost_list) <= 0:
-        print("This scenario needs no repairs!")
-        row = [
-            str(scenario.scenario_id),
-            str(config.gpt_version),
-            dr_planner.initial_cost,
-        ]
-        results_to_csv(result_filepath, row)
-
+    statistic = dr_planner.diagnose_repair()
     row = [
         str(scenario.scenario_id),
-        str(config.gpt_version),
         dr_planner.initial_cost,
         min(dr_planner.cost_list),
     ]
-    for c in dr_planner.cost_list:
-        row.append(c)
+    row.extend(statistic.get_iteration_data())
     results_to_csv(result_filepath, row)
-    print(dr_planner.cost_list, min(dr_planner.cost_list), dr_planner.initial_cost)
 
 
 def run_dr_iteration_planner(scenario_filepath: str, result_filepath):
@@ -70,7 +58,7 @@ def run_dr_iteration_planner(scenario_filepath: str, result_filepath):
     results_to_csv(result_filepath, row)
 
 
-def test_modular_version():
+def run_tests():
     config = DrPlannerConfiguration()
     path_to_repo = os.path.dirname(os.path.abspath(__file__))
     path_to_scenarios = str(os.path.join(path_to_repo, "scenarios", config.dataset))
@@ -80,7 +68,8 @@ def test_modular_version():
         experiment_name,
         config.dataset
     )
-    result_csv_path = os.path.join(path_to_results, "results.csv")
+    result_csv_path_old = os.path.join(path_to_results, "approach1", "results.csv")
+    result_csv_path_modular = os.path.join(path_to_results, "approach2", "results.csv")
     result_config_path = os.path.join(path_to_results, "config.txt")
     index_row = [
         "scenario_id",
@@ -97,12 +86,19 @@ def test_modular_version():
     for i in range(config.iteration_max):
         index_row.append(f"iter_{i}")
 
-    if not os.path.exists(os.path.dirname(result_csv_path)):
-        os.makedirs(os.path.dirname(result_csv_path), exist_ok=True)
+    if not os.path.exists(os.path.dirname(result_csv_path_old)):
+        os.makedirs(os.path.dirname(result_csv_path_old), exist_ok=True)
+    if not os.path.exists(os.path.dirname(result_csv_path_modular)):
+        os.makedirs(os.path.dirname(result_csv_path_modular), exist_ok=True)
     if not os.path.exists(os.path.dirname(result_config_path)):
         os.makedirs(os.path.dirname(result_config_path), exist_ok=True)
 
-    result_csv_file = open(result_csv_path, "w+", newline="")
+    result_csv_file = open(result_csv_path_old, "w+", newline="")
+    with result_csv_file:
+        w = csv.writer(result_csv_file)
+        w.writerow(index_row)
+
+    result_csv_file = open(result_csv_path_modular, "w+", newline="")
     with result_csv_file:
         w = csv.writer(result_csv_file)
         w.writerow(index_row)
@@ -115,7 +111,11 @@ def test_modular_version():
     scenarios = [os.path.abspath(file) for file in xml_files]
     for p in scenarios:
         print(p)
-        run_dr_iteration_planner(p, result_csv_path)
+        run_dr_sampling_planner(p, result_csv_path_old)
+
+    for p in scenarios:
+        print(p)
+        run_dr_iteration_planner(p, result_csv_path_modular)
 
 
-test_modular_version()
+run_tests()

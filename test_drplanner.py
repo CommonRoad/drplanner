@@ -58,15 +58,14 @@ def run_dr_iteration_planner(scenario_filepath: str, result_filepath):
     results_to_csv(result_filepath, row)
 
 
-def run_tests():
-    config = DrPlannerConfiguration()
+def run_tests(dataset: str, config: DrPlannerConfiguration, modular: bool):
     path_to_repo = os.path.dirname(os.path.abspath(__file__))
-    path_to_scenarios = str(os.path.join(path_to_repo, "scenarios", config.dataset))
+    path_to_scenarios = os.path.join(path_to_repo, "scenarios", dataset)
     experiment_name = f"modular-{config.gpt_version}-{config.temperature}"
     path_to_results = os.path.join(
-        DrPlannerConfiguration().save_dir,
+        config.save_dir,
         experiment_name,
-        config.dataset
+        dataset
     )
     result_csv_path_old = os.path.join(path_to_results, "approach1", "results.csv")
     result_csv_path_modular = os.path.join(path_to_results, "approach2", "results.csv")
@@ -111,11 +110,25 @@ def run_tests():
     scenarios = [os.path.abspath(file) for file in xml_files]
     for p in scenarios:
         print(p)
-        run_dr_sampling_planner(p, result_csv_path_old)
+        if modular:
+            run_dr_iteration_planner(p, result_csv_path_modular)
+        else:
+            run_dr_sampling_planner(p, result_csv_path_old)
 
-    for p in scenarios:
-        print(p)
-        run_dr_iteration_planner(p, result_csv_path_modular)
 
+standard_config = DrPlannerConfiguration()
+standard_save_dir = standard_config.save_dir
+# first test: variance
+standard_config.iteration_max = 5
+for i in range(20):
+    standard_config.save_dir = os.path.join(standard_save_dir, "variance_without_reflection", f"run_{i}")
+    run_tests("small", standard_config, True)
 
-run_tests()
+standard_config.reflection_module = True
+for i in range(20):
+    standard_config.save_dir = os.path.join(standard_save_dir, "variance_with_reflection", f"run_{i}")
+    run_tests("small", standard_config, True)
+
+for i in range(20):
+    standard_config.save_dir = os.path.join(standard_save_dir, "variance_not_modular", f"run_{i}")
+    run_tests("small", standard_config, False)

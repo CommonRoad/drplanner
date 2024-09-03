@@ -1,14 +1,1 @@
-def evaluate(self, trajectory: TrajectorySample) -> float:
-    cost = 0.0
-    cost += 0.0 * self.acceleration_costs(trajectory)
-    cost += 0.0 * self.jerk_costs(trajectory)
-    cost += 0.0 * self.lateral_jerk_costs(trajectory)
-    cost += 0.0 * self.longitudinal_jerk_costs(trajectory)
-    cost += 0.0 * self.orientation_offset_costs(trajectory)
-    cost += 0.0 * self.steering_angle_costs(trajectory)
-    cost += 0.0 * self.steering_velocity_costs(trajectory)
-    cost += 1.0 * self.desired_velocity_costs(trajectory)
-    cost += 70.0 * self.distance_to_reference_path_costs(trajectory)
-    cost += 1.0 * self.desired_path_length_costs(trajectory)
-    cost += 0.0 * self.path_length_costs(trajectory)
-    return cost
+To the chosen trajectory a total penalty of 173.25 was issued. It consists of squared sum of acceleration, valued at 64.26; squared sum of steering angle, valued at 0.06; squared sum of steering velocity, valued at 0.42; sum of the path length, valued at 107.34; squared sum of the deviation to the desired velocity, valued at 0.00; squared sum of the deviation to the desired orientation, valued at 1.17. The objective is to decrease this penalty of the planned trajectory to closely align with desired value 0.16.

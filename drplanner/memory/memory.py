@@ -233,3 +233,6 @@ class FewShotMemory:
             return True
         else:
             return False
+
+    def get_size(self):
+        return self.collection.count()

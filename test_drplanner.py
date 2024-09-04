@@ -8,6 +8,7 @@ from drplanner.diagnostics.sampling import DrSamplingPlanner
 
 from drplanner.utils.config import DrPlannerConfiguration
 from drplanner.modular_approach.iteration import run_iterative_repair
+from memory.memory import FewShotMemory
 
 
 def results_to_csv(filename: str, data: list):
@@ -19,9 +20,8 @@ def results_to_csv(filename: str, data: list):
         write.writerow(data)
 
 
-def run_dr_sampling_planner(scenario_filepath: str, result_filepath):
+def run_dr_sampling_planner(scenario_filepath: str, result_filepath, config):
     scenario, planning_problem_set = CommonRoadFileReader(scenario_filepath).open(True)
-    config = DrPlannerConfiguration()
     config.save_dir = os.path.dirname(result_filepath)
     dr_planner = DrSamplingPlanner(
         scenario,
@@ -40,8 +40,7 @@ def run_dr_sampling_planner(scenario_filepath: str, result_filepath):
     results_to_csv(result_filepath, row)
 
 
-def run_dr_iteration_planner(scenario_filepath: str, result_filepath):
-    config = DrPlannerConfiguration()
+def run_dr_iteration_planner(scenario_filepath: str, result_filepath, config):
     config.save_dir = os.path.dirname(result_filepath)
 
     cost_results, statistics = run_iterative_repair(scenario_path=scenario_filepath, config=config)
@@ -103,7 +102,8 @@ def run_tests(dataset: str, config: DrPlannerConfiguration, modular: bool):
         w.writerow(index_row)
 
     with open(result_config_path, "w+") as file:
-        file.write(config.__str__())
+        memory_size = FewShotMemory().get_size()
+        file.write(f"{config.__str__()}memory size: {memory_size}")
 
     # collect all scenarios
     xml_files = glob.glob(os.path.join(path_to_scenarios, "**", "*.xml"), recursive=True)
@@ -111,24 +111,27 @@ def run_tests(dataset: str, config: DrPlannerConfiguration, modular: bool):
     for p in scenarios:
         print(p)
         if modular:
-            run_dr_iteration_planner(p, result_csv_path_modular)
+            run_dr_iteration_planner(p, result_csv_path_modular, config)
         else:
-            run_dr_sampling_planner(p, result_csv_path_old)
+            run_dr_sampling_planner(p, result_csv_path_old, config)
 
 
 standard_config = DrPlannerConfiguration()
 standard_save_dir = standard_config.save_dir
-# first test: variance
-standard_config.iteration_max = 5
-for i in range(20):
-    standard_config.save_dir = os.path.join(standard_save_dir, "variance_without_reflection", f"run_{i}")
-    run_tests("small", standard_config, True)
 
+# basic modular
+standard_config.save_dir = os.path.join(standard_save_dir, "performance_without_reflection")
+run_tests("large", standard_config, True)
+
+# reflect modular
 standard_config.reflection_module = True
-for i in range(20):
-    standard_config.save_dir = os.path.join(standard_save_dir, "variance_with_reflection", f"run_{i}")
-    run_tests("small", standard_config, True)
+standard_config.save_dir = os.path.join(standard_save_dir, "performance_with_reflection")
+run_tests("large", standard_config, True)
 
-for i in range(20):
-    standard_config.save_dir = os.path.join(standard_save_dir, "variance_not_modular", f"run_{i}")
-    run_tests("small", standard_config, False)
+# memory modular
+standard_config.memory_module = True
+standard_config.save_dir = os.path.join(standard_save_dir, "performance_with_reflection_and_memory")
+run_tests("large", standard_config, True)
+
+standard_config.save_dir = os.path.join(standard_save_dir, "performance_original")
+run_tests("large", standard_config, False)

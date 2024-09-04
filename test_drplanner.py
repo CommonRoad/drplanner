@@ -9,7 +9,7 @@ from drplanner.diagnostics.sampling import DrSamplingPlanner
 
 from drplanner.utils.config import DrPlannerConfiguration
 from drplanner.modular_approach.iteration import run_iterative_repair
-from memory.memory import FewShotMemory
+from drplanner.memory.memory import FewShotMemory
 
 
 def results_to_csv(filename: str, data: list):

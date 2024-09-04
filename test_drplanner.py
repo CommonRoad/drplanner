@@ -1,6 +1,7 @@
 import csv
 import glob
 import os
+import shutil
 
 from commonroad.common.file_reader import CommonRoadFileReader
 
@@ -66,8 +67,7 @@ def run_tests(dataset: str, config: DrPlannerConfiguration, modular: bool):
         experiment_name,
         dataset
     )
-    result_csv_path_old = os.path.join(path_to_results, "approach1", "results.csv")
-    result_csv_path_modular = os.path.join(path_to_results, "approach2", "results.csv")
+    result_csv_path = os.path.join(path_to_results, "results.csv")
     result_config_path = os.path.join(path_to_results, "config.txt")
     index_row = [
         "scenario_id",
@@ -84,19 +84,12 @@ def run_tests(dataset: str, config: DrPlannerConfiguration, modular: bool):
     for i in range(config.iteration_max):
         index_row.append(f"iter_{i}")
 
-    if not os.path.exists(os.path.dirname(result_csv_path_old)):
-        os.makedirs(os.path.dirname(result_csv_path_old), exist_ok=True)
-    if not os.path.exists(os.path.dirname(result_csv_path_modular)):
-        os.makedirs(os.path.dirname(result_csv_path_modular), exist_ok=True)
+    if not os.path.exists(os.path.dirname(result_csv_path)):
+        os.makedirs(os.path.dirname(result_csv_path), exist_ok=True)
     if not os.path.exists(os.path.dirname(result_config_path)):
         os.makedirs(os.path.dirname(result_config_path), exist_ok=True)
 
-    result_csv_file = open(result_csv_path_old, "w+", newline="")
-    with result_csv_file:
-        w = csv.writer(result_csv_file)
-        w.writerow(index_row)
-
-    result_csv_file = open(result_csv_path_modular, "w+", newline="")
+    result_csv_file = open(result_csv_path, "w+", newline="")
     with result_csv_file:
         w = csv.writer(result_csv_file)
         w.writerow(index_row)
@@ -111,27 +104,25 @@ def run_tests(dataset: str, config: DrPlannerConfiguration, modular: bool):
     for p in scenarios:
         print(p)
         if modular:
-            run_dr_iteration_planner(p, result_csv_path_modular, config)
+            run_dr_iteration_planner(p, result_csv_path, config)
         else:
-            run_dr_sampling_planner(p, result_csv_path_old, config)
+            run_dr_sampling_planner(p, result_csv_path, config)
+    return result_csv_path
 
 
 standard_config = DrPlannerConfiguration()
 standard_save_dir = standard_config.save_dir
 
-# basic modular
-standard_config.save_dir = os.path.join(standard_save_dir, "performance_without_reflection")
-run_tests("large", standard_config, True)
-
-# reflect modular
+# first test: variance
 standard_config.reflection_module = True
-standard_config.save_dir = os.path.join(standard_save_dir, "performance_with_reflection")
-run_tests("large", standard_config, True)
+for i in range(25):
+    standard_config.save_dir = os.path.join(standard_save_dir, "variance_with_reflection", f"run_{i}")
+    csv_path = run_tests("small", standard_config, True)
+    new_path = os.path.join(standard_save_dir, "results", "variance_with_reflection", f"run_{i}")
+    shutil.copy(csv_path, new_path)
 
-# memory modular
-standard_config.memory_module = True
-standard_config.save_dir = os.path.join(standard_save_dir, "performance_with_reflection_and_memory")
-run_tests("large", standard_config, True)
-
-standard_config.save_dir = os.path.join(standard_save_dir, "performance_original")
-run_tests("large", standard_config, False)
+for i in range(25):
+    standard_config.save_dir = os.path.join(standard_save_dir, "variance_not_modular", f"run_{i}")
+    csv_path = run_tests("small", standard_config, False)
+    new_path = os.path.join(standard_save_dir, "results", "variance_not_modular", f"run_{i}")
+    shutil.copy(csv_path, new_path)

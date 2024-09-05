@@ -34,6 +34,11 @@ class Prompt:
             return
         self._content[key] = value
 
+    def append(self, key, value):
+        if key not in self._content.keys():
+            return
+        self._content[key] += value
+
 
 class PrompterBase(ABC):
     def __init__(

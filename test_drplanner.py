@@ -114,32 +114,48 @@ standard_config = DrPlannerConfiguration()
 standard_save_dir = standard_config.save_dir
 standard_config.temperature = 0.6
 
-standard_config.reflection_module = True
-standard_config.save_dir = os.path.join(standard_save_dir, "performance", "modular_with_reflection")
+# no reflection modular
+standard_config.reflection_module = False
+standard_config.save_dir = os.path.join(standard_save_dir, "performance", "modular_without_reflection")
 csv_path = run_tests("large", standard_config, True)
-new_path = os.path.join(standard_save_dir, "results", "performance", "modular_with_reflection.csv")
+new_path = os.path.join(standard_save_dir, "results", "performance", "modular_without_reflection.csv")
 if not os.path.exists(os.path.dirname(new_path)):
     os.makedirs(os.path.dirname(new_path), exist_ok=True)
 shutil.copy(csv_path, new_path)
 
-standard_config.save_dir = os.path.join(standard_save_dir, "performance", "not_modular_reflection")
+# old reflection original
+standard_config.feedback_mode = 0
+standard_config.save_dir = os.path.join(standard_save_dir, "performance", "not_modular_without_reflection")
 csv_path = run_tests("large", standard_config, False)
-new_path = os.path.join(standard_save_dir, "results", "performance", "not_modular_reflection.csv")
+new_path = os.path.join(standard_save_dir, "results", "performance", "not_modular_without_reflection.csv")
 if not os.path.exists(os.path.dirname(new_path)):
     os.makedirs(os.path.dirname(new_path), exist_ok=True)
 shutil.copy(csv_path, new_path)
 
+standard_config.repair_sampling_parameters = False
+
+# no sampling modular
+standard_config.save_dir = os.path.join(standard_save_dir, "performance", "modular_without_sampling")
+csv_path = run_tests("large", standard_config, True)
+new_path = os.path.join(standard_save_dir, "results", "performance", "modular_without_sampling.csv")
+if not os.path.exists(os.path.dirname(new_path)):
+    os.makedirs(os.path.dirname(new_path), exist_ok=True)
+shutil.copy(csv_path, new_path)
+
+# no sampling original
+standard_config.save_dir = os.path.join(standard_save_dir, "performance", "not_modular_without_sampling")
+csv_path = run_tests("large", standard_config, False)
+new_path = os.path.join(standard_save_dir, "results", "performance", "not_modular_without_sampling.csv")
+if not os.path.exists(os.path.dirname(new_path)):
+    os.makedirs(os.path.dirname(new_path), exist_ok=True)
+shutil.copy(csv_path, new_path)
+
+# no sampling modular
+standard_config.repair_sampling_parameters = True
 standard_config.gpt_version = "gpt-4o"
-standard_config.save_dir = os.path.join(standard_save_dir, "performance", "modular_with_reflection_expansive")
+standard_config.save_dir = os.path.join(standard_save_dir, "performance", "modular_without_feedback_expensive")
 csv_path = run_tests("large", standard_config, True)
-new_path = os.path.join(standard_save_dir, "results", "performance", "modular_with_reflection_expansive.csv")
-if not os.path.exists(os.path.dirname(new_path)):
-    os.makedirs(os.path.dirname(new_path), exist_ok=True)
-shutil.copy(csv_path, new_path)
-
-standard_config.save_dir = os.path.join(standard_save_dir, "performance", "not_modular_reflection_expansive")
-csv_path = run_tests("large", standard_config, False)
-new_path = os.path.join(standard_save_dir, "results", "performance", "not_modular_reflection_expansive.csv")
+new_path = os.path.join(standard_save_dir, "results", "performance", "modular_without_feedback_expensive.csv")
 if not os.path.exists(os.path.dirname(new_path)):
     os.makedirs(os.path.dirname(new_path), exist_ok=True)
 shutil.copy(csv_path, new_path)

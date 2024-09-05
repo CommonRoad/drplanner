@@ -125,7 +125,7 @@ class DrPlannerBase(ABC):
             description = self.prompter.generate_cost_description(
                 self.cost_result_current, self.desired_cost
             )
-            if self.config.include_plot:
+            if self.config.include_plot and self.config.feedback_mode > 0:
                 description += "To give you a broad understanding of the scenario which is currently used for motion planning, a plot is provided showing all lanes (grey), the planned trajectory (black line) and the goal area (light orange)"
         else:
             description = "Usually here would be an evaluation of the initial motion planning result, but..."
@@ -133,7 +133,10 @@ class DrPlannerBase(ABC):
                 planned_trajectory
             )
 
-        self.prompter.user_prompt.set("feedback", description)
+        if self.config.feedback_mode == 1:
+            self.prompter.user_prompt.set("feedback", description)
+        else:
+            self.prompter.user_prompt.append("feedback", description)
 
     def add_feedback(self, cost_result: PlanningProblemCostResult):
         """
@@ -141,6 +144,13 @@ class DrPlannerBase(ABC):
         """
         # retrieve current cost result
         self.cost_result_current = cost_result
+        if self.config.feedback_mode == 0:
+            feedback = ""
+            if self.diagnosis_result and "summary" in self.diagnosis_result.keys():
+                feedback = self.diagnosis_result["summary"].__str__()
+            self.describe_trajectory(None)
+            return feedback
+
         if self.config.feedback_mode > 0:
             version = "last"
         else:
@@ -275,7 +285,10 @@ class DrPlannerBase(ABC):
                 update = self.config.feedback_mode == 1
                 self.describe_planner(update=update)
 
-            self.prompter.user_prompt.set("feedback", prompt_feedback)
+            if self.config.feedback_mode == 1:
+                self.prompter.user_prompt.set("feedback", prompt_feedback)
+            else:
+                self.prompter.user_prompt.append("feedback", prompt_feedback)
             self.cost_list.append(self.current_cost)
 
         print("[DrPlanner] Ends.")

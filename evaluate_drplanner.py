@@ -53,6 +53,10 @@ def pair_up_rows(result_a: str, result_b: str) -> list[Tuple[list, list]]:
 
 
 def relative_improvement(a: float, b: float) -> float:
+    if a == b == math.inf:
+        return 0.0
+    if a != b and (a == math.inf or b == math.inf):
+        return None
     return (a - b) / a
 
 
@@ -101,7 +105,7 @@ def extract_iterations(result_file_path: str) -> list[list[float]]:
     return iterations
 
 
-def compute_pass_at_k(results: list[str], k=1, threshold=0.05) -> ndarray:
+def compute_pass_at_k(results: list[str], k=1, threshold=0.1) -> ndarray:
     num_samples = []
     num_correct = []
 
@@ -122,18 +126,27 @@ def compute_avg_relative_improvement(results: list[str]) -> list[float]:
     avg_relative_improvements = []
     for result_file_path in results:
         scores = extract_final_scores(result_file_path)
-        real_value_scores = [(a, b) for (a, b) in scores if not a == math.inf and not b == math.inf]
-        improvements = [relative_improvement(a, b) for (a, b) in real_value_scores]
+        improvements = [relative_improvement(a, b) for (a, b) in scores if relative_improvement(a, b)]
         avg_relative_improvements.append(sum(improvements) / float(len(improvements)))
 
     return avg_relative_improvements
 
 
-def compute_actual_repairs(results: list[str]) -> list[float]:
+def compute_positive_repairs(results: list[str]) -> list[float]:
     actual_repair_percentages = []
     for result_file_path in results:
         scores = extract_final_scores(result_file_path)
         repairs = [(a, b) for (a, b) in scores if a == math.inf and not b == math.inf]
+        actual_repair_percentages.append(float(len(repairs)) / float(len(scores)))
+
+    return actual_repair_percentages
+
+
+def compute_negative_repairs(results: list[str]) -> list[float]:
+    actual_repair_percentages = []
+    for result_file_path in results:
+        scores = extract_final_scores(result_file_path)
+        repairs = [(a, b) for (a, b) in scores if not a == math.inf and b == math.inf]
         actual_repair_percentages.append(float(len(repairs)) / float(len(scores)))
 
     return actual_repair_percentages
@@ -150,7 +163,7 @@ def compute_relative_stability(results: list[str]) -> list[float]:
             exception_count += len(exceptions)
             sample_count += len(iteration)
 
-        relative_stability.append(float(exception_count) / float(sample_count))
+        relative_stability.append(1 - float(exception_count) / float(sample_count))
 
     return relative_stability
 
@@ -160,15 +173,16 @@ def compute_variance(results: list[str]) -> float:
 
 
 def print_results(results: list[str]):
-    pass_at_1 = compute_pass_at_k(results)
+    pass_at_1 = compute_pass_at_k(results, k=5)
     avg_improv = compute_avg_relative_improvement(results)
-    repairs = compute_actual_repairs(results)
+    positive_repairs = compute_positive_repairs(results)
+    negative_repairs = compute_negative_repairs(results)
     stability = compute_relative_stability(results)
 
     print(pass_at_1)
     for i, result in enumerate(results):
         print(result)
-        print(f"pass at 1: {pass_at_1[i]} |avg improvement: {avg_improv[i]} |amount of repairs: {repairs[i]} |stability: {stability[i]}")
+        print(f"pass at 1: {pass_at_1[i]} |avg improvement: {avg_improv[i]} |amount of repairs: pos ({positive_repairs[i]}), neg ({negative_repairs[i]})|stability: {stability[i]}")
 
 
 path_to_results = "/home/sebastian/Documents/Uni/Experiments/results"

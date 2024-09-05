@@ -38,7 +38,7 @@ class Iteration:
             statistic,
             self.save_dir,
             self.config.gpt_version,
-            self.config.temperature,
+            0.6,
         )
         if self.config.reflection_module:
             self.reflection_module = ReflectionModule(

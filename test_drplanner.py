@@ -112,21 +112,37 @@ def run_tests(dataset: str, config: DrPlannerConfiguration, modular: bool):
 
 standard_config = DrPlannerConfiguration()
 standard_save_dir = standard_config.save_dir
-
-# first test: variance
 standard_config.reflection_module = True
-for i in range(25):
-    standard_config.save_dir = os.path.join(standard_save_dir, "variance_with_reflection", f"run_{i}")
-    csv_path = run_tests("small", standard_config, True)
-    new_path = os.path.join(standard_save_dir, "results", "variance_with_reflection", f"run_{i}")
-    if not os.path.exists(os.path.dirname(new_path)):
-        os.makedirs(os.path.dirname(new_path), exist_ok=True)
-    shutil.copy(csv_path, new_path)
 
-for i in range(25):
-    standard_config.save_dir = os.path.join(standard_save_dir, "variance_not_modular", f"run_{i}")
-    csv_path = run_tests("small", standard_config, False)
-    new_path = os.path.join(standard_save_dir, "results", "variance_not_modular", f"run_{i}")
-    if not os.path.exists(os.path.dirname(new_path)):
-        os.makedirs(os.path.dirname(new_path), exist_ok=True)
-    shutil.copy(csv_path, new_path)
+# test temperature
+standard_config.temperature = 0.0
+standard_config.save_dir = os.path.join(standard_save_dir, "temperature", "zero")
+csv_path = run_tests("medium", standard_config, True)
+new_path = os.path.join(standard_save_dir, "results", "temperature", "zero.csv")
+if not os.path.exists(os.path.dirname(new_path)):
+    os.makedirs(os.path.dirname(new_path), exist_ok=True)
+shutil.copy(csv_path, new_path)
+
+standard_config.temperature = 0.3
+standard_config.save_dir = os.path.join(standard_save_dir, "temperature", "zero_point_three")
+csv_path = run_tests("medium", standard_config, True)
+new_path = os.path.join(standard_save_dir, "results", "temperature", "zero_point_three.csv")
+if not os.path.exists(os.path.dirname(new_path)):
+    os.makedirs(os.path.dirname(new_path), exist_ok=True)
+shutil.copy(csv_path, new_path)
+
+standard_config.temperature = 0.6
+standard_config.save_dir = os.path.join(standard_save_dir, "temperature", "zero_point_six")
+csv_path = run_tests("medium", standard_config, True)
+new_path = os.path.join(standard_save_dir, "results", "temperature", "zero_point_six.csv")
+if not os.path.exists(os.path.dirname(new_path)):
+    os.makedirs(os.path.dirname(new_path), exist_ok=True)
+shutil.copy(csv_path, new_path)
+
+standard_config.temperature = 0.9
+standard_config.save_dir = os.path.join(standard_save_dir, "temperature", "zero_point_nine")
+csv_path = run_tests("medium", standard_config, True)
+new_path = os.path.join(standard_save_dir, "results", "temperature", "zero_point_nine.csv")
+if not os.path.exists(os.path.dirname(new_path)):
+    os.makedirs(os.path.dirname(new_path), exist_ok=True)
+shutil.copy(csv_path, new_path)

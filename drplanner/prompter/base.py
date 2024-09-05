@@ -63,7 +63,7 @@ class PrompterBase(ABC):
             self.api_key,
             self.llm_function,
             mockup=self.mockup,
-            temperature=self.temperature,
+            temperature=0.6,
         )
 
         script_dir = os.path.dirname(os.path.abspath(__file__))

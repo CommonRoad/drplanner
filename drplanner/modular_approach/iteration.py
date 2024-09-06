@@ -212,7 +212,8 @@ def run_iterative_repair(
             iteration_id
         )
         print(e)
-        cost_functions.append(motion_planner.cost_function_string)
+        if motion_planner:
+            cost_functions.append(motion_planner.cost_function_string)
         evaluations.append(e)
         cost_results.append(tc)
         reflections.append(new_reflection)

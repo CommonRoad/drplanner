@@ -113,31 +113,31 @@ def run_tests(dataset: str, config: DrPlannerConfiguration, modular: bool):
 standard_config = DrPlannerConfiguration()
 standard_save_dir = standard_config.save_dir
 standard_config.temperature = 0.6
+standard_config.include_plot = False
+standard_config.repair_sampling_parameters = True
 
 # e1
-standard_config.reflection_module = True
-standard_config.repair_sampling_parameters = False
-standard_config.save_dir = os.path.join(standard_save_dir, "performance2", "modular_reflection_without_sampling")
+standard_config.reflection_module = False
+standard_config.save_dir = os.path.join(standard_save_dir, "comparison", "modular")
 csv_path = run_tests("large", standard_config, True)
-new_path = os.path.join(standard_save_dir, "results", "performance2", "modular_reflection_without_sampling.csv")
+new_path = os.path.join(standard_save_dir, "results", "comparison", "modular.csv")
 if not os.path.exists(os.path.dirname(new_path)):
     os.makedirs(os.path.dirname(new_path), exist_ok=True)
 shutil.copy(csv_path, new_path)
 
 # e2
-standard_config.feedback_mode = 0
-standard_config.save_dir = os.path.join(standard_save_dir, "performance2", "original_without_update_without_sampling")
-csv_path = run_tests("large", standard_config, False)
-new_path = os.path.join(standard_save_dir, "results", "performance2", "original_without_update_without_sampling.csv")
+standard_config.reflection_module = True
+standard_config.save_dir = os.path.join(standard_save_dir, "comparison", "modular_reflection")
+csv_path = run_tests("large", standard_config, True)
+new_path = os.path.join(standard_save_dir, "results", "comparison", "modular_reflection.csv")
 if not os.path.exists(os.path.dirname(new_path)):
     os.makedirs(os.path.dirname(new_path), exist_ok=True)
 shutil.copy(csv_path, new_path)
 
 # e3
-standard_config.repair_sampling_parameters = True
-standard_config.save_dir = os.path.join(standard_save_dir, "performance2", "original_without_update")
+standard_config.save_dir = os.path.join(standard_save_dir, "comparison", "original")
 csv_path = run_tests("large", standard_config, False)
-new_path = os.path.join(standard_save_dir, "results", "performance2", "original_without_update.csv")
+new_path = os.path.join(standard_save_dir, "results", "comparison", "original.csv")
 if not os.path.exists(os.path.dirname(new_path)):
     os.makedirs(os.path.dirname(new_path), exist_ok=True)
 shutil.copy(csv_path, new_path)

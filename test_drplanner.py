@@ -115,29 +115,30 @@ standard_save_dir = standard_config.save_dir
 standard_config.temperature = 0.6
 standard_config.include_plot = False
 standard_config.repair_sampling_parameters = True
+standard_config.gpt_version = "gpt-4o"
 
 # e1
 standard_config.reflection_module = False
-standard_config.save_dir = os.path.join(standard_save_dir, "comparison", "modular")
+standard_config.save_dir = os.path.join(standard_save_dir, "comparison_gpt4o", "modular")
 csv_path = run_tests("large", standard_config, True)
-new_path = os.path.join(standard_save_dir, "results", "comparison", "modular.csv")
+new_path = os.path.join(standard_save_dir, "results", "comparison_gpt4o", "modular.csv")
 if not os.path.exists(os.path.dirname(new_path)):
     os.makedirs(os.path.dirname(new_path), exist_ok=True)
 shutil.copy(csv_path, new_path)
 
 # e2
 standard_config.reflection_module = True
-standard_config.save_dir = os.path.join(standard_save_dir, "comparison", "modular_reflection")
+standard_config.save_dir = os.path.join(standard_save_dir, "comparison_gpt4o", "modular_reflection")
 csv_path = run_tests("large", standard_config, True)
-new_path = os.path.join(standard_save_dir, "results", "comparison", "modular_reflection.csv")
+new_path = os.path.join(standard_save_dir, "results", "comparison_gpt4o", "modular_reflection.csv")
 if not os.path.exists(os.path.dirname(new_path)):
     os.makedirs(os.path.dirname(new_path), exist_ok=True)
 shutil.copy(csv_path, new_path)
 
 # e3
-standard_config.save_dir = os.path.join(standard_save_dir, "comparison", "original")
+standard_config.save_dir = os.path.join(standard_save_dir, "comparison_gpt4o", "original")
 csv_path = run_tests("large", standard_config, False)
-new_path = os.path.join(standard_save_dir, "results", "comparison", "original.csv")
+new_path = os.path.join(standard_save_dir, "results", "comparison_gpt4o", "original.csv")
 if not os.path.exists(os.path.dirname(new_path)):
     os.makedirs(os.path.dirname(new_path), exist_ok=True)
 shutil.copy(csv_path, new_path)

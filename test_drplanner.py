@@ -114,30 +114,59 @@ standard_config = DrPlannerConfiguration()
 standard_save_dir = standard_config.save_dir
 standard_config.temperature = 0.6
 standard_config.include_plot = False
-standard_config.feedback_mode = 0
+standard_config.repair_sampling_parameters = True
+standard_config.reflection_module = True
+standard_config.iteration_max = 5
 
 # e1
-standard_config.save_dir = os.path.join(standard_save_dir, "ablation_original_no_plot", "basic")
-csv_path = run_tests("large", standard_config, False)
-new_path = os.path.join(standard_save_dir, "results", "comparison_gpt4o", "basic.csv")
+standard_config.save_dir = os.path.join(standard_save_dir, "performance", "iterations", "five", "modular_reflection")
+csv_path = run_tests("large", standard_config, True)
+new_path = os.path.join(standard_save_dir, "results", "iterations", "modular_reflection_five.csv")
 if not os.path.exists(os.path.dirname(new_path)):
     os.makedirs(os.path.dirname(new_path), exist_ok=True)
 shutil.copy(csv_path, new_path)
 
 # e2
-standard_config.feedback_mode = 2
-standard_config.save_dir = os.path.join(standard_save_dir, "ablation_original_no_plot", "basic_no_feedback_no_plot")
+standard_config.feedback_mode = 1
+standard_config.save_dir = os.path.join(standard_save_dir, "performance", "iterations", "five", "original")
 csv_path = run_tests("large", standard_config, False)
-new_path = os.path.join(standard_save_dir, "results", "comparison_gpt4o", "basic_no_feedback_no_plot.csv")
+new_path = os.path.join(standard_save_dir, "results", "iterations", "original_five.csv")
 if not os.path.exists(os.path.dirname(new_path)):
     os.makedirs(os.path.dirname(new_path), exist_ok=True)
 shutil.copy(csv_path, new_path)
 
 # e2
 standard_config.feedback_mode = 3
-standard_config.save_dir = os.path.join(standard_save_dir, "ablation_original_no_plot", "basic_nothing")
+standard_config.save_dir = os.path.join(standard_save_dir, "performance", "iterations", "five", "basic")
 csv_path = run_tests("large", standard_config, False)
-new_path = os.path.join(standard_save_dir, "results", "comparison_gpt4o", "basic_nothing.csv")
+new_path = os.path.join(standard_save_dir, "results", "comparison_gpt4o", "basic_five.csv")
+if not os.path.exists(os.path.dirname(new_path)):
+    os.makedirs(os.path.dirname(new_path), exist_ok=True)
+shutil.copy(csv_path, new_path)
+
+standard_config.iteration_max = 10
+# e1
+standard_config.save_dir = os.path.join(standard_save_dir, "performance", "iterations", "ten", "modular_reflection")
+csv_path = run_tests("large", standard_config, True)
+new_path = os.path.join(standard_save_dir, "results", "iterations", "modular_reflection_ten.csv")
+if not os.path.exists(os.path.dirname(new_path)):
+    os.makedirs(os.path.dirname(new_path), exist_ok=True)
+shutil.copy(csv_path, new_path)
+
+# e2
+standard_config.feedback_mode = 1
+standard_config.save_dir = os.path.join(standard_save_dir, "performance", "iterations", "ten", "original")
+csv_path = run_tests("large", standard_config, False)
+new_path = os.path.join(standard_save_dir, "results", "iterations", "original_ten.csv")
+if not os.path.exists(os.path.dirname(new_path)):
+    os.makedirs(os.path.dirname(new_path), exist_ok=True)
+shutil.copy(csv_path, new_path)
+
+# e2
+standard_config.feedback_mode = 3
+standard_config.save_dir = os.path.join(standard_save_dir, "performance", "iterations", "ten", "basic")
+csv_path = run_tests("large", standard_config, False)
+new_path = os.path.join(standard_save_dir, "results", "comparison_gpt4o", "basic_ten.csv")
 if not os.path.exists(os.path.dirname(new_path)):
     os.makedirs(os.path.dirname(new_path), exist_ok=True)
 shutil.copy(csv_path, new_path)

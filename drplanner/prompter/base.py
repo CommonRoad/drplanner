@@ -132,5 +132,5 @@ class PrompterBase(ABC):
             description += str(e) + "\n"
             description += exp_des.generate()
 
-        print(description)
+        print(e)
         return description

@@ -30,6 +30,7 @@ CostFunctionMeaningMapping = {
 
 
 def get_infinite_cost_result(cost_function: CostFunction) -> PlanningProblemCostResult:
+    """Helper method creating a cost result in case of an exception."""
     partial_cost_functions = cost_function_mapping[cost_function]
     cost_result = PlanningProblemCostResult(cost_function, 0)
     for pcf, weight in partial_cost_functions:
@@ -38,14 +39,15 @@ def get_infinite_cost_result(cost_function: CostFunction) -> PlanningProblemCost
 
 
 class TrajectoryCostDescription(DescriptionBase):
+    """Class to generate a natural language description of a cost result obtained during planning."""
+
     domain = "trajectory_cost"
 
-    def __init__(self):
+    def __init__(self, desired_cost: float = None):
+        self.desired_cost = desired_cost
         super().__init__()
 
-    def generate(
-        self, cost_result: PlanningProblemCostResult, desired_cost: int
-    ) -> str:
+    def generate(self, cost_result: PlanningProblemCostResult) -> str:
         description = f"To the chosen trajectory a total penalty of {cost_result.total_costs:.2f} was issued. "
         description += "It consists of "
         for item, cost in cost_result.partial_costs.items():
@@ -54,40 +56,35 @@ class TrajectoryCostDescription(DescriptionBase):
                 continue
             description += f"{CostFunctionMeaningMapping[item]}, valued at {cost:.2f}; "
         self.description = description[:-2] + ". "
-        self.description += (
-            f"The objective is to decrease this penalty of the planned trajectory to closely "
-            f"align with desired value {desired_cost}.\n"
-        )
+        if self.desired_cost:
+            self.description += (
+                f"The objective is to decrease this penalty of the planned trajectory to closely "
+                f"align with desired value {self.desired_cost}.\n"
+            )
         return self.description
 
-    def compare(
+
+class TrajectoryCostComparison(DescriptionBase):
+    """Class to generate a natural language description of a comparison of two different cost results."""
+
+    domain = "trajectory_cost_comparison"
+
+    def __init__(self, desired_cost: float = None):
+        self.desired_cost = desired_cost
+        super().__init__()
+
+    def generate(
         self,
         a: PlanningProblemCostResult,
-        version_a: str,
         b: PlanningProblemCostResult,
-        desired_cost: int,
+        a_name: str = "previous",
+        b_name: str = "current",
     ):
-        self.description = TrajectoryCostDescription.evaluate(
-            a, b, version_a, "current"
-        )
-        self.description += (
-            f"The objective is to adjust the total cost of the planned trajectory to closely "
-            f"align with the desired value {desired_cost}.\n"
-        )
-        return self.description
-
-    @staticmethod
-    def evaluate(
-        a: PlanningProblemCostResult,
-        b: PlanningProblemCostResult,
-        a_name: str,
-        b_name: str,
-    ) -> str:
         description = f"Here is a performance comparison between the {a_name} and {b_name} version\n"
-        description += TrajectoryCostDescription._compare(
-            "total cost", a.total_costs, b.total_costs, a_name, b_name
+        description += TrajectoryCostComparison._compare(
+            "total penalty", a.total_costs, b.total_costs, a_name, b_name
         )
-        description += "Total cost is calculated by a weighted sum of:\n"
+        description += "Total penalty is calculated by a weighted sum of:\n"
         for (item, a_cost), (_, b_cost) in zip(
             a.partial_costs.items(), b.partial_costs.items()
         ):
@@ -95,7 +92,7 @@ class TrajectoryCostDescription(DescriptionBase):
             b_cost *= a.weights[item]
             if a_cost == 0.0 and b_cost == 0.0:
                 continue
-            description += TrajectoryCostDescription._compare(
+            description += TrajectoryCostComparison._compare(
                 CostFunctionMeaningMapping[item], a_cost, b_cost, a_name, b_name
             )
         description = description[:-2] + ". "
@@ -107,6 +104,13 @@ class TrajectoryCostDescription(DescriptionBase):
             description += "The performance of the motion planner is getting worse."
         elif a.total_costs > b.total_costs:
             description += "The performance of the motion planner is getting better."
+
+        if self.desired_cost:
+            description += (
+                f"The objective is to adjust the penalty of the planned trajectory to closely "
+                f"align with the desired value {self.desired_cost}.\n"
+            )
+        self.description = description
         return description
 
     @staticmethod
@@ -133,6 +137,8 @@ class TrajectoryCostDescription(DescriptionBase):
 
 
 class TrajectoryStateDescription(DescriptionBase):
+    """Class for generating a natual language description of a trajectory calculated by a motion planner."""
+
     domain = "trajectory_state"
 
     def __init__(self, planned_trajectory: Trajectory, scenario: Scenario):

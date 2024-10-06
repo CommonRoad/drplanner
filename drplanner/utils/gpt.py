@@ -5,7 +5,7 @@ import tiktoken
 
 def token_cost(amount_of_tokens: int, version: str) -> float:
     million = 1000000.0
-    percent = float(amount_of_tokens)/million
+    percent = float(amount_of_tokens) / million
     if version == "gpt-4o-mini":
         return 0.15 * percent
     elif version == "gpt-4o":

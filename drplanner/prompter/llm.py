@@ -24,6 +24,9 @@ def mockup_query(
     iteration,
     directory,
 ):
+    """
+    Mockups an LLM query by returning stored JSON example responses according to the current iteration number.
+    """
     filenames = []
     directory = os.path.join(directory, "jsons")
     # finds all .jsons in the directory and assumes them to be mockup responses
@@ -41,9 +44,13 @@ def mockup_query(
         return json.load(f)
 
 
-# A class representing an OpenAI api function call
 class LLMFunction:
+    """
+    Interface class for creating the function dict determining the output structure of an OpenAI response.
+    """
+
     def __init__(self, custom=False):
+        # If not specified otherwise, use the original LLMFunction
         if not custom:
             # define content of summary object
             summary_dict = {
@@ -65,8 +72,10 @@ class LLMFunction:
             function_parameters_dict
         )
 
-    # transforms the function into a form required by the OpenAI api
     def get_function_as_list(self):
+        """
+        Transforms the function layout into the form required by the OpenAI api.
+        """
         parameters = self.parameters["properties"]
         self.parameters["required"] = list(parameters.keys())
         return [
@@ -77,6 +86,7 @@ class LLMFunction:
             }
         ]
 
+    # The following methods add a parameter to the function.
     def add_string_parameter(self, parameter_name: str, parameter_description: str):
         self.parameters["properties"][
             parameter_name
@@ -104,6 +114,7 @@ class LLMFunction:
             parameter_name
         ] = LLMFunction.get_object_parameter(properties)
 
+    # The following methods return the required format for function parameters.
     @staticmethod
     def get_number_parameter(description: str) -> dict:
         return {"type": "number", "description": description}
@@ -125,14 +136,17 @@ class LLMFunction:
         return {"type": "array", "items": items, "description": description}
 
 
-# interface class managing communication with OpenAI api through query method
 class LLM:
+    """
+    Interface class for managing communication with the OpenAI API.
+    """
+
     def __init__(
         self,
         gpt_version,
         api_key,
         llm_function: LLMFunction,
-        temperature=0.2,
+        temperature=0.6,
         mockup=False,
     ) -> None:
 
@@ -155,7 +169,6 @@ class LLM:
 
         self._save = True
 
-    # send <messages> to the OpenAI api
     def query(
         self,
         messages: List[Dict[str, str]],
@@ -163,40 +176,32 @@ class LLM:
         nr_iter: int = 1,
         path_to_plot: str = "",
         mockup_path: str = "",
-        response_format=None,
     ):
+        """
+        Query the API with a message consisting of:
+        1. System Prompt
+        2. User Prompt
+        (3. Image)
+        and save both request and response in text and json formats.
+        """
         # check whether this is a mockup run
         if mockup_path:
             response = mockup_query(nr_iter, mockup_path)
         # otherwise send the query
         else:
             functions = self.llm_function.get_function_as_list()
-            if response_format:
-                response = openai.chat.completions.create(
-                    model=self.gpt_version,
-                    messages=messages,
-                    functions=functions,
-                    function_call={"name": functions[0]["name"]},
-                    temperature=self.temperature,
-                    response_format=response_format,
-                )
-            else:
-                response = openai.chat.completions.create(
-                    model=self.gpt_version,
-                    messages=messages,
-                    functions=functions,
-                    function_call={"name": functions[0]["name"]},
-                    temperature=self.temperature,
-                )
+            response = openai.chat.completions.create(
+                model=self.gpt_version,
+                messages=messages,
+                functions=functions,
+                function_call={"name": functions[0]["name"]},
+                temperature=self.temperature,
+            )
 
         print("RESPONSE: ", response)
 
-        # save the result to save_dir with a structure specified by the input parameters:
-        # planner_id/scenario_id/gpt_version/start_time
+        # save the result to save_dir/(jsons|texts)/(prompt|result).(json|txt)
         if self._save and response:
-
-            print(f"saving request at {save_dir}")
-
             if mockup_path:
                 return response
             else:
@@ -219,7 +224,10 @@ class LLM:
     @staticmethod
     def get_messages(
         system_prompt: str, user_prompt: str, scenario_png: Union[str, None]
-    ):
+    ) -> list[dict]:
+        """
+        Turns all provided information into the required message format.
+        """
         if scenario_png:
             base64_image = LLM._encode_image(scenario_png)
             user_content = [
@@ -238,6 +246,9 @@ class LLM:
 
     @staticmethod
     def extract_text_from_messages(messages: list) -> list:
+        """
+        Removes image data from required message format
+        """
         content = messages[1]["content"]
 
         if isinstance(content, list):
@@ -245,7 +256,6 @@ class LLM:
         messages[1]["content"] = content
         return messages
 
-    # helper function to save both prompts and responses in a human-readable form
     @staticmethod
     def _save_iteration_as_txt(messages, content_json, nr_iter, save_dir: str):
         messages = LLM.extract_text_from_messages(messages)
@@ -275,7 +285,6 @@ class LLM:
                         for item in value:
                             txt_file.write(json.dumps(item))
 
-    # helper function to save both prompts and responses as parsable json
     @staticmethod
     def _save_iteration_as_json(messages, content_json, nr_iter, save_dir: str):
         messages = LLM.extract_text_from_messages(messages)

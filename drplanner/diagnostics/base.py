@@ -1,4 +1,3 @@
-import math
 import copy
 import os
 import time
@@ -31,7 +30,6 @@ class DrPlannerBase(ABC):
         scenario: Scenario,
         planning_problem_set: PlanningProblemSet,
         config: DrPlannerConfiguration,
-        planner_id: str,
     ):
         self.memory = FewShotMemory()
         self.statistic = Statistics()
@@ -42,21 +40,14 @@ class DrPlannerBase(ABC):
             list(self.planning_problem_set.planning_problem_dict.values())[0]
         )
         self.config = config
-
-        self.planner_id = planner_id
+        self.include_plot = False
 
         self._visualize = self.config.visualize
         self._save_solution = self.config.save_solution
 
-        # self.THRESHOLD = config.cost_threshold
-        # self.TOKEN_LIMIT = config.token_limit
-        self.ITERATION_MAX = config.iteration_max
-
-        # todo: load from solution file
         self.desired_cost = self.config.desired_cost
-        self.initial_cost = math.inf
         self.current_cost = None
-        self.lowest_cost = math.inf
+        self.initial_cost = None
 
         self.token_count = 0
         self.cost_list = []
@@ -66,14 +57,10 @@ class DrPlannerBase(ABC):
             os.path.dirname(self.dir_output), exist_ok=True
         )  # Ensure the directory exists
 
-        # initialize prompter
         self.prompter = PrompterSearch(
             self.scenario,
             self.planning_problem,
-            self.config.openai_api_key,
-            self.config.temperature,
-            self.config.gpt_version,
-            mockup=self.config.mockup_openAI,
+            self.config,
         )
 
         # standard parameters to evaluate a planning result
@@ -83,49 +70,45 @@ class DrPlannerBase(ABC):
         self.cost_evaluator = CostFunctionEvaluator(
             self.cost_type, VehicleType.BMW_320i
         )
-        # stores the cost evaluation of the last generated solution
         # noinspection PyTypeChecker
         self.cost_result_current: PlanningProblemCostResult = None
-        # stores some benchmark cost result to compare against
         # noinspection PyTypeChecker
         self.cost_result_previous: PlanningProblemCostResult = None
-        # stores the last generated llm response
+        # stores the last llm response
         self.diagnosis_result = None
 
     @abstractmethod
     def repair(self):
         """
-        Tries to implement the recommendations by DrPlanner
+        Updates last and current motion planner according to LLM output.
+        raise: MissingParameterException
         """
         pass
 
     @abstractmethod
-    def describe_planner(
-        self,
-        update: bool = False,
-        improved: bool = False,
-    ):
+    def describe_planner(self):
         """
-        Describes the current state of the planner to DrPlanner
+        Describes the current state of the planner to the LLM.
         """
         pass
 
     @abstractmethod
     def plan(self, nr_iter: int) -> Union[PlanningProblemCostResult, Exception]:
         """
-        Wrapper method to run the motion planner
+        Wrapper method to run the motion planner.
         """
         pass
 
     def describe_trajectory(self, planned_trajectory: Union[None, Exception]):
         """
-        Describes the state of the initial planner. Should only be used once at the start.
+        Describes a single cost result to the LLM.
+        Should be used once and at the start.
         """
         if not planned_trajectory:
-            description = self.prompter.generate_cost_description(
-                self.cost_result_current, self.desired_cost
+            description = self.prompter.trajectory_description.generate(
+                self.cost_result_current
             )
-            if self.config.include_plot and self.config.feedback_mode > 0:
+            if self.include_plot:
                 description += "To give you a broad understanding of the scenario which is currently used for motion planning, a plot is provided showing all lanes (grey), the planned trajectory (black line) and the goal area (light orange)"
         else:
             description = "Usually here would be an evaluation of the initial motion planning result, but..."
@@ -133,96 +116,67 @@ class DrPlannerBase(ABC):
                 planned_trajectory
             )
 
-        if self.config.feedback_mode == 1:
-            self.prompter.user_prompt.set("feedback", description)
-        else:
-            self.prompter.user_prompt.append("feedback", description)
+        self.prompter.user_prompt.set("feedback", description)
 
     def add_feedback(self, cost_result: PlanningProblemCostResult):
         """
-        Evaluates the result of the repair process
+        Evaluates the result of the repair process.
         """
-        # retrieve current cost result
         self.cost_result_current = cost_result
-        if self.config.feedback_mode == 0:
-            feedback = ""
-            if self.diagnosis_result and "summary" in self.diagnosis_result.keys():
-                feedback = self.diagnosis_result["summary"].__str__()
-            self.describe_trajectory(None)
-            return feedback
 
-        if self.config.feedback_mode > 0:
-            version = "last"
-        else:
-            version = "initial"
-        feedback = self.prompter.update_cost_description(
+        feedback = self.prompter.trajectory_comparison.generate(
             self.cost_result_previous,
             self.cost_result_current,
-            self.desired_cost,
-            a_version=version,
         )
-        if self.config.feedback_mode > 2:
-            feedback += "Based on all provided information about the last and current repair, try to identify which weights are responsible for a better performance!"
         print(f"*\t Feedback: {feedback}")
-        # update the current cost
-        self.current_cost = self.cost_result_current.total_costs
         return feedback
-
-    def generate_emergency_prescription(self) -> str:
-        pass
 
     def diagnose_repair(self):
         """
-        Full DrPlanner session:
-        It first describes the current state of the patient.
-        After that it runs a prompts repairing cycle:
-        Plan. Repair. Evaluate.
-        until the patient is cured, or the doctor runs out of tokens/time
+        Full DrPlanner session using repair-cycle:
+        Repair. Plan. Evaluate.
+        Runs until the patient is cured, or the doctor runs out of tokens/time.
         """
         nr_iteration = 0
         result = None
+
+        path_to_plot = self.config.path_to_plot
+        if not self.include_plot:
+            path_to_plot = None
 
         # test the initial motion planner once
         planning_result = self.plan(nr_iteration)
         if isinstance(planning_result, Exception):
             self.cost_result_current = get_infinite_cost_result(self.cost_type)
             self.cost_result_previous = self.cost_result_current
-            self.describe_planner(update=True, improved=True)
+            self.describe_planner()
             self.describe_trajectory(planning_result)
             self.current_cost = np.inf
         else:
             self.cost_result_current = planning_result
             self.cost_result_previous = self.cost_result_current
-            self.describe_planner(update=True, improved=True)
+            self.describe_planner()
             self.describe_trajectory(None)
             self.current_cost = self.cost_result_current.total_costs
 
-        self.initial_cost = self.current_cost
-        self.lowest_cost = self.current_cost
         start_time = time.time()
+        self.initial_cost = self.current_cost
+
         # start the repairing process
-        while nr_iteration < self.ITERATION_MAX:
+        while (
+            nr_iteration < self.config.iteration_max
+            and self.token_count < self.config.token_limit
+        ):
             print(f"*\t -----------iteration {nr_iteration}-----------")
             print(
                 f"*\t <{nr_iteration}>: total cost {self.current_cost} (desired: {self.desired_cost})\n"
-                # f"*\t used tokens {self.token_count} (limit: {self.TOKEN_LIMIT})"
-                f"*\t used tokens {self.token_count}"
+                f"*\t used tokens {self.token_count} (limit: {self.config.token_limit})"
             )
-
-            # prepare the API request
-            path_to_plots = os.path.dirname(
-                os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-            )
-
-            if self.config.include_plot:
-                path_to_plots += "/plots/img.png"
-            else:
-                path_to_plots = None
-
+            # prepare messages for API-request
             messages = LLM.get_messages(
                 self.prompter.system_prompt.__str__(),
                 self.prompter.user_prompt.__str__(),
-                path_to_plots,
+                path_to_plot,
             )
             self.token_count += num_tokens_from_messages(
                 LLM.extract_text_from_messages(messages),
@@ -242,39 +196,34 @@ class DrPlannerBase(ABC):
                 messages,
                 save_dir=save_dir,
                 nr_iter=nr_iteration,
-                path_to_plot=path_to_plots,
+                path_to_plot=path_to_plot,
                 mockup_path=mock_up_path,
             )
             self.diagnosis_result = result
-            # reset some variables
+
+            # todo: why is this needed?
             self.prompter.reload_LLM()
             nr_iteration += 1
 
-            # repair the motion planner and test the result
+            # apply the response and evaluate it
             try:
                 self.repair()
+                self.describe_planner()
+
                 cost_result = self.plan(nr_iteration)
+                # if exception occurred during planning, fail
                 if isinstance(cost_result, Exception):
                     raise cost_result
-                self.statistic.update_iteration(cost_result.total_costs)
-                # add feedback
-                prompt_feedback = self.add_feedback(cost_result)
-                # determine whether the current cost function prompt needs an update
-                improved = self.current_cost <= self.lowest_cost
-                update = self.config.feedback_mode % 2 == 1 or (
-                    improved and self.config.feedback_mode == 2
-                )
-                if improved:
-                    self.lowest_cost = self.current_cost
-                if update:
-                    self.cost_result_previous = self.cost_result_current
 
-                self.describe_planner(update=update, improved=improved)
+                prompt_feedback = self.add_feedback(cost_result)
+                self.current_cost = self.cost_result_current.total_costs
+                self.cost_result_previous = self.cost_result_current
+
+                self.statistic.update_iteration(cost_result.total_costs)
 
             except Exception as e:
-                if isinstance(e, MissingParameterException):
-                    self.statistic.missing_parameter_count += 1
-                self.statistic.update_iteration(e.__class__.__name__)
+                self.describe_planner()
+
                 prompt_feedback = (
                     "Usually here would be an evaluation of the repair, but..."
                 )
@@ -282,18 +231,17 @@ class DrPlannerBase(ABC):
                 prompt_feedback += f"{exception_description}\n"
                 self.cost_result_current = get_infinite_cost_result(self.cost_type)
                 self.current_cost = np.inf
-                update = self.config.feedback_mode == 1
-                self.describe_planner(update=update)
 
-            if self.config.feedback_mode == 1:
-                self.prompter.user_prompt.set("feedback", prompt_feedback)
-            else:
-                self.prompter.user_prompt.append("feedback", prompt_feedback)
+                if isinstance(e, MissingParameterException):
+                    self.statistic.missing_parameter_count += 1
+                self.statistic.update_iteration(e.__class__.__name__)
+
+            self.prompter.user_prompt.set("feedback", prompt_feedback)
             self.cost_list.append(self.current_cost)
 
         print("[DrPlanner] Ends.")
         end_time = time.time()
         duration = end_time - start_time
-        self.statistic.duration = duration / self.config.iteration_max
+        self.statistic.duration = duration
         self.statistic.token_count = self.token_count
         return result

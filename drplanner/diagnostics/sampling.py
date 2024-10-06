@@ -1,4 +1,3 @@
-import os
 import textwrap
 from typing import Union
 
@@ -10,7 +9,7 @@ from drplanner.describer.base import MissingParameterException
 from drplanner.diagnostics.base import DrPlannerBase
 from drplanner.prompter.sampling import PrompterSampling
 from drplanner.utils.config import DrPlannerConfiguration
-from drplanner.planners.reactive_planner import ReactiveMotionPlanner
+from drplanner.planners.reactive_planner import ReactiveMotionPlanner, plot_planner
 
 
 class DrSamplingPlanner(DrPlannerBase):
@@ -20,21 +19,12 @@ class DrSamplingPlanner(DrPlannerBase):
         scenario_path: str,
         planning_problem_set: PlanningProblemSet,
         config: DrPlannerConfiguration,
-        cost_function_id: str,
     ):
-        super().__init__(scenario, planning_problem_set, config, cost_function_id)
-        # Build config object
+        super().__init__(scenario, planning_problem_set, config)
         self.absolute_scenario_path = scenario_path
-        if config.include_plot:
-            self.absolute_save_path = os.path.join(
-                os.path.dirname(config.project_path), "plots", "img.png"
-            )
-        else:
-            self.absolute_save_path = None
-        self.motion_planner = ReactiveMotionPlanner(None, None, None, None)
+        self.motion_planner = ReactiveMotionPlanner()
         self.last_motion_planner = None
 
-        # initialize prompter
         self.prompter = PrompterSampling(
             self.scenario,
             self.planning_problem,
@@ -43,20 +33,25 @@ class DrSamplingPlanner(DrPlannerBase):
 
     def repair(self):
         if not self.diagnosis_result:
-            return
+            raise MissingParameterException("diagnosis result")
         try:
+            # retrieve cost function code or raise exception otherwise
             updated_cost_function = self.diagnosis_result[self.prompter.COST_FUNCTION]
             updated_cost_function = textwrap.dedent(updated_cost_function)
             helper_methods = self.diagnosis_result[self.prompter.HELPER_METHODS]
             helper_methods = [textwrap.dedent(x) for x in helper_methods]
+
+            # try to retrieve planning horizon
             if (
                 self.config.repair_sampling_parameters
                 and self.prompter.PLANNING_HORIZON in self.diagnosis_result.keys()
             ):
                 max_time_steps = self.diagnosis_result[self.prompter.PLANNING_HORIZON]
-                max_time_steps = int(max_time_steps * 10)
+                max_time_steps = int(max_time_steps * 10)  # convert to time-steps
             else:
                 max_time_steps = self.motion_planner.max_time_steps
+
+            # try to retrieve allowed deviation from reference path
             if (
                 self.config.repair_sampling_parameters
                 and self.prompter.SAMPLING_D in self.diagnosis_result.keys()
@@ -64,49 +59,53 @@ class DrSamplingPlanner(DrPlannerBase):
                 sampling_d = self.diagnosis_result[self.prompter.SAMPLING_D]
             else:
                 sampling_d = self.motion_planner.d
+
         except Exception as _:
             raise MissingParameterException(self.prompter.COST_FUNCTION)
+
         self.last_motion_planner = ReactiveMotionPlanner(
-            self.motion_planner.cost_function_string,
-            self.motion_planner.helper_methods,
-            self.motion_planner.max_time_steps,
-            self.motion_planner.d
+            cost_function_string=self.motion_planner.cost_function_string,
+            helper_methods=self.motion_planner.helper_methods,
+            max_time_steps=self.motion_planner.max_time_steps,
+            d=self.motion_planner.d,
         )
         self.motion_planner = ReactiveMotionPlanner(
-            updated_cost_function, helper_methods, max_time_steps, sampling_d
+            cost_function_string=updated_cost_function,
+            helper_methods=helper_methods,
+            max_time_steps=max_time_steps,
+            d=sampling_d,
         )
 
-    def describe_planner(
-        self,
-        update: bool = False,
-        improved: bool = False,
-    ):
-        if update:
-            if not self.last_motion_planner:
-                last_cf = None
-            else:
-                last_cf = self.last_motion_planner.cost_function_string
-            self.prompter.update_planner_prompt(
-                self.motion_planner.cost_function_string,
-                last_cf,
-                self.config.feedback_mode,
-            )
-            if self.config.repair_sampling_parameters:
-                self.prompter.update_config_prompt(self.motion_planner.max_time_steps)
+    def describe_planner(self):
+        if not self.last_motion_planner:
+            last_cf = None
+        else:
+            last_cf = self.last_motion_planner.cost_function_string
+
+        self.prompter.update_planner_prompt(
+            self.motion_planner.cost_function_string,
+            last_cf,
+        )
+
+        if self.config.repair_sampling_parameters:
+            self.prompter.update_config_prompt(self.motion_planner.max_time_steps)
 
     def plan(self, nr_iter: int) -> Union[PlanningProblemCostResult, Exception]:
         try:
             solution, missing_hf = self.motion_planner.evaluate_on_scenario(
-                self.absolute_scenario_path, absolute_save_path=self.absolute_save_path
+                self.absolute_scenario_path, absolute_save_path=self.config.path_to_plot
             )
             self.statistic.flawed_helper_methods_count += missing_hf
         except Exception as e:
             solution = e
-            ReactiveMotionPlanner.create_plot(
-                self.absolute_scenario_path, self.absolute_save_path
+            # generate alternative plot if trajectory can not be obtained
+            plot_planner(
+                self.scenario,
+                self.planning_problem_set,
+                None,
+                None,
+                None,
+                self.config.path_to_plot,
             )
 
         return solution
-
-    def generate_emergency_prescription(self) -> str:
-        return self.motion_planner.cost_function_string

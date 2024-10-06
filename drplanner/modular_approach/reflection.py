@@ -1,17 +1,16 @@
 import os
 
 from commonroad_dc.costs.evaluation import PlanningProblemCostResult
+
+from describer.trajectory_description import TrajectoryCostComparison
 from drplanner.utils.gpt import num_tokens_from_messages
-
 from drplanner.utils.config import DrPlannerConfiguration
+from drplanner.utils.general import Statistics
 
-from drplanner.describer.trajectory_description import TrajectoryCostDescription
-from drplanner.prompter.llm import LLM
+from drplanner.prompter.llm import LLM, LLMFunction
+from drplanner.prompter.base import Prompt
 
 from drplanner.modular_approach.module import Module, Reflection
-from drplanner.prompter.base import Prompt
-from drplanner.prompter.llm import LLMFunction
-from drplanner.utils.general import Statistics
 
 
 # module that generates a diagnosis based on reactive planner performance
@@ -129,29 +128,37 @@ class ReflectionModule(Module):
         past_reflections: list[Reflection],
         iteration_id: int,
     ) -> Reflection:
-        if (iteration_id + 1) % self.config.reflect_at == 0:
+        reflection = (iteration_id + 1) % self.config.reflect_at == 0
+        if reflection:
             user_prompt = self.generate_reflection_user_prompt(past_reflections)
-            # query the llm
-            messages = LLM.get_messages(
-                self.system_prompt.__str__(), user_prompt.__str__(), None
+        else:
+            evaluation = TrajectoryCostComparison().generate(
+                cr_initial, cr_repaired, "initial", "repaired"
             )
-            self.statistic.token_count += num_tokens_from_messages(
-                LLM.extract_text_from_messages(messages),
-                self.gpt_version,
+            user_prompt = self.generate_feedback_user_prompt(
+                evaluation, diagnosis, repair
             )
-            save_dir = os.path.join(
-                self.save_dir, self.config.gpt_version, "reflection"
-            )
-            mockup_path = ""
-            if self.config.mockup_openAI:
-                mockup_path = save_dir
 
-            result: dict = self.reflection_llm.query(
-                messages,
-                nr_iter=iteration_id,
-                save_dir=save_dir,
-                mockup_path=mockup_path,
-            )
+        messages = LLM.get_messages(
+            self.system_prompt.__str__(), user_prompt.__str__(), None
+        )
+        self.statistic.token_count += num_tokens_from_messages(
+            LLM.extract_text_from_messages(messages),
+            self.gpt_version,
+        )
+        save_dir = os.path.join(self.save_dir, self.config.gpt_version, "reflection")
+        mockup_path = ""
+        if self.config.mockup_openAI:
+            mockup_path = save_dir
+
+        result: dict = self.reflection_llm.query(
+            messages,
+            nr_iter=iteration_id,
+            save_dir=save_dir,
+            mockup_path=mockup_path,
+        )
+
+        if reflection:
             if "reflection" in result.keys():
                 reflection = result["reflection"]
                 diagnosis_reflection = ""
@@ -171,33 +178,6 @@ class ReflectionModule(Module):
                 repair_reflection=repair_reflection,
             )
         else:
-            evaluation = TrajectoryCostDescription.evaluate(
-                cr_initial, cr_repaired, "initial", "repaired"
-            )
-            user_prompt = self.generate_feedback_user_prompt(
-                evaluation, diagnosis, repair
-            )
-            # query the llm
-            messages = LLM.get_messages(
-                self.system_prompt.__str__(), user_prompt.__str__(), None
-            )
-            self.statistic.token_count += num_tokens_from_messages(
-                LLM.extract_text_from_messages(messages),
-                self.gpt_version,
-            )
-            save_dir = os.path.join(
-                self.save_dir, self.config.gpt_version, "reflection"
-            )
-            mockup_path = ""
-            if self.config.mockup_openAI:
-                mockup_path = save_dir
-
-            result: dict = self.feedback_llm.query(
-                messages,
-                nr_iter=iteration_id,
-                save_dir=save_dir,
-                mockup_path=mockup_path,
-            )
             if "analysis_summary" in result.keys():
                 summary = result["analysis_summary"]
             else:

@@ -1,6 +1,5 @@
 from commonroad.scenario.scenario import Scenario
 from commonroad.planning.planning_problem import PlanningProblem
-from commonroad_rp.utility.config import ReactivePlannerConfiguration
 
 from drplanner.prompter.base import PrompterBase
 from drplanner.prompter.llm import LLMFunction
@@ -13,7 +12,7 @@ class PrompterSampling(PrompterBase):
         scenario: Scenario,
         planning_problem: PlanningProblem,
         config: DrPlannerConfiguration,
-        prompts_folder_name: str = "reactive-planner/",
+        prompts_folder_name: str = "reactive-planner",
     ):
         self.config = config
         self.COST_FUNCTION = "improved_cost_function"
@@ -21,25 +20,20 @@ class PrompterSampling(PrompterBase):
         self.PLANNING_HORIZON = "planning_horizon"
         self.SAMPLING_D = "lateral_distance"
         template = [
-            #            "constraints",
             "algorithm",
             "trajectory",
             "sampling",
+            "documentation",
             "planner",
             "feedback",
         ]
-
-        template.insert(3, "documentation")
 
         super().__init__(
             scenario,
             planning_problem,
             template,
-            config.openai_api_key,
-            config.gpt_version,
+            config,
             prompts_folder_name,
-            mockup=config.mockup_openAI,
-            temperature=config.temperature,
         )
 
     def init_LLM(self) -> LLMFunction:
@@ -55,20 +49,15 @@ class PrompterSampling(PrompterBase):
                 self.PLANNING_HORIZON, "planning horizon in [sec]"
             )
             llm_function.add_number_parameter(
-                self.SAMPLING_D, "lateral distance to reference in interval [0;5] meters"
+                self.SAMPLING_D,
+                "lateral distance to reference in interval [0;5] meters",
             )
         return llm_function
 
-    def update_planner_prompt(
-        self, cost_function, cost_function_previous, feedback_mode: int
-    ):
-        if feedback_mode < 3 or not cost_function_previous:
-            if feedback_mode < 2:
-                version = "current"
-            else:
-                version = "currently best performing"
+    def update_planner_prompt(self, cost_function, cost_function_previous):
+        if not cost_function_previous:
             cf_code = (
-                f"This is the code of the {version} cost function:\n```\n"
+                "This is the code of the current cost function:\n```\n"
                 + cost_function
                 + "```\n"
             )
@@ -82,6 +71,9 @@ class PrompterSampling(PrompterBase):
         self.user_prompt.set("planner", cf_code)
 
     def update_config_prompt(self, time_steps_computation: int):
+        """
+        Describes the current state of sampling intervals of the reactive planner.
+        """
         # standard prompt
         config_description = "You can also modify the length of the planning horizon. There are two options:\n"
         config_description += "If the planner failed, but you can not identify any specific reason for that, it might help to reset planning horizon to 3 seconds. "

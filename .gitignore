@@ -6,6 +6,7 @@ public
 build/
 
 outputs/
+scenarios/
 /drplanner/memory/store/
 /drplanner/memory/plots/
 /drplanner/memory/few_shots/

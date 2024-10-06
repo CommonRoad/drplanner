@@ -1,6 +1,5 @@
 import numpy as np
-from pathlib import Path
-from typing import Dict, Union, List
+from typing import Union, List
 import itertools
 
 from drplanner.utils.gpt import token_cost
@@ -32,17 +31,32 @@ class Statistics:
         self.total_costs.append(total_cost)
 
     def get_iteration_data(self) -> list:
-        row = [self.duration, self.token_count, self.missing_parameter_count, self.flawed_helper_methods_count, self.missing_few_shot_count, self.added_few_shot_count]
+        row = [
+            self.duration,
+            self.token_count,
+            self.missing_parameter_count,
+            self.flawed_helper_methods_count,
+            self.missing_few_shot_count,
+            self.added_few_shot_count,
+        ]
         row.extend(self.total_costs)
         return row
 
     def __str__(self):
-        print(f"A single iteration took {self.duration} seconds. There were {len(self.total_costs)} iterations")
+        print(
+            f"DrPlanner needed {self.duration} seconds. There were {len(self.total_costs)} iterations"
+        )
         cost = token_cost(self.token_count, "gpt-4o-mini")
-        print(f"The run used {self.token_count} tokens, which cost {cost}$")
-        print(f"The LLMs forgot to provide essential parameters {self.missing_parameter_count} times")
-        print(f"The repair LLM did not provide proper helper methods {self.flawed_helper_methods_count} times")
-        print(f"The memory did not provide few-shots {self.missing_few_shot_count} times")
+        print(f"DrPlanner used {self.token_count} tokens, which cost {cost}$")
+        print(
+            f"The LLMs forgot to provide essential parameters {self.missing_parameter_count} times"
+        )
+        print(
+            f"The repair LLM did not provide proper helper methods {self.flawed_helper_methods_count} times"
+        )
+        print(
+            f"The memory did not provide few-shots {self.missing_few_shot_count} times"
+        )
         print(f"The memory was updated {self.added_few_shot_count} times")
         print(self.total_costs)
 

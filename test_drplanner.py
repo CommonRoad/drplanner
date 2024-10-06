@@ -44,7 +44,9 @@ def run_dr_sampling_planner(scenario_filepath: str, result_filepath, config):
 def run_dr_iteration_planner(scenario_filepath: str, result_filepath, config):
     config.save_dir = os.path.dirname(result_filepath)
 
-    cost_results, statistics = run_iterative_repair(scenario_path=scenario_filepath, config=config)
+    cost_results, statistics = run_iterative_repair(
+        scenario_path=scenario_filepath, config=config
+    )
     cost_results = [x.total_costs for x in cost_results]
     initial_cost_result = cost_results.pop(0)
     best_cost_result = min(cost_results)
@@ -58,15 +60,13 @@ def run_dr_iteration_planner(scenario_filepath: str, result_filepath, config):
     results_to_csv(result_filepath, row)
 
 
-def run_tests(dataset: str, config: DrPlannerConfiguration, modular: bool):
+def run_tests(dataset: str, config: DrPlannerConfiguration, modular: bool, skip=None):
+    if not skip:
+        skip = []
     path_to_repo = os.path.dirname(os.path.abspath(__file__))
     path_to_scenarios = os.path.join(path_to_repo, "scenarios", dataset)
     experiment_name = f"modular-{config.gpt_version}-{config.temperature}"
-    path_to_results = os.path.join(
-        config.save_dir,
-        experiment_name,
-        dataset
-    )
+    path_to_results = os.path.join(config.save_dir, experiment_name, dataset)
     result_csv_path = os.path.join(path_to_results, "results.csv")
     result_config_path = os.path.join(path_to_results, "config.txt")
     index_row = [
@@ -78,7 +78,7 @@ def run_tests(dataset: str, config: DrPlannerConfiguration, modular: bool):
         "missing parameters",
         "flawed helper methods",
         "missing few-shots",
-        "added few-shots"
+        "added few-shots",
     ]
 
     for i in range(config.iteration_max):
@@ -99,10 +99,16 @@ def run_tests(dataset: str, config: DrPlannerConfiguration, modular: bool):
         file.write(f"{config.__str__()}memory size: {memory_size}")
 
     # collect all scenarios
-    xml_files = glob.glob(os.path.join(path_to_scenarios, "**", "*.xml"), recursive=True)
+    xml_files = glob.glob(
+        os.path.join(path_to_scenarios, "**", "*.xml"), recursive=True
+    )
     scenarios = [os.path.abspath(file) for file in xml_files]
     for p in scenarios:
-        print(p)
+        test_for_skip = [not (x in p) for x in skip]
+        if all(test_for_skip):
+            print(p)
+        else:
+            print(f"Skipping {p}")
         if modular:
             run_dr_iteration_planner(p, result_csv_path, config)
         else:
@@ -115,58 +121,62 @@ standard_save_dir = standard_config.save_dir
 standard_config.temperature = 0.6
 standard_config.include_plot = False
 standard_config.repair_sampling_parameters = True
+standard_config.iteration_max = 3
 standard_config.reflection_module = True
-standard_config.iteration_max = 5
 
-# e1
-standard_config.save_dir = os.path.join(standard_save_dir, "performance", "iterations", "five", "modular_reflection")
-csv_path = run_tests("large", standard_config, True)
-new_path = os.path.join(standard_save_dir, "results", "iterations", "modular_reflection_five.csv")
+standard_config.update_memory_module = False
+standard_config.memory_module = True
+standard_config.include_cost_function_few_shot = True
+# test
+
+skip = [
+    # "ESP_Mad-1_6_I-1-1.cr",
+    # "DEU_Frankfurt-191_12_I-1.cr",
+    # "DEU_Frankfurt-95_9_I-1.cr",
+    # "ESP_Mad-1_8_I-1-1.cr",
+    # "DEU_Frankfurt-65_2_I-1.cr",
+    # "DEU_Frankfurt-11_10_I-1.cr",
+    # "DEU_Frankfurt-11_3_I-1.cr",
+    # "CHN_Sha-4_1_I-1-1.cr",
+    # "DEU_Frankfurt-65_7_I-1.cr",
+    # "DEU_Frankfurt-11_12_I-1.cr",
+    # "ESP_Mad-1_7_I-1-1.cr",
+    # "DEU_Frankfurt-147_6_I-1.cr",
+    # "DEU_Frankfurt-11_2_I-1.cr",
+    # "CHN_Sha-16_1_I-1-1.cr",
+    # "CHN_Cho-1_1_I-1-1.cr",
+]
+
+standard_config.reflection_module = False
+standard_config.save_dir = os.path.join(
+    standard_save_dir, "performance", "memory", "memory_10_09"
+)
+csv_path = run_tests("test", standard_config, True)
+new_path = os.path.join(standard_save_dir, "results", "memory", "memory_10_09.csv")
 if not os.path.exists(os.path.dirname(new_path)):
     os.makedirs(os.path.dirname(new_path), exist_ok=True)
 shutil.copy(csv_path, new_path)
 
-# e2
-standard_config.feedback_mode = 1
-standard_config.save_dir = os.path.join(standard_save_dir, "performance", "iterations", "five", "original")
-csv_path = run_tests("large", standard_config, False)
-new_path = os.path.join(standard_save_dir, "results", "iterations", "original_five.csv")
-if not os.path.exists(os.path.dirname(new_path)):
-    os.makedirs(os.path.dirname(new_path), exist_ok=True)
-shutil.copy(csv_path, new_path)
-
-# e2
-standard_config.feedback_mode = 3
-standard_config.save_dir = os.path.join(standard_save_dir, "performance", "iterations", "five", "basic")
-csv_path = run_tests("large", standard_config, False)
-new_path = os.path.join(standard_save_dir, "results", "comparison_gpt4o", "basic_five.csv")
-if not os.path.exists(os.path.dirname(new_path)):
-    os.makedirs(os.path.dirname(new_path), exist_ok=True)
-shutil.copy(csv_path, new_path)
-
-standard_config.iteration_max = 10
-# e1
-standard_config.save_dir = os.path.join(standard_save_dir, "performance", "iterations", "ten", "modular_reflection")
-csv_path = run_tests("large", standard_config, True)
-new_path = os.path.join(standard_save_dir, "results", "iterations", "modular_reflection_ten.csv")
-if not os.path.exists(os.path.dirname(new_path)):
-    os.makedirs(os.path.dirname(new_path), exist_ok=True)
-shutil.copy(csv_path, new_path)
-
-# e2
-standard_config.feedback_mode = 1
-standard_config.save_dir = os.path.join(standard_save_dir, "performance", "iterations", "ten", "original")
-csv_path = run_tests("large", standard_config, False)
-new_path = os.path.join(standard_save_dir, "results", "iterations", "original_ten.csv")
-if not os.path.exists(os.path.dirname(new_path)):
-    os.makedirs(os.path.dirname(new_path), exist_ok=True)
-shutil.copy(csv_path, new_path)
-
-# e2
-standard_config.feedback_mode = 3
-standard_config.save_dir = os.path.join(standard_save_dir, "performance", "iterations", "ten", "basic")
-csv_path = run_tests("large", standard_config, False)
-new_path = os.path.join(standard_save_dir, "results", "comparison_gpt4o", "basic_ten.csv")
-if not os.path.exists(os.path.dirname(new_path)):
-    os.makedirs(os.path.dirname(new_path), exist_ok=True)
-shutil.copy(csv_path, new_path)
+# standard_config.reflection_module = False
+# standard_config.save_dir = os.path.join(standard_save_dir, "performance", "memory", "memory")
+# csv_path = run_tests("test", standard_config, True)
+# new_path = os.path.join(standard_save_dir, "results", "memory", "memory.csv")
+# if not os.path.exists(os.path.dirname(new_path)):
+#     os.makedirs(os.path.dirname(new_path), exist_ok=True)
+# shutil.copy(csv_path, new_path)
+#
+# standard_config.reflection_module = True
+# standard_config.save_dir = os.path.join(standard_save_dir, "performance", "memory", "memory_reflection2")
+# csv_path = run_tests("test", standard_config, True)
+# new_path = os.path.join(standard_save_dir, "results", "memory", "memory_reflection2.csv")
+# if not os.path.exists(os.path.dirname(new_path)):
+#     os.makedirs(os.path.dirname(new_path), exist_ok=True)
+# shutil.copy(csv_path, new_path)
+#
+# standard_config.reflection_module = False
+# standard_config.save_dir = os.path.join(standard_save_dir, "performance", "memory", "memory2")
+# csv_path = run_tests("test", standard_config, True)
+# new_path = os.path.join(standard_save_dir, "results", "memory", "memory2.csv")
+# if not os.path.exists(os.path.dirname(new_path)):
+#     os.makedirs(os.path.dirname(new_path), exist_ok=True)
+# shutil.copy(csv_path, new_path)

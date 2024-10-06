@@ -68,7 +68,9 @@ def extract_self_method_calls(code: str) -> list[str]:
 
 
 def extract_called_functions(func: Callable):
-    """Extract the names of the functions called within the given function."""
+    """
+    Extract the names of the functions called within the given function.
+    """
     # Extract the source code of the function
     source = inspect.getsource(func)
 
@@ -112,6 +114,8 @@ def clean_docstring(docstring):
 
 
 class FunctionDescriptionBase(DescriptionBase, ABC):
+    """Class to generate a natural language description of python code."""
+
     def __init__(self, function: Callable):
         super().__init__()
         self.called_functions = list(set(extract_self_method_calls_from_func(function)))
@@ -140,6 +144,8 @@ class FunctionDescriptionBase(DescriptionBase, ABC):
 
 
 class ExceptionDescription(DescriptionBase):
+    """Class to generate a natural language description of any exception."""
+
     def __init__(self, exception: Exception):
         super().__init__()
         self.exception = exception
@@ -161,39 +167,27 @@ class ExceptionDescription(DescriptionBase):
 
 
 class DrPlannerException(Exception):
-    def __init__(self, illness: str, remedy: str):
+    """Base class for all custom defined exceptions."""
+
+    def __init__(self, issue: str, remedy: str):
         super().__init__()
-        self.illness = illness
+        self.issue = issue
         self.remedy = remedy
 
     def describe(self) -> str:
-        return f"{self.illness} {self.remedy}"
+        return f"{self.issue} {self.remedy}"
 
 
 class PlanningException(DrPlannerException):
+    """Exception is caused by issues during the planning process."""
+
     def __init__(self, cause: str, solution: str):
         super().__init__(f"The planner failed: {cause}", solution)
 
 
-class CompilerException(DrPlannerException):
-    def __init__(self, cause: Exception):
-        exp_des = ExceptionDescription(cause)
-        problem = f"The compilation of the repaired python code failed:\n {exp_des.generate()}"
-        solution = "Next time please make sure that the python code you send is actually compilable"
-        super().__init__(problem, solution)
-
-
-class MissingSignatureException(DrPlannerException):
-    def __init__(self):
-        problem = "The method signature and the return statement are missing in the provided python code."
-        solution = (
-            'Add "def evaluate(self, trajectory: TrajectorySample):" at the beginning, add a return '
-            "statement at the end and ensure proper indentation!"
-        )
-        super().__init__(problem, solution)
-
-
 class MissingParameterException(DrPlannerException):
+    """Exception is caused by the LLM not adhering to structured output constraints."""
+
     def __init__(self, parameter: str):
         problem = f"The LLM did not provide the essential parameter <{parameter}>"
         solution = "To fix this you need to send the required parameter next time!"

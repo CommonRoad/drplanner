@@ -11,6 +11,7 @@ from drplanner.describer.planner_description import (
 )
 from drplanner.prompter.base import PrompterBase
 from drplanner.prompter.llm import LLMFunction
+from drplanner.utils.config import DrPlannerConfiguration
 
 # make sure the SMP has been installed successfully
 try:
@@ -34,11 +35,8 @@ class PrompterSearch(PrompterBase):
         self,
         scenario: Scenario,
         planning_problem: PlanningProblem,
-        api_key: str,
-        temperature: float,
-        gpt_version: str = "gpt-4-1106-preview",
+        config: DrPlannerConfiguration,
         prompts_folder_name: str = "astar/",
-        mockup: bool = False,
     ):
         # the parameters which the llm has to provide in a response
         self.HEURISTIC_FUNCTION = "improved_heuristic_function"
@@ -56,11 +54,8 @@ class PrompterSearch(PrompterBase):
             scenario,
             planning_problem,
             template,
-            api_key,
-            gpt_version,
+            config,
             prompts_folder_name,
-            mockup=mockup,
-            temperature=temperature,
         )
 
         self.mp_obj = MotionPrimitiveDescription()

@@ -4,14 +4,16 @@ import copy
 import sys
 import os
 from types import MethodType
+from typing import Union
+
 from commonroad.scenario.scenario import Scenario
 from commonroad.planning.planning_problem import PlanningProblemSet
-from commonroad.scenario.trajectory import Trajectory
 from commonroad.common.solution import (
     CommonRoadSolutionWriter,
     Solution,
     PlanningProblemSolution,
 )
+from commonroad_dc.costs.evaluation import PlanningProblemCostResult
 
 # make sure the SMP has been installed successfully
 try:
@@ -50,13 +52,13 @@ class DrSearchPlanner(DrPlannerBase):
         motion_primitives_id: str,
         planner_id: str,
     ):
-        super().__init__(scenario, planning_problem_set, config, planner_id)
+        super().__init__(scenario, planning_problem_set, config)
 
         # initialize the motion primitives
         self.motion_primitives_id = motion_primitives_id
 
         # import the planner
-        planner_name = f"drplanner.planners.student_{self.planner_id}"
+        planner_name = f"drplanner.planners.student_{planner_id}"
         planner_module = importlib.import_module(planner_name)
         automaton = ManeuverAutomaton.generate_automaton(motion_primitives_id)
         # use StudentMotionPlanner from the dynamically imported module
@@ -138,7 +140,7 @@ class DrSearchPlanner(DrPlannerBase):
             self.StudentMotionPlanner, self.motion_primitives_id
         )
 
-    def plan(self, nr_iter: int) -> Trajectory:
+    def plan(self, nr_iter: int) -> Union[PlanningProblemCostResult, Exception]:
         list_paths_primitives, _, _ = self.motion_planner.execute_search()
         trajectory_solution = create_trajectory_from_list_states(
             list_paths_primitives, self.motion_planner.rear_ax_dist
@@ -188,4 +190,6 @@ class DrSearchPlanner(DrPlannerBase):
                 filename=f"solution_{solution.benchmark_id}_iter_{nr_iter}.xml",
                 overwrite=True,
             )
-        return trajectory_solution
+        return self.cost_evaluator.evaluate_pp_solution(
+            self.scenario, self.planning_problem, trajectory_solution
+        )

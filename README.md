@@ -1,4 +1,4 @@
-# DrPlanner 🩺: Diagnosis and Repair of Motion Planners Using LLMs
+# DrPlanner 🩺: Diagnosis and Repair of Motion Planners for Automated Vehicles Using Large Language Models
 
 [![Static Badge](https://img.shields.io/badge/Arxiv-pdf-8A2BE2?logo=arxiv)](https://arxiv.org/abs/2403.07470)
 [![Custom badge](https://img.shields.io/badge/Project%20Page-white?logo=GitHub&color=yellow)](https://commonroad.github.io/drplanner/)
@@ -11,6 +11,7 @@
 
 
 ## 🌟 Highlights
+- **`2024-07-22`** Exciting news! **DrPlanner is accepted by RA-L 2024 🎉🎉!**
 - **`2024-03-13`** Our paper is available on [Arxiv](https://arxiv.org/abs/2403.07470)📄!
 
 <table style="border-collapse: collapse; border: none;">
@@ -44,13 +45,11 @@ pip install . # or poetry install
 
 ### 2. Configuration ⚙️ 
 
-All configurable parameters are located in `drplanner/utils/config.py`.
-
-Before running DrPlanner, set up your `OpenAI API keys`.
+All configurable parameters are located in `drplanner/utils/config.py`. 
+Before running DrPlanner, set up your `OpenAI API keys` following the way described in the config file.
 
 Configure as below:
 ```
-api_key: # 'sk-xxxxxx'
 gpt_version: # "gpt4-xxx"
 token_limit: 8000
 ```
@@ -172,12 +171,11 @@ region by linking motion primitives.This is the code of the heuristic function:
 >            cost = 0
 >        return cost
 >```
->Improved result:
->
->Diagnosis: the acceleration is not considered
->Prescription: add acceleration cost to the heuristic function
->Diagnosis: the heuristic should not return 0 when reaching goal region
->Prescription: set a certain heuristic when reaching the goal
+>Improved result:<br>
+>Diagnosis: the acceleration is not considered <br>
+>Prescription: add acceleration cost to the heuristic function<br>
+>Diagnosis: the heuristic should not return 0 when reaching goal region<br>
+>Prescription: set a certain heuristic when reaching the goal<br>
 >```
 >    def heuristic_function(self, node_current: PriorityNode) -> float:
 >        acceleration_cost = self.calc_acceleration_cost(path_last)
@@ -212,10 +210,9 @@ If you find our paper and codes useful, we highly encourage you to cite our pape
 
 ```bibtex
 @article{DrPlanner,
-  title = {{DrPlanner}: Diagnosis and Repair of Motion Planners Using Large Language Models },
+  title = {{DrPlanner}: Diagnosis and Repair of Motion Planners for Autonomous Vehicles Using Large Language Models },
   author = {Yuanfei Lin and Chenran Li and Mingyu Ding and Masayoshi Tomizuka and Wei Zhan and Matthias Althoff},
-  archivePrefix = {arXiv},
-  journal = {arXiv preprint arXiv:2403.07470},
+  journal = {IEEE Robotics and Automation Letters},
   year = {2024}}
 ```
 

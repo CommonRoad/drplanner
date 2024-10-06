@@ -55,7 +55,7 @@
       <div class="container is-max-desktop">
         <div class="columns is-centered">
           <div class="column has-text-centered">
-            <h1 class="title is-1 publication-title">DrPlanner 🩺: Diagnosis and Repair of Motion Planners Using Large Language Models</h1>
+            <h1 class="title is-1 publication-title">DrPlanner 🩺: Diagnosis and Repair of Motion Planners for Automated Vehicles Using Large Language Models</h1>
             <div class="is-size-5 publication-authors">
               <!-- Paper authors -->
               <span class="author-block">
@@ -157,7 +157,21 @@
         <h2 class="title is-3">Abstract</h2>
         <div class="content has-text-justified">
           <p>
-              Motion planners are essential for the safe operation of automated vehicles across various scenarios. However, no motion planning algorithm has achieved perfection in the literature, and improving its performance is often time-consuming and labor-intensive. To tackle the aforementioned issues, we present <code>DrPlanner</code>, the first framework designed to automatically <span style="text-decoration: underline;">d</span>iagnose and <span style="text-decoration: underline;">r</span>epair motion <span style="text-decoration: underline;">planner</span>s using large language models. Initially, we generate a structured description of the planner and its planned trajectories from both natural and programming languages. Leveraging the profound capabilities of large language models in addressing reasoning challenges, our framework returns repaired planners with detailed diagnostic descriptions. Furthermore, the framework advances iteratively with continuous feedback from the evaluation of the repaired outcomes. Our approach is validated using search-based motion planners; experimental results highlight the need of demonstrations in the prompt and the ability of our framework in identifying and rectifying elusive issues effectively.
+              Motion planners are essential for the safe operation of automated vehicles across various scenarios.
+            However, no motion planning algorithm has achieved perfection in the literature,
+            and improving its performance is often time-consuming and labor-intensive.
+            To tackle the aforementioned issues, we present <code>DrPlanner</code>,
+            the first framework designed to automatically <span style="text-decoration: underline;">d</span>iagnose and <span style="text-decoration: underline;">r</span>epair motion <span style="text-decoration: underline;">planner</span>s
+            using large language models. Initially, we generate a structured description of the planner and its planned
+            trajectories from both natural and programming languages.
+            Leveraging the profound capabilities of large language models, our framework returns repaired planners with
+            detailed diagnostic descriptions. Furthermore, our framework advances
+            iteratively with continuous feedback from the evaluation of the
+            repaired outcomes. Our approach is validated using both search-
+            and sampling-based motion planners for automated vehicles;
+            experimental results highlight the need for demonstrations in
+            the prompt and show the ability of our framework to effectively
+            identify and rectify elusive issues.
           </p>
         </div>
       </div>
@@ -226,10 +240,9 @@
     <div class="container is-max-desktop content">
       <h2 class="title">BibTeX</h2>
       <pre><code>@article{DrPlanner,
-  title = {{DrPlanner}: Diagnosis and Repair of Motion Planners Using Large Language Models },
+  title = {{DrPlanner}: Diagnosis and Repair of Motion Planners Using Large Language Models},
   author = {Yuanfei Lin and Chenran Li and Mingyu Ding and Masayoshi Tomizuka and Wei Zhan and Matthias Althoff},
-  archivePrefix = {arXiv},
-  journal = {arXiv preprint arXiv:2403.07470},
+  journal = {IEEE Robotics and Automation Letters},
   year = {2024}}</code></pre>
     </div>
 </section>

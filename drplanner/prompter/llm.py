@@ -88,9 +88,9 @@ class LLMFunction:
 
     # The following methods add a parameter to the function.
     def add_string_parameter(self, parameter_name: str, parameter_description: str):
-        self.parameters["properties"][
-            parameter_name
-        ] = LLMFunction.get_string_parameter(parameter_description)
+        self.parameters["properties"][parameter_name] = (
+            LLMFunction.get_string_parameter(parameter_description)
+        )
 
     def add_code_parameter(self, parameter_name: str, parameter_description: str):
         self.parameters["properties"][parameter_name] = LLMFunction.get_code_parameter(
@@ -98,9 +98,9 @@ class LLMFunction:
         )
 
     def add_number_parameter(self, parameter_name: str, parameter_description: str):
-        self.parameters["properties"][
-            parameter_name
-        ] = LLMFunction.get_number_parameter(parameter_description)
+        self.parameters["properties"][parameter_name] = (
+            LLMFunction.get_number_parameter(parameter_description)
+        )
 
     def add_array_parameter(
         self, parameter_name: str, parameter_description: str, items: dict
@@ -110,9 +110,9 @@ class LLMFunction:
         )
 
     def add_object_parameter(self, parameter_name: str, properties: dict):
-        self.parameters["properties"][
-            parameter_name
-        ] = LLMFunction.get_object_parameter(properties)
+        self.parameters["properties"][parameter_name] = (
+            LLMFunction.get_object_parameter(properties)
+        )
 
     # The following methods return the required format for function parameters.
     @staticmethod

@@ -137,10 +137,10 @@ def compute_avg_relative_improvement(
             for (a, b) in scores
             if not relative_improvement(a, b) is None
         ]
-        squared_improvements = [x ** 2 for x in improvements]
+        squared_improvements = [x**2 for x in improvements]
         mean = sum(improvements) / float(len(improvements))
         squared_mean = sum(squared_improvements) / float(len(squared_improvements))
-        standard_deviations.append(math.sqrt(squared_mean - mean ** 2))
+        standard_deviations.append(math.sqrt(squared_mean - mean**2))
         avg_relative_improvements.append(mean)
 
     return avg_relative_improvements, standard_deviations
@@ -199,8 +199,8 @@ def compute_run_sigma(results: list[str]) -> list[float]:
             if filtered:
                 n = len(filtered)
                 mean = sum(filtered) / n
-                squared_mean = sum([x ** 2 for x in filtered]) / n
-                variances.append(squared_mean - mean ** 2)
+                squared_mean = sum([x**2 for x in filtered]) / n
+                variances.append(squared_mean - mean**2)
 
         try:
             sigma_per_run.append(math.sqrt(sum(variances) / len(variances)))
@@ -245,7 +245,7 @@ def compute_avg_iteration_duration(
         sum(durations_squared) / len(durations_squared)
         for durations_squared in variance_per_result
     ]
-    variances = [a - b ** 2 for (a, b) in zip(e_squared_means, means)]
+    variances = [a - b**2 for (a, b) in zip(e_squared_means, means)]
     return means, variances
 
 
@@ -305,9 +305,9 @@ def calculate_variance(samples: list[list[float]]) -> Tuple[list[float], list[fl
         sample = tuple(x for x in sample if x < math.inf)
         E = 1 / n * sum(sample)
         means.append(E)
-        squared_sample = tuple(x ** 2 for x in sample)
+        squared_sample = tuple(x**2 for x in sample)
         E_sqrd = 1 / n * sum(squared_sample)
-        variances.append(E_sqrd - E ** 2)
+        variances.append(E_sqrd - E**2)
     return means, variances
 
 

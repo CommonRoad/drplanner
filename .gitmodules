@@ -1,3 +1,3 @@
 [submodule "commonroad-search"]
-	path = commonroad-search
+	path = planners/commonroad-search
 	url = https://gitlab.lrz.de/tum-cps/commonroad-search.git

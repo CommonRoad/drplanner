@@ -23,9 +23,9 @@ try:
 except ImportError as e:
 
     current_file_dir = os.path.dirname(os.path.abspath(__file__))
-    smp_path = os.path.join(current_file_dir, "../../commonroad-search/")
+    smp_path = os.path.join(current_file_dir, "../../planners/commonroad-search/")
     sys.path.append(smp_path)
-    print(f"[DrPlanner] Use the external submodule SMP under {smp_path}.")
+    print(f"[DrPlanner] Use the SMP under {smp_path}.")
 
 from SMP.maneuver_automaton.maneuver_automaton import ManeuverAutomaton
 from SMP.motion_planner.utility import create_trajectory_from_list_states

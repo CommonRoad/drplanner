@@ -13,20 +13,6 @@ from drplanner.prompter.base import PrompterBase
 from drplanner.prompter.llm import LLMFunction
 from drplanner.utils.config import DrPlannerConfiguration
 
-# make sure the SMP has been installed successfully
-try:
-    import SMP
-
-    print("[DrPlanner] Installed SMP module is called.")
-except ImportError as e:
-    import sys
-    import os
-
-    current_file_dir = os.path.dirname(os.path.abspath(__file__))
-    smp_path = os.path.join(current_file_dir, "../../commonroad-search/")
-    sys.path.append(smp_path)
-    print(f"[DrPlanner] Use the external submodule SMP under {smp_path}.")
-
 from SMP.motion_planner.search_algorithms.best_first_search import AStarSearch
 
 

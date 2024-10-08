@@ -1,3 +1,5 @@
+import os
+import sys
 import textwrap
 from typing import Union
 
@@ -9,6 +11,23 @@ from drplanner.describer.base import MissingParameterException
 from drplanner.diagnostics.base import DrPlannerBase
 from drplanner.prompter.sampling import PrompterSampling
 from drplanner.utils.config import DrPlannerConfiguration
+
+# Adjust sys.path before any imports
+current_file_dir = os.path.dirname(os.path.abspath(__file__))
+smp_path = os.path.normpath(
+    os.path.join(current_file_dir, "../../planners/reactive-planner/")
+)
+sys.path.append(smp_path)
+print(f"[DrPlanner] Use the reactive planner under {smp_path}.")
+
+try:
+    import commonroad_rp.trajectories
+except ImportError as e:
+    print(
+        f"Failed to import commonroad_rp.trajectories after adding {smp_path} to sys.path."
+    )
+    raise e  # Re-raise the exception or handle it appropriately
+
 from drplanner.planners.reactive_planner import ReactiveMotionPlanner, plot_planner
 
 

@@ -2,7 +2,7 @@ import os
 
 from commonroad_dc.costs.evaluation import PlanningProblemCostResult
 
-from describer.trajectory_description import TrajectoryCostComparison
+from drplanner.describer.trajectory_description import TrajectoryCostComparison
 from drplanner.utils.gpt import num_tokens_from_messages
 from drplanner.utils.config import DrPlannerConfiguration
 from drplanner.utils.general import Statistics

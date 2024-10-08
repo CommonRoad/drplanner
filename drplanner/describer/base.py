@@ -154,10 +154,12 @@ class ExceptionDescription(DescriptionBase):
         tb = traceback.extract_tb(self.exception.__traceback__)  # Extract the traceback
         frame = None
         for frame_summary in tb:
+            # Checks if "drplanner" is present in the filename attribute of the FrameSummary
             if "drplanner" in frame_summary.filename:
                 frame = frame_summary
 
         if not frame:
+            # The last frame often contains the most relevant information about where the exception occurred
             frame = tb[-1]
 
         summary = (

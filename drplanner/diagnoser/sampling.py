@@ -8,7 +8,7 @@ from commonroad.scenario.scenario import Scenario
 from commonroad_dc.costs.evaluation import PlanningProblemCostResult
 
 from drplanner.describer.base import MissingParameterException
-from drplanner.diagnostics.base import DrPlannerBase
+from drplanner.diagnoser.base import DrPlannerBase
 from drplanner.prompter.sampling import PrompterSampling
 from drplanner.utils.config import DrPlannerConfiguration
 

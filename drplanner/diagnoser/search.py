@@ -38,7 +38,7 @@ from SMP.motion_planner.plot_config import DefaultPlotConfig
 from SMP.motion_planner.search_algorithms.best_first_search import GreedyBestFirstSearch
 
 from drplanner.utils.config import DrPlannerConfiguration
-from drplanner.diagnostics.base import DrPlannerBase
+from drplanner.diagnoser.base import DrPlannerBase
 
 import numpy as np
 

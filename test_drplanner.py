@@ -5,7 +5,7 @@ import shutil
 
 from commonroad.common.file_reader import CommonRoadFileReader
 
-from drplanner.diagnostics.sampling import DrSamplingPlanner
+from drplanner.diagnoser.sampling import DrSamplingPlanner
 
 from drplanner.utils.config import DrPlannerConfiguration
 from drplanner.modular_approach.iteration import run_iterative_repair

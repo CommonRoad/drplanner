@@ -45,13 +45,13 @@ class Statistics:
     def __str__(self):
         cost = token_cost(self.token_count, "gpt-4o-mini")
         return (
-            f"DrPlanner needed {self.duration} seconds. There were {len(self.total_costs)} iterations.\n"
-            f"DrPlanner used {self.token_count} tokens, which cost {cost}$.\n"
-            f"The LLMs forgot to provide essential parameters {self.missing_parameter_count} times.\n"
-            f"The repair LLM did not provide proper helper methods {self.flawed_helper_methods_count} times.\n"
-            f"The memory did not provide few-shots {self.missing_few_shot_count} times.\n"
-            f"The memory was updated {self.added_few_shot_count} times.\n"
-            f"Total costs: {self.total_costs}"
+            f"* DrPlanner needed {self.duration} seconds. There were {len(self.total_costs)} iterations.\n"
+            f"* DrPlanner used {self.token_count} tokens, which cost {cost}$.\n"
+            f"* The LLMs forgot to provide essential parameters {self.missing_parameter_count} times.\n"
+            f"* The repair LLM did not provide proper helper methods {self.flawed_helper_methods_count} times.\n"
+            f"* The memory did not provide few-shots {self.missing_few_shot_count} times.\n"
+            f"* The memory was updated {self.added_few_shot_count} times.\n"
+            f"* Total costs: {self.total_costs}"
         )
 
 

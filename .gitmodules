@@ -1,6 +1,6 @@
 [submodule "commonroad-search"]
-	path = planners/commonroad-search
-	url = https://gitlab.lrz.de/tum-cps/commonroad-search.git
+    path = planners/commonroad-search
+    url = https://gitlab.lrz.de/tum-cps/commonroad-search.git
 [submodule "planners/reactive-planner"]
-	path = planners/reactive-planner
-	url = https://gitlab.lrz.de/cps/reactive-planner.git
+    path = planners/reactive-planner
+    url = https://gitlab.lrz.de/cps/reactive-planner.git

@@ -13,8 +13,6 @@ from drplanner.prompter.base import PrompterBase
 from drplanner.prompter.llm import LLMFunction
 from drplanner.utils.config import DrPlannerConfiguration
 
-from SMP.motion_planner.search_algorithms.best_first_search import AStarSearch
-
 
 class PrompterSearch(PrompterBase):
     def __init__(
@@ -58,20 +56,26 @@ class PrompterSearch(PrompterBase):
         return llm_function
 
     def update_planner_prompt(
-        self, motion_planner_obj: Union[object, AStarSearch], motion_primitives_id: str
+        self,
+        motion_planner_obj: Union[object, "AStarSearch"],
+        motion_primitives_id: str,
     ):
-        hf_code = (
-            "This is the code of the heuristic function: ```"
-            + inspect.getsource(motion_planner_obj.heuristic_function)
-            + "```"
-        )
+        # Local import inside the function
+        from SMP.motion_planner.search_algorithms.best_first_search import AStarSearch
 
-        # generate heuristic function's description
-        hf_obj = HeuristicDescription(motion_planner_obj.heuristic_function)
-        heuristic_function_des = hf_obj.generate(motion_planner_obj)
+        if isinstance(motion_planner_obj, AStarSearch):
+            hf_code = (
+                "This is the code of the heuristic function: ```"
+                + inspect.getsource(motion_planner_obj.heuristic_function)
+                + "```"
+            )
 
-        # generate motion primitives' description
-        motion_primitives_des = self.mp_obj.generate(motion_primitives_id)
-        self.user_prompt.set(
-            "planner", hf_code + heuristic_function_des + motion_primitives_des
-        )
+            # generate heuristic function's description
+            hf_obj = HeuristicDescription(motion_planner_obj.heuristic_function)
+            heuristic_function_des = hf_obj.generate(motion_planner_obj)
+
+            # generate motion primitives' description
+            motion_primitives_des = self.mp_obj.generate(motion_primitives_id)
+            self.user_prompt.set(
+                "planner", hf_code + heuristic_function_des + motion_primitives_des
+            )

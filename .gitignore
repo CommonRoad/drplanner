@@ -10,4 +10,4 @@ scenarios/
 /drplanner/memory/store/
 /drplanner/memory/plots/
 /drplanner/memory/few_shots/
-/drplanner/modular_approach/templates/
+/drplanner/modular/templates/

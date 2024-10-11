@@ -11,10 +11,10 @@ from drplanner.utils.general import Statistics
 from drplanner.planners.reactive_planner_wrapper import ReactiveMotionPlannerWrapper
 from drplanner.memory.memory import FewShotMemory
 
-from drplanner.modular_approach.diagnosis import DiagnosisModule
-from drplanner.modular_approach.module import EvaluationModule, Reflection, Diagnosis
-from drplanner.modular_approach.prescription import PrescriptionModule
-from drplanner.modular_approach.reflection import ReflectionModule
+from drplanner.modular.diagnosis import DiagnosisModule
+from drplanner.modular.module import EvaluationModule, Reflection, Diagnosis
+from drplanner.modular.prescription import PrescriptionModule
+from drplanner.modular.reflection import ReflectionModule
 
 
 class Iteration:

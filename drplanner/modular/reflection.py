@@ -10,7 +10,7 @@ from drplanner.utils.general import Statistics
 from drplanner.prompter.llm import LLM, LLMFunction
 from drplanner.prompter.base import Prompt
 
-from drplanner.modular_approach.module import Module, Reflection
+from drplanner.modular.module import Module, Reflection
 
 
 # module that generates a diagnosis based on reactive planner performance

@@ -9,6 +9,13 @@ stages:
   - test
 
 before_script:
+  # Install SSH client and set up SSH agent with the private key
+  - 'which ssh-agent || ( apt-get update -y && apt-get install openssh-client -y )'
+  - eval $(ssh-agent -s)
+  - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
+  - mkdir -p ~/.ssh
+  - chmod 700 ~/.ssh
+  - ssh-keyscan gitlab.lrz.de >> ~/.ssh/known_hosts
   - echo "Cloning submodules..."
   - git submodule init
   - git submodule update --recursive

@@ -73,7 +73,9 @@ class Iteration:
         previous_reflections: list[Reflection],
         iteration_id: int,
         start_total_cost: float,
-    ) -> Tuple[str, PlanningProblemCostResult, ReactiveMotionPlannerWrapper, Reflection]:
+    ) -> Tuple[
+        str, PlanningProblemCostResult, ReactiveMotionPlannerWrapper, Reflection
+    ]:
         """
         A single modular DrPlanner iteration:
         Diagnose, repair, evaluate, reflect.

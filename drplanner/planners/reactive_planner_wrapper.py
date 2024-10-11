@@ -264,28 +264,29 @@ class ReactiveMotionPlannerWrapper:
         max_time_steps: int = None,
         d: float = None,
     ):
-        if not cost_function_string and helper_methods is None:
+        # cost function string is set to a basic cost function if not provided
+        if not cost_function_string:
             self.cost_function_string = get_basic_cost_function()
-            self.helper_methods = []
-        elif not cost_function_string:
-            self.cost_function_string = get_basic_cost_function()
-        elif helper_methods is None:
-            self.helper_methods = []
         else:
             self.cost_function_string = cost_function_string
-            self.helper_methods = helper_methods
+
+        # helper methods are set to an empty list if not provided
+        self.missing_helper_method = None
+        self.last_missing_helper_method = None
+
+        self.helper_methods = [] if helper_methods is None else helper_methods
+
+        # ----- configuration parameters -----
+        # time_steps_computation for the reactive planner
         if not max_time_steps:
             self.max_time_steps = 30
         else:
             self.max_time_steps = max_time_steps
-
+        # sampling d intervals (lateral deviation)
         if not d:
             self.d = 3
         else:
             self.d = d
-
-        self.missing_helper_method = None
-        self.last_missing_helper_method = None
 
     def evaluate_on_scenario(
         self,
@@ -420,7 +421,9 @@ class ReactiveMotionPlannerWrapper:
         # check if the LLM provided a split-up method instead of mutiple complete ones
         split_up_method = all(["\n" not in x for x in helper_methods])
         if split_up_method:
-            helper_methods = ReactiveMotionPlannerWrapper.join_method_lines(helper_methods)
+            helper_methods = ReactiveMotionPlannerWrapper.join_method_lines(
+                helper_methods
+            )
 
         for method in helper_methods:
             # handle the case that the LLM forgot to include a return statement
@@ -473,7 +476,11 @@ class ReactiveMotionPlannerWrapper:
             try:
                 exec(code, globals(), function_namespace)
             except Exception as _:
-                exec(ReactiveMotionPlannerWrapper.defuse(code), globals(), function_namespace)
+                exec(
+                    ReactiveMotionPlannerWrapper.defuse(code),
+                    globals(),
+                    function_namespace,
+                )
             method = function_namespace[name]
             if callable(method):
                 if static:

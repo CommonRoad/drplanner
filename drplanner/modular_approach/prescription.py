@@ -141,7 +141,9 @@ class PrescriptionModule(Module):
                     helper_methods=helper_methods,
                 )
             else:
-                return ReactiveMotionPlannerWrapper(cost_function_string=cost_function_string)
+                return ReactiveMotionPlannerWrapper(
+                    cost_function_string=cost_function_string
+                )
         else:
             self.statistic.missing_parameter_count += 1
             raise ValueError("The llm did not provide an essential parameter!")

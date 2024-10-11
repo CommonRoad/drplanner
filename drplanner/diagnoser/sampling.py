@@ -28,7 +28,10 @@ except ImportError as e:
     )
     raise e  # Re-raise the exception or handle it appropriately
 
-from drplanner.planners.reactive_planner_wrapper import ReactiveMotionPlannerWrapper, plot_planner
+from drplanner.planners.reactive_planner_wrapper import (
+    ReactiveMotionPlannerWrapper,
+    plot_planner,
+)
 
 
 class DrSamplingPlanner(DrPlannerBase):
@@ -39,7 +42,9 @@ class DrSamplingPlanner(DrPlannerBase):
         config: DrPlannerConfiguration,
     ):
         super().__init__(scenario, planning_problem_set, config)
-        self.absolute_scenario_path = config.scenarios_path + str(scenario.scenario_id) + ".xml"
+        self.absolute_scenario_path = (
+            config.scenarios_path + str(scenario.scenario_id) + ".xml"
+        )
         self.motion_planner = ReactiveMotionPlannerWrapper()
         self.last_motion_planner = None
 

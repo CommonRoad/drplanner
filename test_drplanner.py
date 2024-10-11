@@ -8,7 +8,7 @@ from commonroad.common.file_reader import CommonRoadFileReader
 from drplanner.diagnoser.sampling import DrSamplingPlanner
 
 from drplanner.utils.config import DrPlannerConfiguration
-from drplanner.modular_approach.iteration import run_iterative_repair
+from drplanner.modular.iteration import run_iterative_repair
 from drplanner.memory.memory import FewShotMemory
 
 

@@ -35,12 +35,11 @@ class DrSamplingPlanner(DrPlannerBase):
     def __init__(
         self,
         scenario: Scenario,
-        scenario_path: str,
         planning_problem_set: PlanningProblemSet,
         config: DrPlannerConfiguration,
     ):
         super().__init__(scenario, planning_problem_set, config)
-        self.absolute_scenario_path = scenario_path
+        self.absolute_scenario_path = config.scenarios_path + str(scenario.scenario_id) + ".xml"
         self.motion_planner = ReactiveMotionPlanner()
         self.last_motion_planner = None
 

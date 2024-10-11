@@ -9,6 +9,10 @@ stages:
   - test
 
 before_script:
+  - echo "Cloning submodules..."
+  - git submodule init
+  - git submodule update --recursive
+  - echo "Submodules initialized."
   - pip install --upgrade pip
   - pip install poetry
   - poetry config virtualenvs.in-project true

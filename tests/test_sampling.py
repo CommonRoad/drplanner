@@ -21,9 +21,16 @@ class SamplingPlannerTests(unittest.TestCase):
             writer = csv.writer(file)
             writer.writerow(data)
 
-    def run_dr_sampling_planner(self, scenario_filepath: str, result_filepath: str, config: DrPlannerConfiguration):
+    def run_dr_sampling_planner(
+        self,
+        scenario_filepath: str,
+        result_filepath: str,
+        config: DrPlannerConfiguration,
+    ):
         """Run DrSamplingPlanner on the given scenario and save the results to CSV."""
-        scenario, planning_problem_set = CommonRoadFileReader(scenario_filepath).open(True)
+        scenario, planning_problem_set = CommonRoadFileReader(scenario_filepath).open(
+            True
+        )
         config.save_dir = os.path.dirname(result_filepath)
         dr_planner = DrSamplingPlanner(
             scenario,
@@ -40,7 +47,12 @@ class SamplingPlannerTests(unittest.TestCase):
         row.extend(dr_planner.statistic.get_iteration_data())
         self.results_to_csv(result_filepath, row)
 
-    def run_dr_iteration_planner(self, scenario_filepath: str, result_filepath: str, config: DrPlannerConfiguration):
+    def run_dr_iteration_planner(
+        self,
+        scenario_filepath: str,
+        result_filepath: str,
+        config: DrPlannerConfiguration,
+    ):
         """Run DrPlanner's iterative repair method on the scenario and save the results to CSV."""
         config.save_dir = os.path.dirname(result_filepath)
 
@@ -61,7 +73,9 @@ class SamplingPlannerTests(unittest.TestCase):
         self.results_to_csv(result_filepath, row)
 
     @patch.dict(os.environ, {"OPENAI_API_KEY": "phantom_api_key"})
-    def run_tests(self, dataset: str, config: DrPlannerConfiguration, modular: bool, skip=None):
+    def run_tests(
+        self, dataset: str, config: DrPlannerConfiguration, modular: bool, skip=None
+    ):
         """Run tests on a set of scenarios, either with modular or sampling planners."""
         if skip is None:
             skip = []
@@ -74,8 +88,15 @@ class SamplingPlannerTests(unittest.TestCase):
         result_config_path = os.path.join(path_to_results, "config.txt")
 
         index_row = [
-            "scenario_id", "initial", "best", "duration", "token_count", "missing parameters",
-            "flawed helper methods", "missing few-shots", "added few-shots"
+            "scenario_id",
+            "initial",
+            "best",
+            "duration",
+            "token_count",
+            "missing parameters",
+            "flawed helper methods",
+            "missing few-shots",
+            "added few-shots",
         ]
         index_row.extend([f"iter_{i}" for i in range(config.iteration_max)])
 
@@ -90,7 +111,9 @@ class SamplingPlannerTests(unittest.TestCase):
             file.write(f"{config.__str__()}memory size: {memory_size}")
 
         # Collect and run tests on all scenarios
-        xml_files = glob.glob(os.path.join(path_to_scenarios, "**", "*.xml"), recursive=True)
+        xml_files = glob.glob(
+            os.path.join(path_to_scenarios, "**", "*.xml"), recursive=True
+        )
         scenarios = [os.path.abspath(file) for file in xml_files]
 
         for p in scenarios:
@@ -108,7 +131,7 @@ class SamplingPlannerTests(unittest.TestCase):
     @patch.dict(os.environ, {"OPENAI_API_KEY": "phantom_api_key"})
     def test_sampling_planner(self):
         """Test running the sampling planner with a phantom API key."""
-        with patch.dict('os.environ', {"OPENAI_API_KEY": "phantom_api_key"}):
+        with patch.dict("os.environ", {"OPENAI_API_KEY": "phantom_api_key"}):
             standard_config = DrPlannerConfiguration(mockup_openAI=True)
             standard_save_dir = standard_config.save_dir
             standard_config.temperature = 0.6
@@ -120,14 +143,18 @@ class SamplingPlannerTests(unittest.TestCase):
             standard_config.memory_module = True
             standard_config.include_cost_function_few_shot = True
 
-            standard_config.save_dir = os.path.join(standard_save_dir, "performance", "memory", "memory_10_09")
+            standard_config.save_dir = os.path.join(
+                standard_save_dir, "performance", "memory", "memory_10_09"
+            )
             csv_path = self.run_tests("test", standard_config, True)
 
             # Assert that the csv_path file is created
             self.assertTrue(os.path.exists(csv_path))
 
             # Copy to final destination
-            new_path = os.path.join(standard_save_dir, "results", "memory", "memory_10_09.csv")
+            new_path = os.path.join(
+                standard_save_dir, "results", "memory", "memory_10_09.csv"
+            )
             os.makedirs(os.path.dirname(new_path), exist_ok=True)
             shutil.copy(csv_path, new_path)
 
@@ -137,7 +164,7 @@ class SamplingPlannerTests(unittest.TestCase):
     @patch.dict(os.environ, {"OPENAI_API_KEY": "phantom_api_key"})
     def test_iteration_planner(self):
         """Test running the iteration planner with a phantom API key."""
-        with patch.dict('os.environ', {"OPENAI_API_KEY": "phantom_api_key"}):
+        with patch.dict("os.environ", {"OPENAI_API_KEY": "phantom_api_key"}):
             config = DrPlannerConfiguration(mockup_openAI=True)
             config.temperature = 0.8
             config.iteration_max = 5

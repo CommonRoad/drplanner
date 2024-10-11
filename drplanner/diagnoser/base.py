@@ -201,8 +201,8 @@ class DrPlannerBase(ABC):
             )
             self.diagnosis_result = result
 
-            # todo: why is this needed?
-            self.prompter.reload_LLM()
+            # in case the LLM is not able to provide a response
+            # self.prompter.reload_LLM()
             nr_iteration += 1
 
             # apply the response and evaluate it

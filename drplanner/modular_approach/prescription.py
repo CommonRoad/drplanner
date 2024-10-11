@@ -10,7 +10,7 @@ from drplanner.prompter.llm import LLM, LLMFunction
 from drplanner.prompter.base import Prompt
 
 from drplanner.modular_approach.module import Module, Reflection
-from drplanner.planners.reactive_planner import ReactiveMotionPlanner
+from drplanner.planners.reactive_planner_wrapper import ReactiveMotionPlannerWrapper
 
 
 class PrescriptionModule(Module):
@@ -101,7 +101,7 @@ class PrescriptionModule(Module):
         reflection: Reflection,
         few_shots: list[Tuple[str, str]],
         iteration_id: int,
-    ) -> ReactiveMotionPlanner:
+    ) -> ReactiveMotionPlannerWrapper:
         memories = [x[1] for x in few_shots]  # map to repair memories
 
         if reflection.repair_reflection:
@@ -136,12 +136,12 @@ class PrescriptionModule(Module):
             if "helper_methods" in result.keys():
                 helper_methods = result["helper_methods"]
                 helper_methods = [textwrap.dedent(x) for x in helper_methods]
-                return ReactiveMotionPlanner(
+                return ReactiveMotionPlannerWrapper(
                     cost_function_string=cost_function_string,
                     helper_methods=helper_methods,
                 )
             else:
-                return ReactiveMotionPlanner(cost_function_string=cost_function_string)
+                return ReactiveMotionPlannerWrapper(cost_function_string=cost_function_string)
         else:
             self.statistic.missing_parameter_count += 1
             raise ValueError("The llm did not provide an essential parameter!")

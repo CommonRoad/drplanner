@@ -8,7 +8,7 @@ from commonroad_dc.costs.evaluation import PlanningProblemCostResult
 from drplanner.utils.config import DrPlannerConfiguration
 from drplanner.utils.general import Statistics
 
-from drplanner.planners.reactive_planner import ReactiveMotionPlanner
+from drplanner.planners.reactive_planner_wrapper import ReactiveMotionPlannerWrapper
 from drplanner.memory.memory import FewShotMemory
 
 from drplanner.modular_approach.diagnosis import DiagnosisModule
@@ -67,13 +67,13 @@ class Iteration:
     def run(
         self,
         absolute_scenario_path: str,
-        motion_planner: ReactiveMotionPlanner,
+        motion_planner: ReactiveMotionPlannerWrapper,
         initial_evaluation: str,
         initial_cost_result: PlanningProblemCostResult,
         previous_reflections: list[Reflection],
         iteration_id: int,
         start_total_cost: float,
-    ) -> Tuple[str, PlanningProblemCostResult, ReactiveMotionPlanner, Reflection]:
+    ) -> Tuple[str, PlanningProblemCostResult, ReactiveMotionPlannerWrapper, Reflection]:
         """
         A single modular DrPlanner iteration:
         Diagnose, repair, evaluate, reflect.
@@ -175,7 +175,7 @@ def run_iterative_repair(
     statistic: Statistics = None,
     scenario_path: str = "USA_Lanker-2_19_T-1",
     config: DrPlannerConfiguration = None,
-    motion_planner: ReactiveMotionPlanner = None,
+    motion_planner: ReactiveMotionPlannerWrapper = None,
 ) -> Tuple[list[PlanningProblemCostResult], Statistics]:
     """
     Interface function to start the modular DrPlanner
@@ -199,7 +199,7 @@ def run_iterative_repair(
     iteration = Iteration(config, statistic, memory, save_dir)
 
     if not motion_planner:
-        motion_planner = ReactiveMotionPlanner()
+        motion_planner = ReactiveMotionPlannerWrapper()
 
     reflection = Reflection("")
     # first run the initial planner once to obtain the initial values for the loop:

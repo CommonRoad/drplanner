@@ -251,7 +251,7 @@ def get_basic_method(name: str):
     return 0.0"""
 
 
-class ReactiveMotionPlanner:
+class ReactiveMotionPlannerWrapper:
     """
     Wrapper class representing a ReactivePlanner.
     It handles automatic integration of cost function strings.
@@ -323,7 +323,7 @@ class ReactiveMotionPlanner:
         planner_config.update()
 
         # --- integrate all components to obtain the final motion planner ---
-        planner, route, planner_cost_function = ReactiveMotionPlanner.apply(
+        planner, route, planner_cost_function = ReactiveMotionPlannerWrapper.apply(
             self.cost_function_string, self.helper_methods, planner_config
         )
 
@@ -420,7 +420,7 @@ class ReactiveMotionPlanner:
         # check if the LLM provided a split-up method instead of mutiple complete ones
         split_up_method = all(["\n" not in x for x in helper_methods])
         if split_up_method:
-            helper_methods = ReactiveMotionPlanner.join_method_lines(helper_methods)
+            helper_methods = ReactiveMotionPlannerWrapper.join_method_lines(helper_methods)
 
         for method in helper_methods:
             # handle the case that the LLM forgot to include a return statement
@@ -464,7 +464,7 @@ class ReactiveMotionPlanner:
         function_namespace["TrajectorySample"] = TrajectorySample
 
         # add helper methods to name space piece by piece
-        preprocess_result = ReactiveMotionPlanner.preprocess_helper_methods(
+        preprocess_result = ReactiveMotionPlannerWrapper.preprocess_helper_methods(
             helper_methods
         )
         for name, code, static in preprocess_result:
@@ -473,7 +473,7 @@ class ReactiveMotionPlanner:
             try:
                 exec(code, globals(), function_namespace)
             except Exception as _:
-                exec(ReactiveMotionPlanner.defuse(code), globals(), function_namespace)
+                exec(ReactiveMotionPlannerWrapper.defuse(code), globals(), function_namespace)
             method = function_namespace[name]
             if callable(method):
                 if static:
@@ -488,7 +488,7 @@ class ReactiveMotionPlanner:
         # Extract the new function
         cost_function_code = function_namespace["evaluate"]
         if not callable(cost_function_code):
-            raise ValueError("No valid 'heuristic_function' found after execution")
+            raise ValueError("No valid 'cost_function' found after execution")
         # noinspection PyUnresolvedReferences
         planner.cost_function.evaluate = cost_function_code.__get__(
             planner.cost_function

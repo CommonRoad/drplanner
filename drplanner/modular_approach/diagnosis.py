@@ -11,7 +11,7 @@ from drplanner.prompter.base import Prompt
 from drplanner.modular_approach.module import Module, Diagnosis
 from drplanner.modular_approach.module import Reflection
 
-from drplanner.planners.reactive_planner import ReactiveMotionPlanner
+from drplanner.planners.reactive_planner_wrapper import ReactiveMotionPlannerWrapper
 
 
 # module that generates a diagnosis based on reactive planner performance
@@ -98,7 +98,7 @@ class DiagnosisModule(Module):
 
     def generate_user_prompt(
         self,
-        planner: ReactiveMotionPlanner,
+        planner: ReactiveMotionPlannerWrapper,
         evaluation: str,
         reflection: str,
         memories: list[str],
@@ -155,7 +155,7 @@ class DiagnosisModule(Module):
     def run(
         self,
         evaluation: str,
-        planner: ReactiveMotionPlanner,
+        planner: ReactiveMotionPlannerWrapper,
         reflection: Reflection,
         few_shots: list[Tuple[str, str]],
         iteration_id: int,

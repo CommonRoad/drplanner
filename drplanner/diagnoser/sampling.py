@@ -28,7 +28,7 @@ except ImportError as e:
     )
     raise e  # Re-raise the exception or handle it appropriately
 
-from drplanner.planners.reactive_planner import ReactiveMotionPlanner, plot_planner
+from drplanner.planners.reactive_planner_wrapper import ReactiveMotionPlannerWrapper, plot_planner
 
 
 class DrSamplingPlanner(DrPlannerBase):
@@ -40,7 +40,7 @@ class DrSamplingPlanner(DrPlannerBase):
     ):
         super().__init__(scenario, planning_problem_set, config)
         self.absolute_scenario_path = config.scenarios_path + str(scenario.scenario_id) + ".xml"
-        self.motion_planner = ReactiveMotionPlanner()
+        self.motion_planner = ReactiveMotionPlannerWrapper()
         self.last_motion_planner = None
 
         self.prompter = PrompterSampling(
@@ -50,6 +50,9 @@ class DrSamplingPlanner(DrPlannerBase):
         )
 
     def repair(self):
+        """
+        Repair the motion planner by updating the cost function and helper methods.
+        """
         if not self.diagnosis_result:
             raise MissingParameterException("diagnosis result")
         try:
@@ -81,13 +84,13 @@ class DrSamplingPlanner(DrPlannerBase):
         except Exception as _:
             raise MissingParameterException(self.prompter.COST_FUNCTION)
 
-        self.last_motion_planner = ReactiveMotionPlanner(
+        self.last_motion_planner = ReactiveMotionPlannerWrapper(
             cost_function_string=self.motion_planner.cost_function_string,
             helper_methods=self.motion_planner.helper_methods,
             max_time_steps=self.motion_planner.max_time_steps,
             d=self.motion_planner.d,
         )
-        self.motion_planner = ReactiveMotionPlanner(
+        self.motion_planner = ReactiveMotionPlannerWrapper(
             cost_function_string=updated_cost_function,
             helper_methods=helper_methods,
             max_time_steps=max_time_steps,
@@ -95,6 +98,9 @@ class DrSamplingPlanner(DrPlannerBase):
         )
 
     def describe_planner(self):
+        """
+        Describes the current state of the planner to the LLM.
+        """
         if not self.last_motion_planner:
             last_cf = None
         else:
@@ -109,6 +115,9 @@ class DrSamplingPlanner(DrPlannerBase):
             self.prompter.update_config_prompt(self.motion_planner.max_time_steps)
 
     def plan(self, nr_iter: int) -> Union[PlanningProblemCostResult, Exception]:
+        """
+        Wrapper method to run the sampling-based motion planner.
+        """
         try:
             solution, missing_hf = self.motion_planner.evaluate_on_scenario(
                 self.absolute_scenario_path, absolute_save_path=self.config.path_to_plot

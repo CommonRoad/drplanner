@@ -12,9 +12,9 @@ from drplanner.describer.trajectory_description import (
 )
 from drplanner.prompter.base import PrompterBase
 
-from drplanner.planners.reactive_planner import (
+from drplanner.planners.reactive_planner_wrapper import (
     get_basic_configuration_path,
-    ReactiveMotionPlanner,
+    ReactiveMotionPlannerWrapper,
 )
 from drplanner.utils.config import DrPlannerConfiguration
 from drplanner.utils.general import Statistics
@@ -119,7 +119,7 @@ class EvaluationModule(Module):
     def run(
         self,
         absolute_scenario_path: str,
-        motion_planner: ReactiveMotionPlanner,
+        motion_planner: ReactiveMotionPlannerWrapper,
         plot=True,
     ) -> Tuple[str, PlanningProblemCostResult, str]:
         exception_description = ""

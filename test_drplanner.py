@@ -26,10 +26,8 @@ def run_dr_sampling_planner(scenario_filepath: str, result_filepath, config):
     config.save_dir = os.path.dirname(result_filepath)
     dr_planner = DrSamplingPlanner(
         scenario,
-        scenario_filepath,
         planning_problem_set,
         config,
-        "planner_id",
     )
     dr_planner.diagnose_repair()
     row = [

@@ -11,11 +11,10 @@ stages:
 before_script:
   - 'command -v ssh-agent >/dev/null || ( apt-get update -y && apt-get install openssh-client -y )'
   - eval $(ssh-agent -s)
-  - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
+  - chmod 400 "$SSH_PRIVATE_KEY"
+  - ssh-add "$SSH_PRIVATE_KEY"
   - mkdir -p ~/.ssh
-  - touch ~/.ssh/config
-  - touch ~/.ssh/known_hosts
-  - chmod -R 400 ~/.ssh
+  - chmod 700 ~/.ssh
   - echo "Cloning submodules..."
   - git submodule init
   - git submodule update --recursive

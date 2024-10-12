@@ -9,19 +9,14 @@ stages:
   - test
 
 before_script:
-  - 'command -v ssh-agent >/dev/null || ( apt-get update -y && apt-get install openssh-client -y )'
-  - eval $(ssh-agent -s)
-  # Write the SSH private key to a file
-  - echo "$SSH_PRIVATE_KEY" | tr -d '\r' > /tmp/id_rsa
-  # Apply correct permissions to the private key file
-  - chmod 400 /tmp/id_rsa
-  # Add the private key to the SSH agent
-  - ssh-add /tmp/id_rsa
-  # Ensure .ssh directory exists and has the correct permissions
+  - 'which ssh-agent || ( apt-get install -qq openssh-client )'
   - mkdir -p ~/.ssh
-  - chmod 700 ~/.ssh
-  # Add GitLab's host key to known hosts (adjust the domain if necessary)
-  - ssh-keyscan gitlab.lrz.de >> ~/.ssh/known_hosts
+  - touch ~/.ssh/id_rsa
+  - echo "$SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_rsa
+  - chmod 600 ~/.ssh/id_rsa
+  - echo -e "Host *\nStrictHostKeyChecking no\n" > ~/.ssh/config
+  - eval "$(ssh-agent -s)"
+  - ssh-add ~/.ssh/id_rsa
   - echo "Cloning submodules..."
   - git submodule init
   - git submodule update --recursive

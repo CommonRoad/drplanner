@@ -3,4 +3,4 @@
     url = git@gitlab.lrz.de:tum-cps/commonroad-search.git
 [submodule "planners/reactive-planner"]
     path = planners/reactive-planner
-    url = git@gitlab.lrz.de:cps/reactive-planner.git
+	url = git@gitlab.lrz.de:cps/reactive-planner.git

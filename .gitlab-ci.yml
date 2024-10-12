@@ -22,11 +22,7 @@ before_script:
   - chmod 700 ~/.ssh
   # Add GitLab server to known hosts to avoid SSH prompts
   - ssh-keyscan gitlab.lrz.de >> ~/.ssh/known_hosts
-  - echo "Cloning submodules..."
-  - git submodule set-url planners/reactive-planner https://${CI_GITLAB_USER}:${CI_GITLAB_TOKEN}@${CI_GITLAB_HOST}/cps/reactive-planner.git
-  - git submodule init
-  - git submodule update --recursive
-  - echo "Submodules initialized."
+  - pip install git+ssh://git@gitlab.lrz.de/cps/reactive-planner.git@ral_drplanner
   - pip install --upgrade pip
   - pip install poetry
   - poetry config virtualenvs.in-project true

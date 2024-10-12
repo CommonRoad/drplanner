@@ -25,6 +25,7 @@ before_script:
   # Install the reactive planner using git+ssh and pip in editable mode
   - pip install --upgrade pip
   - pip install poetry
+  - pip install coverage
   - poetry config virtualenvs.in-project true
   - poetry install --with test
   - pip install -e git+ssh://git@gitlab.lrz.de/cps/reactive-planner.git@ral_drplanner#egg=commonroad-reactive-planner

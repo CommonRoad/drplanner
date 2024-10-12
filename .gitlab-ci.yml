@@ -25,10 +25,11 @@ before_script:
   # Install the reactive planner using git+ssh and pip in editable mode
   - pip install --upgrade pip
   - pip install poetry
-  - pip install coverage
+  - pip install -e git+ssh://git@gitlab.lrz.de/cps/reactive-planner.git@ral_drplanner#egg=commonroad-reactive-planner
   - poetry config virtualenvs.in-project true
   - poetry install --with test
-  - pip install -e git+ssh://git@gitlab.lrz.de/cps/reactive-planner.git@ral_drplanner#egg=commonroad-reactive-planner
+  # Manually activate the virtual environment created by Poetry
+  - source .venv/bin/activate
   # Add the reactive planner path to PYTHONPATH for tests
   - export PYTHONPATH=$PYTHONPATH:/builds/cps/commonroad/drplanner/planners/reactive-planner
 

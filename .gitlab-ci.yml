@@ -22,12 +22,14 @@ before_script:
   - chmod 700 ~/.ssh
   # Add GitLab server to known hosts to avoid SSH prompts
   - ssh-keyscan gitlab.lrz.de >> ~/.ssh/known_hosts
-  - pip install git+ssh://git@gitlab.lrz.de/cps/reactive-planner.git@ral_drplanner
+  # Install the reactive planner using git+ssh and pip in editable mode
   - pip install --upgrade pip
   - pip install poetry
   - poetry config virtualenvs.in-project true
   - poetry install --with test
-  - source .venv/bin/activate
+  - pip install -e git+ssh://git@gitlab.lrz.de/cps/reactive-planner.git@ral_drplanner#egg=commonroad-reactive-planner
+  # Add the reactive planner path to PYTHONPATH for tests
+  - export PYTHONPATH=$PYTHONPATH:/builds/cps/commonroad/drplanner/planners/reactive-planner
 
 black:
   stage: style

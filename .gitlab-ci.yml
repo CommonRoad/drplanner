@@ -9,14 +9,14 @@ stages:
   - test
 
 before_script:
-  - 'which ssh-agent || ( apt-get install -qq openssh-client )'
+  - 'command -v ssh-agent >/dev/null || ( apt-get update -y && apt-get install openssh-client wget gnupg -y )'
+  - wget -qO- https://get.docker.com/gpg | apt-key add -
+  - eval $(ssh-agent -s)
+  - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
   - mkdir -p ~/.ssh
-  - touch ~/.ssh/id_rsa
-  - echo "$SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_rsa
-  - chmod 600 ~/.ssh/id_rsa
-  - echo -e "Host *\nStrictHostKeyChecking no\n" > ~/.ssh/config
-  - eval "$(ssh-agent -s)"
-  - ssh-add ~/.ssh/id_rsa
+  - touch ~/.ssh/config
+  - touch ~/.ssh/known_hosts
+  - chmod -R 400 ~/.ssh
   - echo "Cloning submodules..."
   - git submodule init
   - git submodule update --recursive

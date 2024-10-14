@@ -67,7 +67,7 @@ def run_planner(
     raise: PlanningException
     """
     print(
-        f"Start planning with a horizon of {config.planning.time_steps_computation/10} sec"
+        f"* \t Start planning with a horizon of {config.planning.time_steps_computation/10} sec"
     )
     planner.set_cost_function(cost_function)
     # set limit in seconds to restrict the length of the planning process

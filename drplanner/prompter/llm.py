@@ -198,8 +198,6 @@ class LLM:
                 temperature=self.temperature,
             )
 
-        print("RESPONSE: ", response)
-
         # save the result to save_dir/(jsons|texts)/(prompt|result).(json|txt)
         if self._save and response:
             if mockup_path:

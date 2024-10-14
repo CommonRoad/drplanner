@@ -24,7 +24,7 @@ try:
     import commonroad_rp.trajectories
 except ImportError as e:
     print(
-        f"Failed to import commonroad_rp.trajectories after adding {smp_path} to sys.path."
+        f"[DrPlanner] Failed to import commonroad_rp.trajectories after adding {smp_path} to sys.path."
     )
     raise e  # Re-raise the exception or handle it appropriately
 

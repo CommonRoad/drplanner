@@ -1,5 +1,6 @@
 import math
 import os
+import re
 import time
 from typing import Tuple
 
@@ -82,6 +83,8 @@ class Iteration:
         """
         last_reflection = previous_reflections[-1]
         initial_cost_function = motion_planner.cost_function_string
+
+        print("*\t ==== retrieving few-shot examples...")
         # retrieve related few_shot examples from memory
         if self.config.memory_module and iteration_id <= 0:
             few_shots = self.memory.get_few_shots(
@@ -94,6 +97,7 @@ class Iteration:
         else:
             few_shots = []
 
+        print("*\t ==== generating diagnosis...")
         # generate diagnosis
         try:
             diagnosis, max_time_steps, sampling_d = self.diagnosis_module.run(
@@ -103,12 +107,13 @@ class Iteration:
                 few_shots,
                 iteration_id,
             )
-        except ValueError as _:
-            print("No diagnosis provided")
+        except ValueError as e:
+            print(f"*\t # No diagnosis provided. Reason: {e}")
             diagnosis = Diagnosis("", "", "", "", [])
             max_time_steps = motion_planner.max_time_steps
             sampling_d = motion_planner.d
 
+        print("*\t ==== repairing the motion planner...")
         # repair the planner
         try:
             repaired_motion_planner = self.prescription_module.run(
@@ -118,18 +123,20 @@ class Iteration:
                 few_shots,
                 iteration_id,
             )
-        except ValueError as _:
-            print("No repair provided")
+        except ValueError as e:
+            print(f"*\t # No repair provided. Reason: {e}")
             repaired_motion_planner = motion_planner
 
         repaired_motion_planner.max_time_steps = max_time_steps
         repaired_motion_planner.d = sampling_d
 
+        print("*\t ==== evaluating the repair result...")
         # evaluate the repair
         repair_evaluation, repair_cost_result, exception = self.evaluation_module.run(
             absolute_scenario_path, repaired_motion_planner
         )
 
+        print("*\t ==== reflecting on the repair...")
         # reflect on the repair
         try:
             if not self.config.reflection_module:
@@ -142,8 +149,8 @@ class Iteration:
                 previous_reflections,
                 iteration_id,
             )
-        except ValueError as _:
-            print("No reflection provided")
+        except ValueError as e:
+            print(f"*\t # No reflection provided. Reason: {e}")
             reflection = Reflection("")
 
         improvement = self.get_relative_improvement(
@@ -151,6 +158,7 @@ class Iteration:
         )
         # if improvement is noticeable
         if self.config.update_memory_module and improvement > 0.01:
+            print("*\t ==== adding memories...")
             inserted = self.memory.insert(
                 diagnosis.to_few_shot(max_time_steps, sampling_d),
                 repaired_motion_planner.cost_function_string,
@@ -214,11 +222,17 @@ def run_iterative_repair(
     cost_results = [cr0]
     reflections = [reflection]
     iteration_id = 0
-    print(e0)
+
+    parts = re.split(r";|\.\s+", e0)
+
+    # Join the parts with ' *\t' and format for one line output
+    formatted_e0 = " \n\t\t".join([part.strip() for part in parts if part.strip()])
+    print(f"*\t Evaluation: \n\t\t{formatted_e0}")
 
     start_time = time.time()
 
     while iteration_id < config.iteration_max:
+        print(f"*\t -----------iteration {iteration_id}-----------")
         e, tc, motion_planner, new_reflection = iteration.run(
             scenario_path,
             motion_planner,
@@ -228,7 +242,11 @@ def run_iterative_repair(
             iteration_id,
             start_total_cost,
         )
-        print(e)
+
+        parts = re.split(r";|\.\s+", e)
+        formatted_e = " \n\t\t".join([part.strip() for part in parts if part.strip()])
+        print(f"*\t Evaluation: \n\t\t{formatted_e}")
+
         if motion_planner:
             cost_functions.append(motion_planner.cost_function_string)
         evaluations.append(e)

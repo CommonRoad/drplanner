@@ -3,6 +3,7 @@ import os
 from typing import Tuple
 
 import chromadb
+from chromadb.errors import InvalidCollectionException
 import replicate
 from chromadb.utils import embedding_functions
 from scipy.spatial.distance import cosine
@@ -23,7 +24,7 @@ class FewShotMemory:
         try:
             self.collection = self.client.get_collection(name="few_shots")
             print("[DrPlanner] MEMORY: Loaded existing collection successfully!")
-        except ValueError as _:
+        except InvalidCollectionException as _:
             self.collection = self.client.create_collection(name="few_shots")
             print("[DrPlanner] MEMORY: Initialized missing collection successfully!")
 

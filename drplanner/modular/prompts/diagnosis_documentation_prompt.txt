@@ -1,0 +1,3 @@
+The implementation assistant already has access to the following partial cost functions:
+acceleration_costs, jerk_costs, lateral_jerk_costs, orientation_offset_costs, steering_angle_costs, steering_velocity_costs, distance_to_reference_path_costs, path_length_costs, desired_velocity_costs, desired_path_length_costs
+But you can also suggest alterations (e.g. only punishing later states of the trajectory) or new functions.

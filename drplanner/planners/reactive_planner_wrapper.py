@@ -246,7 +246,7 @@ def get_basic_configuration_path() -> str:
 
 
 def get_basic_method(name: str):
-    print(f"Added missing helper method {name}")
+    print(f"*\t # Added missing helper method {name}")
     return f"""def {name}(trajectory: TrajectorySample) -> float:
     return 0.0"""
 

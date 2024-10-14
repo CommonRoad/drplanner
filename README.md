@@ -46,7 +46,12 @@ pip install . # or poetry install
 ### 2. Configuration ⚙️ 
 
 All configurable parameters are located in `drplanner/utils/config.py`. 
-Before running DrPlanner, set up your `OpenAI API keys` following the way described in the config file.
+Before running DrPlanner, set up your `OPENAI_API_KEY` following:
+```sh
+export OPENAI_API_KEY=YOUR_API_KEY # on Linux/Mac
+set OPENAI_API_KEY=YOUR_API_KEY # on Windows
+$Env:OPENAI_API_KEY = "YOUR_API_KEY" # on Windows (PowerShell)
+```
 
 Configure as below:
 ```

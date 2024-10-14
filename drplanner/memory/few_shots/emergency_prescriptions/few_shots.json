@@ -1,0 +1,19 @@
+{
+  "few_shots": [
+    {
+      "key": "!AN EXCEPTION OCCURRED!\nThe planner failed: No optimal trajectory could be found!",
+      "value": "def evaluate(self, trajectory: TrajectorySample) -> float:\n    cost = 0.0\n    cost += self.desired_velocity_costs(trajectory)\n    cost += self.desired_path_length_costs(trajectory)\n    cost += 20.0 * self.distance_to_reference_path_costs(trajectory)\n    return cost",
+      "meta_data": []
+    },
+    {
+      "key": "!AN EXCEPTION OCCURRED!\\nlist index out of range\\nTYPE: <class 'IndexError'> METHOD: compute_curvilinear_coordinates LINE: c_tmp = cosys[i_c]",
+      "value": "def evaluate(self, trajectory: TrajectorySample) -> float:\n    cost = 0.0\n    cost += self.desired_velocity_costs(trajectory)\n    cost += self.desired_path_length_costs(trajectory)\n    return cost",
+      "meta_data": []
+    },
+    {
+      "key": "!AN EXCEPTION OCCURRED!\nThe planner failed: Planning took too much time!",
+      "value": "def evaluate(self, trajectory: TrajectorySample) -> float:\n    cost = 0.0\n    cost += self.desired_velocity_costs(trajectory)\n    cost += self.desired_path_length_costs(trajectory)\n    return cost",
+      "meta_data": []
+    }
+  ]
+}

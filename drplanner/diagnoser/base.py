@@ -128,7 +128,9 @@ class DrPlannerBase(ABC):
             self.cost_result_previous,
             self.cost_result_current,
         )
-        print(f"*\t Feedback: {feedback}")
+        indented_feedback = "\n\t\t".join(feedback.splitlines())
+        # Print the feedback with indentation
+        print(f"*\t Feedback:\n\t\t{indented_feedback}")
         return feedback
 
     def diagnose_repair(self):
@@ -238,6 +240,7 @@ class DrPlannerBase(ABC):
 
             self.prompter.user_prompt.set("feedback", prompt_feedback)
             self.cost_list.append(self.current_cost)
+            print(f"*\t ---------------------------------")
 
         print("[DrPlanner] Ends.")
         end_time = time.time()

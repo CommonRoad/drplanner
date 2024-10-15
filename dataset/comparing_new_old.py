@@ -21,9 +21,15 @@ class StudentMotionPlanner(GreedyBestFirstSearch):
     Here as an example, the planner is inherited from the GreedyBestFirstSearch planner.
     """
 
-    def __init__(self, scenario, planningProblem, automata, plot_config=DefaultPlotConfig):
-        super().__init__(scenario=scenario, planningProblem=planningProblem, automaton=automata,
-                         plot_config=plot_config)
+    def __init__(
+        self, scenario, planningProblem, automata, plot_config=DefaultPlotConfig
+    ):
+        super().__init__(
+            scenario=scenario,
+            planningProblem=planningProblem,
+            automaton=automata,
+            plot_config=plot_config,
+        )
 
     def evaluation_function(self, node_current: PriorityNode) -> float:
 
@@ -44,7 +50,7 @@ def inject_method(cls, method_code):
     setattr(cls, method_name, namespace[method_name])
 
 
-with open('./structure_file.txt', 'r') as f:
+with open("./structure_file.txt", "r") as f:
     basic_structure = f.read()
 CHECK_VERSION = 10042157
 
@@ -53,59 +59,71 @@ sys.path.append(os.path.join(path_notebook, "../../"))
 # load scenario
 path_scenario = os.path.join(path_notebook, "../../scenarios/exercise/")
 
-with open(f'../dataset/raw/{CHECK_VERSION}.yaml', 'r') as file:
+with open(f"../dataset/raw/{CHECK_VERSION}.yaml", "r") as file:
     code_states = yaml.safe_load(file)
 
-initial_heuristic = code_states['input']['heuristic_function'].lstrip().replace("\\ \n ", "")
-improved_heuristic = code_states['output']['improved_heuristic_function'].lstrip().replace("\\ \n", "")
+initial_heuristic = (
+    code_states["input"]["heuristic_function"].lstrip().replace("\\ \n ", "")
+)
+improved_heuristic = (
+    code_states["output"]["improved_heuristic_function"].lstrip().replace("\\ \n", "")
+)
 
 
 def run_tests(initial_heuristic, improved_heuristic):
-    """ Injects the respective code and executes the tests"""
-    initial = initial_heuristic.split('\n')
-    initial[0] = '    ' + initial[0]
-    with open('../../SMP/motion_planner/search_algorithms/automatic.py', 'w') as f:
+    """Injects the respective code and executes the tests"""
+    initial = initial_heuristic.split("\n")
+    initial[0] = "    " + initial[0]
+    with open("../../SMP/motion_planner/search_algorithms/automatic.py", "w") as f:
         f.write(basic_structure)
-        f.write('    \n'.join(initial))
+        f.write("    \n".join(initial))
     initial_results = run_parallel_processing()
 
-    improved = improved_heuristic.split('\n')
-    improved[0] = '    ' + improved[0]
-    with open('../../SMP/motion_planner/search_algorithms/automatic.py', 'w') as f:
+    improved = improved_heuristic.split("\n")
+    improved[0] = "    " + improved[0]
+    with open("../../SMP/motion_planner/search_algorithms/automatic.py", "w") as f:
         f.write(basic_structure)
-        f.write('    \n'.join(improved))
+        f.write("    \n".join(improved))
 
     improved_results = run_parallel_processing()
 
     return initial_results, improved_results
 
-def execute_all_files(folder_path, yaml_folder='raw'):
+
+def execute_all_files(folder_path, yaml_folder="raw"):
     """Iterates over all files, parses them and calls the run_tests function"""
     results = {}
     # Loop through each file in the directory
     yaml_folder = os.path.join(folder_path, yaml_folder)
     for idx, filename in enumerate(os.listdir(yaml_folder)):
-        if filename.endswith('.yml'):
+        if filename.endswith(".yml"):
             id = Path(filename).stem
             yaml_file = os.path.join(yaml_folder, filename)
 
-            with open(yaml_file, 'r') as file:
+            with open(yaml_file, "r") as file:
                 code_states = yaml.safe_load(file)
 
-            initial_heuristic = code_states['input']['heuristic_function'].lstrip().replace("\\ \n ", "")
-            improved_heuristic = code_states['output']['improved_heuristic_function'].lstrip().replace("\\ \n", "")
+            initial_heuristic = (
+                code_states["input"]["heuristic_function"]
+                .lstrip()
+                .replace("\\ \n ", "")
+            )
+            improved_heuristic = (
+                code_states["output"]["improved_heuristic_function"]
+                .lstrip()
+                .replace("\\ \n", "")
+            )
 
             initial, improved = run_tests(initial_heuristic, improved_heuristic)
             results[id] = {}
-            results[id]['initial'] = initial
-            results[id]['improved'] = improved
+            results[id]["initial"] = initial
+            results[id]["improved"] = improved
 
-            with open(f'./results/{id}.pkl', 'wb') as f:
+            with open(f"./results/{id}.pkl", "wb") as f:
                 pickle.dump(results[id], f)
 
-    with open(f'./results/full.pkl', 'wb') as f:
+    with open(f"./results/full.pkl", "wb") as f:
         pickle.dump(results, f)
 
 
-execute_all_files(f'../dataset/', 'raw_new_samples')
-
+execute_all_files(f"../dataset/", "raw_new_samples")

@@ -1,17 +1,17 @@
 import json
 
 # Replace 'your_file.json' with the path to your JSON file
-filename = '10041944.json'
+filename = "10041944.json"
 
 # Read the JSON file and parse its contents
-with open(filename, 'r') as file:
+with open(filename, "r") as file:
     data = json.load(file)
 
 # Now 'data' is a Python object (dict or list) containing the data from the JSON file
 # You can use it directly in your script
 # For example, print the data
-print(data['input']["heuristic_function"])
-print(data['output']["improved_heuristic_function"])
+print(data["input"]["heuristic_function"])
+print(data["output"]["improved_heuristic_function"])
 # Example of accessing a specific part of the data
 # This depends on the structure of your JSON, so adjust accordingly
 # Example: print(data['key']) if your JSON is a dictionary

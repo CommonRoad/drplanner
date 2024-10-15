@@ -1,0 +1,22 @@
+input:
+  heuristic_function: "    def heuristic_function(self, node_current: PriorityNode) -> float: \n         if self.position_desired is None: \n             return self.time_desired.start - node_current.list_paths[-1][-1].time_step \n         else: \n             if hasattr(self.planningProblem.goal.state_list[0], 'position'): \n                 velocity = node_current.list_paths[-1][-1].velocity \n                 return self.calc_euclidean_distance(current_node=node_current)"
+  motion_primitives: V_0.0_20.0_Vstep_4.0_SA_-1.066_1.066_SAstep_0.18_T_0.5_Model_BMW_320i.xml
+output:
+  summary:
+  - diagnosis: Inefficient survival mode
+    prescription: Adjust calculation for all valid time goal states
+  - diagnosis: Neglect velocity difference
+    prescription: Include velocity difference into cost calculation
+  - diagnosis: Neglect orientation difference
+    prescription: Include orientation difference into cost calculation
+  - diagnosis: Neglect path efficiency
+    prescription: Include path efficiency into cost calculation
+  - diagnosis: Neglect time cost
+    prescription: Include time cost into cost calculation
+  - diagnosis: null
+    prescription: null
+  - diagnosis: null
+    prescription: null
+  - diagnosis: null
+    prescription: null
+  improved_heuristic_function: "    def heuristic_function(self, node_current: PriorityNode) -> float: \n         path = node_current.list_paths[-1] \n         state = path[-1] \n         path_efficiency = self.calc_path_efficiency(path) \n         if self.position_desired is None: \n             time_diff = 0 \n             if state.time_step not in self.time_desired: \n                 time_diff = abs(sum(self.time_desired)/2 - state.time_step) \n             return time_diff + 2*(1/path_efficiency) \n         else: \n             if hasattr(self.planningProblem.goal.state_list[0], 'position'): \n                 velocity_diff = 0 \n                 if state.velocity not in self.velocity_desired: \n                     velocity_diff = abs(sum(self.velocity_desired)/2 - state.velocity) \n                 orientation_diff = self.calc_orientation_diff(self.calc_angle_to_goal(state), state.orientation) \n                 orientation_diff = (orientation_diff + np.pi) % (2 * np.pi) - np.pi \n                 time_cost = self.calc_time_cost(path) \n                 return 5*self.calc_euclidean_distance(current_node=node_current) + 10*(1/path_efficiency) + 2*time_cost + 12*orientation_diff + velocity_diff"

@@ -1,0 +1,39 @@
+{
+    "input": {
+        "heuristic_function": "    def heuristic_function(self, node_current: PriorityNode) -> float: \n         if self.reached_goal(node_current.list_paths[-1]): \n             return 0.0 \n         if self.position_desired is None: \n             return self.time_desired.start - node_current.list_paths[-1][-1].time_step \n         else: \n             velocity = node_current.list_paths[-1][-1].velocity \n             path_last = node_current.list_paths[-1] \n             pathLength = self.calc_travelled_distance(path_last) \n             cost_time = self.calc_time_cost(path_last) \n             if np.isclose(velocity, 0): \n                 return np.inf \n             else: \n                 return self.calc_euclidean_distance(current_node=node_current) / velocity + 0.00001 * cost_time + 0.00001*pathLength",
+        "motion_primitives": "V_0.0_20.0_Vstep_4.0_SA_-1.066_1.066_SAstep_0.18_T_0.5_Model_BMW_320i.xml"
+    },
+    "output": {
+        "summary": [
+            {
+                "diagnosis": "Neglect of path efficiency",
+                "prescription": "Include path efficiency into cost function"
+            },
+            {
+                "diagnosis": "Neglect of steering cost",
+                "prescription": "Include steering angle cost into cost function"
+            },
+            {
+                "diagnosis": "Neglect of orientation difference",
+                "prescription": "Include orientation difference into cost function"
+            },
+            {
+                "diagnosis": "Neglect of velocity difference",
+                "prescription": "Include velocity difference into cost function"
+            },
+            {
+                "diagnosis": "Zero velocity handling",
+                "prescription": "Don't return infinity if velocity is close to zero"
+            },
+            {
+                "diagnosis": "Mixture of independent features",
+                "prescription": "Include distance to goal independent of current velocity"
+            },
+            {
+                "diagnosis": "Inefficient weighting",
+                "prescription": "Adjust weights for relevance"
+            }
+        ],
+        "improved_heuristic_function": "    def heuristic_function(self, node_current: PriorityNode) -> float: \n         path_last = node_current.list_paths[-1] \n         if self.reached_goal(node_current.list_paths[-1]): \n             return 0.0 \n         if self.position_desired is None: \n             return self.time_desired.start - node_current.list_paths[-1][-1].time_step \n         else: \n             velocity = node_current.list_paths[-1][-1].velocity \n             path_last = node_current.list_paths[-1] \n             pathLength = self.calc_travelled_distance(path_last) \n             cost_time = self.calc_time_cost(path_last) \n             orientationDifference = self.calc_orientation_diff(self.calc_angle_to_goal(path_last[-1]), path_last[-1].orientation) \n             orientationDifference = (orientationDifference + np.pi) % (2 * np.pi) - np.pi \n             path_efficiency = self.calc_path_efficiency(path_last) \n             velocity_difference = 0 \n             if velocity not in self.velocity_desired: \n                 velocity_difference = abs(sum(self.velocity_desired) - velocity) \n             steering_cost = self.calc_steering_angle_cost(path_last) \n             return 2*self.calc_euclidean_distance(current_node=node_current) + 0.1 * cost_time + 0.8*pathLength + 5*orientationDifference + 0.1*steering_cost + 0.7*velocity_difference+(1/path_efficiency)*7"
+    }
+}

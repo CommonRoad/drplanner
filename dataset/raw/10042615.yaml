@@ -1,0 +1,15 @@
+input:
+  heuristic_function: "\n    def heuristic_function(self, node_current: PriorityNode) -> float:\n        global_scaling = 1\n        tuner_distance = 1\n        tuner_time = 1\n        tuner_dt = 0\n        tuner_lane = 1\n\n        if self.reached_goal(node_current.list_paths[-1]):\n            return 0.0\n        else:\n            heuristic =  global_scaling * (            tuner_distance * self.dist_to_goal(node_current) +             tuner_time * self.time_to_goal(node_current) +             tuner_dt * self.time_difference(node_current) +             tuner_lane * self.goal_in_lane(node_current))\n\n            return max(0.0, heuristic)\n"
+output:
+  summary:
+  - diagnosis: Zero heuristic for goal state
+    prescription: Introduce a small positive heuristic for goal state
+  - diagnosis: Neglect of time difference tuner
+    prescription: Adjust tuner_dt to account for time difference
+  - diagnosis: Global scaling constant
+    prescription: Calibrate global scaling to align with desired cost
+  - diagnosis: Inadequate lane adherence incentive
+    prescription: Increase tuner_lane to prioritize lane adherence
+  - diagnosis: Unused path efficiency
+    prescription: Incorporate path efficiency into heuristic
+  improved_heuristic_function: "\n    def heuristic_function(self, node_current: PriorityNode) -> float:\n        global_scaling = 0.05\n        tuner_distance = 1\n        tuner_time = 1\n        tuner_dt = 0.1\n        tuner_lane = 2\n\n        if self.reached_goal(node_current.list_paths[-1]):\n            return global_scaling\n        else:\n            heuristic =  global_scaling * (\n            tuner_distance * self.dist_to_goal(node_current) +\n            tuner_time * self.time_to_goal(node_current) +\n            tuner_dt * self.time_difference(node_current) +\n            tuner_lane * self.goal_in_lane(node_current))\n\n            path_efficiency = self.calc_path_efficiency(node_current.list_paths[-1])\n            heuristic += path_efficiency\n\n            return max(0.0, heuristic)\n"

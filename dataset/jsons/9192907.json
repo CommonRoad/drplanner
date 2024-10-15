@@ -1,0 +1,13 @@
+{
+    "input": {
+        "heuristic_function": "    def heuristic_function(self, node_current: PriorityNode) -> float: \n         # a sample heuristic function from a previous random student \n         #path_last = node_current.list_paths[-1] \n         if self.reached_goal(node_current.list_paths[-1]): \n             return 0.0 \n         if self.position_desired is None: \n             return self.time_desired.start - node_current.list_paths[-1][-1].time_step \n         else: \n             velocity = node_current.list_paths[-1][-1].velocity \n             if np.isclose(velocity, 0): \n                 return np.inf \n             else: \n                 return self.calc_euclidean_distance(current_node=node_current) / velocity",
+        "motion_primitives": "V_0.0_20.0_Vstep_4.0_SA_-1.066_1.066_SAstep_0.18_T_0.5_Model_BMW_320i.xml"
+    },
+    "output": {
+        "summary": {
+            "diagnosis": "Zero velocity handling",
+            "prescription": "Don't return infinity if velocity close to zero"
+        },
+        "improved_heuristic_function": "    def heuristic_function(self, node_current: PriorityNode) -> float: \n         # a sample heuristic function from a previous random student \n         #path_last = node_current.list_paths[-1] \n         if self.reached_goal(node_current.list_paths[-1]): \n             return 0.5 \n         if self.position_desired is None: \n             return self.time_desired.start - node_current.list_paths[-1][-1].time_step \n         else: \n             velocity = node_current.list_paths[-1][-1].velocity \n             return self.calc_euclidean_distance(current_node=node_current) / velocity"
+    }
+}

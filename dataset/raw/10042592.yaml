@@ -1,0 +1,17 @@
+input:
+  heuristic_function: "\n    def heuristic_function(self, node_current: PriorityNode) -> float:\n        path_last = node_current.list_paths[-1]\n        angleToGoal = self.calc_angle_to_goal(path_last[-1])\n        orientationToGoalDiff = self.calc_orientation_diff(angleToGoal, path_last[-1].orientation)\n        cost_time = self.calc_time_cost(path_last)\n\n        if self.reached_goal(path_last):\n            return 0.0\n\n        if self.position_desired is None:\n            return self.time_desired.start - path_last[-1].time_step\n\n        else:\n            velocity = path_last[-1].velocity\n\n            if np.isclose(velocity, 0):\n                return np.inf\n\n            else:\n                weights = np.zeros(3)\n                weights[0] = 10\n                weights[1] = 0.1\n                weights[2] = 0.1\n                timeToGoal = self.calc_euclidean_distance(current_node=node_current) / velocity\n                return weights[0] * timeToGoal +                        weights[1] * abs(orientationToGoalDiff) +                        weights[2] * cost_time\n"
+output:
+  summary:
+  - diagnosis: Zero heuristic for goal
+    prescription: Remove zero return for goal state to consider full path cost
+  - diagnosis: Neglecting acceleration cost
+    prescription: Incorporate calc_acceleration_cost into heuristic
+  - diagnosis: Ignoring path efficiency
+    prescription: Include calc_path_efficiency to optimize path length
+  - diagnosis: Omitting steering costs
+    prescription: Add calc_steering_angle_cost and calc_steering_velocity_cost
+  - diagnosis: Weights array with zero
+    prescription: Adjust weights to avoid neglecting factors
+  - diagnosis: Infinite cost for zero velocity
+    prescription: Handle zero velocity case appropriately
+  improved_heuristic_function: "\n    def heuristic_function(self, node_current: PriorityNode) -> float:\n        path_last = node_current.list_paths[-1]\n        if self.position_desired is None:\n            return self.time_desired.start - path_last[-1].time_step\n        else:\n            angleToGoal = self.calc_angle_to_goal(path_last[-1])\n            orientationToGoalDiff = self.calc_orientation_diff(angleToGoal, path_last[-1].orientation)\n            cost_time = self.calc_time_cost(path_last)\n            velocity = path_last[-1].velocity\n            if np.isclose(velocity, 0):\n                velocity = 0.1  # Small positive value to avoid division by zero\n            timeToGoal = self.calc_euclidean_distance(current_node=node_current) / velocity\n            acceleration_cost = self.calc_acceleration_cost(path_last)\n            path_efficiency = self.calc_path_efficiency(path_last)\n            steering_angle_cost = self.calc_steering_angle_cost(path_last)\n            steering_velocity_cost = self.calc_steering_velocity_cost(path_last)\n            weights = np.array([10, 0.1, 0.1, 1, 1, 1])\n            cost = weights[0] * timeToGoal +                    weights[1] * abs(orientationToGoalDiff) +                    weights[2] * cost_time +                    weights[3] * acceleration_cost +                    weights[4] * path_efficiency +                    weights[5] * (steering_angle_cost + steering_velocity_cost)\n            return max(cost, 0)  # Ensure non-negative cost\n"

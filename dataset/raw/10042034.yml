@@ -1,0 +1,20 @@
+input:
+  heuristic_function: "    def heuristic_function(self, node_current: PriorityNode): \n         node_last = node_current.list_paths[-1][-1] \n         #lanelet_id = self.scenario.lanelet_network.find_lanelet_by_position([node_current.list_paths[0][0].position])[0][0] \n         if self.reached_goal(node_current.list_paths[-1]): \n             return 0.0 \n         #survival mode \n         if self.position_desired is None: \n             #print('Case position_desired is None') \n             return self.time_desired.start - node_current.list_paths[-1][-1].time_step \n         else: \n             #a = self.planningProblem.goal \n             angle_diff = self.calc_angle_to_goal(node_last) \n             orientationToGoalDiff = self.calc_orientation_diff(angle_diff, node_last.orientation) \n             velocity = node_current.list_paths[-1][-1].velocity \n             dist_to_goal = self.calc_euclidean_distance(current_node=node_current) \n             dist_to_goal_disc = min(5 * dist_to_goal, 100) \n             orient_disc = min(orientationToGoalDiff, 1) \n             if np.isclose(velocity, 0): \n                 return np.inf \n             else: \n                 return dist_to_goal / velocity + orient_disc + dist_to_goal_disc"
+  motion_primitives: V_0.0_20.0_Vstep_4.0_SA_-1.066_1.066_SAstep_0.18_T_0.5_Model_BMW_320i.xml
+output:
+  summary:
+  - diagnosis: Zero heuristic for goal
+    prescription: Make sure to return a value which enables to evaluate path
+  - diagnosis: Zero velocity handling
+    prescription: Don't return infinity if velocity is close to zero
+  - diagnosis: Inefficient weighting
+    prescription: Adjust weights for relevance
+  - diagnosis: Neglect path efficiency
+    prescription: Include path efficiency into cost calcualtion
+  - diagnosis: Neglect cost time
+    prescription: Include cost time into cost calculation
+  - diagnosis: No normalized orientation difference
+    prescription: Normalize orientation difference before usage
+  - diagnosis: Incorrect usage of distance to goal
+    prescription: Use distance to goal directly instead of using a substitute
+  improved_heuristic_function: "    def heuristic_function(self, node_current: PriorityNode): \n         path = node_current.list_paths[-1] \n         state = path[-1] \n         path_eff = self.calc_path_efficiency(path) \n         if self.position_desired is None: \n             time_diff = 0 \n             if state.time_step not in self.time_desired: \n                 time_diff = abs(sum(self.time_desired) / 2 - state.time_step) \n             return time_diff + 5/path_eff \n         else: \n             angle_diff = self.calc_angle_to_goal(state) \n             orientationToGoalDiff = self.calc_orientation_diff(angle_diff, state.orientation) \n             orientationToGoalDiff = (orientationToGoalDiff + np.pi) % (2 * np.pi) - np.pi \n             velocity = node_current.list_paths[-1][-1].velocity \n             dist_to_goal = self.calc_euclidean_distance(current_node=node_current) \n             time_cost = self.calc_time_cost(path) \n             return 0.5*(dist_to_goal / velocity) + 10*orientationToGoalDiff + dist_to_goal*2 + time_cost + 5/path_eff"

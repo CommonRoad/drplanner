@@ -1,0 +1,20 @@
+input:
+  heuristic_function: "    def heuristic_function(self, node_current: PriorityNode) -> float: \n         path_last = node_current.list_paths[-1] \n         if self.reached_goal(path_last): \n             return 0.0 \n         velocity = path_last[-1].velocity \n         time_diff = 0 \n         exp_travel_time = 0 \n         path_efficiency = 0  \n         if self.position_desired is None: \n             time_diff = self.time_desired.start - path_last[-1].time_step \n             path_efficiency = self.calc_path_efficiency(path_last) \n         else: \n             if np.isclose(velocity, 0): \n                 exp_travel_time = np.inf \n             else: \n                  exp_travel_time = self.calc_euclidean_distance(current_node=node_current) / velocity \n         cost_lanelet, final_lanelet_id, start_lanelet_id = self.calc_heuristic_lanelet(path_last) \n         obstacles = 0 \n         if final_lanelet_id is not None: \n             obstacles = self.num_obstacles_in_lanelet_at_time_step(path_last[-1].time_step, final_lanelet_id[0]) \n         orientationToGoalDiff = 0 \n         angleToGoal = self.calc_angle_to_goal(path_last[-1]) \n         orientationToGoalDiff = self.calc_orientation_diff(angleToGoal, path_last[-1].orientation) \n         cost = 3 * exp_travel_time + 3 * time_diff + 1 * path_efficiency + 2 * obstacles + 1 * orientationToGoalDiff \n         return cost"
+  motion_primitives: V_0.0_20.0_Vstep_4.0_SA_-1.066_1.066_SAstep_0.18_T_0.5_Model_BMW_320i.xml
+output:
+  summary:
+  - diagnosis: Zero velocity handling
+    prescription: Don't return infinity if velocity is close to zero
+  - diagnosis: Zero heuristic for goal
+    prescription: Return meaningful value instead
+  - diagnosis: Mixture of independent factors
+    prescription: Include distance to goal independent to velocity
+  - diagnosis: Inefficient obstacle penalty
+    prescription: Only incorporating the number of obstacles in the lane is too trivial
+  - diagnosis: Inefficient weighting
+    prescription: Adjust weighting for relevance
+  - diagnosis: No normalized orientation difference
+    prescription: Normalize orientation difference before usage
+  - diagnosis: Ignore full time interval
+    prescription: Take time goal end also into consideration
+  improved_heuristic_function: "    def heuristic_function(self, node_current: PriorityNode) -> float: \n         path_last = node_current.list_paths[-1] \n         state = path_last[-1] \n         velocity = path_last[-1].velocity \n         time_diff = 0 \n         exp_travel_time = 0 \n         dist = 0 \n         if self.position_desired is None: \n             time_diff = abs((self.time_desired.start + self.time_desired.end)/2 - path_last[-1].time_step) \n         else: \n             time_diff = self.calc_time_cost(path_last) \n             dist = self.calc_euclidean_distance(current_node=node_current) \n             exp_travel_time = dist / velocity \n         path_efficiency = self.calc_path_efficiency(path_last) \n         orientationToGoalDiff = 0 \n         angleToGoal = self.calc_angle_to_goal(path_last[-1]) \n         orientationToGoalDiff = self.calc_orientation_diff(angleToGoal, path_last[-1].orientation) \n         orientationToGoalDiff = (orientationToGoalDiff + np.pi) % (2 * np.pi) - np.pi \n         cost = 0.5 * exp_travel_time + 3 * time_diff + 5/path_efficiency + 15 * orientationToGoalDiff + 2*dist \n         return cost"

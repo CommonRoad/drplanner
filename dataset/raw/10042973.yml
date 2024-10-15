@@ -1,0 +1,16 @@
+input:
+  heuristic_function: "    def heuristic_function(self, node_current: PriorityNode) -> float: \n         if self.reached_goal(node_current.list_paths[-1]): \n             return 0.0 \n         if self.position_desired is None: \n             return self.time_desired.start - node_current.list_paths[-1][-1].time_step \n         else: \n             velocity = node_current.list_paths[-1][-1].velocity \n             path = node_current.list_paths[-1] \n             time_diff = self.calc_time_cost(path) \n             weight = 0.1 \n             if np.isclose(velocity, 0): \n                 return np.inf \n             else: \n                 return self.calc_euclidean_distance(current_node=node_current) / velocity + weight * time_diff"
+  motion_primitives: V_0.0_20.0_Vstep_4.0_SA_-1.066_1.066_SAstep_0.18_T_0.5_Model_BMW_320i.xml
+output:
+  summary:
+  - diagnosis: Neglect of essential factors
+    prescription: Incorporate essential factors such as path efficiency, orientation and velocity difference
+  - diagnosis: Missing distance to goal
+    prescription: Include distance to goal independent of current velocity
+  - diagnosis: Zero velocity handling
+    prescription: Don't return infinity if velocity is close to zero
+  - diagnosis: Zero heuristic for goal
+    prescription: Don't return zero if goal is reached
+  - diagnosis: Inefficient weighting
+    prescription: Adjust weighting for relevance
+  improved_heuristic_function: "    def heuristic_function(self, node_current: PriorityNode) -> float: \n         path = node_current.list_paths[-1] \n         node_last = path[-1] \n         path_efficiency = self.calc_path_efficiency(path) \n         path_distance = self.calc_travelled_distance(path) \n         if self.position_desired is None: \n             return self.time_desired.start - node_current.list_paths[-1][-1].time_step + 1/path_efficiency + 0.2*path_distance \n         else: \n             distance = self.calc_euclidean_distance(current_node=node_current) \n             time_to_goal = distance / node_last.velocity \n             if hasattr(self.planningProblem.goal.state_list[0], 'velocity'): \n                 vel_desired = (self.velocity_desired.start + self.velocity_desired.end) / 2 \n                 vel_diff = abs(node_last.velocity - vel_desired) \n             else: \n                 vel_diff = 0 \n             if hasattr(self.planningProblem.goal.state_list[0], 'orientation'): \n                 orient_desired = (self.orientation_desired.start + self.orientation_desired.end) / 2 \n                 orient_diff = abs(node_last.orientation - orient_desired) \n             else: \n                 orient_diff = 0 \n             if hasattr(self.planningProblem.goal.state_list[0], 'time_step'): \n                 timestep_desired = (self.time_desired.start + self.time_desired.end) / 2 \n                 time_diff = abs(node_last.time_step - timestep_desired) \n             else: \n                 time_diff = self.calc_time_cost(path) \n             return 0.025 * time_diff + 0.025*time_to_goal + 0.8*distance + 0.4*(1/path_efficiency) + 0.025*vel_diff + 0.4*orient_diff + 0.025*path_distance"

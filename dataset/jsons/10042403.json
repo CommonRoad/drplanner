@@ -1,0 +1,34 @@
+{
+    "input": {
+        "heuristic_function": "\n    def heuristic_function(self, node_current: PriorityNode) -> float:\n        # a sample heuristic function from a previous random student\n        path_last = node_current.list_paths[-1]\n\n        distStartState = self.calc_heuristic_distance(path_last[0])\n        distLastState = self.calc_heuristic_distance(path_last[-1])\n\n        if distLastState is None:\n            return np.inf\n\n        if distStartState < distLastState:\n            return np.inf\n\n        cost_lanelet, final_lanelet_id, start_lanelet_id = self.calc_heuristic_lanelet(path_last)\n\n        if cost_lanelet is None or final_lanelet_id[0] is None:\n            return np.inf\n\n        self.calc_path_efficiency(path_last)\n        self.num_obstacles_in_lanelet_at_time_step(path_last[-1].time_step, final_lanelet_id[0])\n        self.is_goal_in_lane(final_lanelet_id[0])\n        if self.dict_lanelets_costs[final_lanelet_id[0]] == -1:\n            return np.inf\n        factor = 1\n        if self.dict_lanelets_costs[final_lanelet_id[0]] > self.dict_lanelets_costs[start_lanelet_id[0]]:\n            return np.inf\n        if self.dict_lanelets_costs[final_lanelet_id[0]] < self.dict_lanelets_costs[start_lanelet_id[0]]:\n            factor = factor * 0.1\n\n        angleToGoal = self.calc_angle_to_goal(path_last[-1])\n\n        orientationToGoalDiff = self.calc_orientation_diff(angleToGoal, path_last[-1].orientation)\n        if final_lanelet_id[0] in self.list_ids_lanelets_goal:\n            factor = factor * 0.07\n        pathLength = self.calc_travelled_distance(path_last)\n        cost_time = self.calc_time_cost(path_last)\n        weights = np.zeros(6)\n        if distLastState < 0.5:\n            factor = factor * 0.00001\n        # elif math.pi - abs(abs(laneletOrientationAtPosition - path[-1].orientation)\n\n        if hasattr(self.planningProblem.goal.state_list[0], 'velocity'):\n            v_mean_goal = (self.planningProblem.goal.state_list[0].velocity.start +\n                           self.planningProblem.goal.state_list[0].velocity.end) / 2\n            dist_vel = abs(path_last[-1].velocity - v_mean_goal)\n        else:\n            dist_vel = 0\n\n        weights[0] = 8.7\n        weights[1] = 0.01\n        weights[2] = 0.5\n        weights[3] = 0.1\n        weights[4] = 0.05\n        weights[5] = 1\n        cost = weights[0] * (cost_lanelet / len(path_last)) +                weights[1] * abs(orientationToGoalDiff) +                weights[3] * cost_time +                weights[2] * distLastState +                weights[4] * (100 - pathLength) +                weights[5] * dist_vel\n\n        if cost < 0:\n            cost = 0\n        return cost * factor\n"
+    },
+    "output": {
+        "summary": [
+            {
+                "diagnosis": "Incorrect inf handling",
+                "prescription": "Remove unnecessary np.inf returns"
+            },
+            {
+                "diagnosis": "Unused calculations",
+                "prescription": "Integrate all relevant calculations into cost"
+            },
+            {
+                "diagnosis": "Neglection of acceleration cost",
+                "prescription": "Include the acceleration cost"
+            },
+            {
+                "diagnosis": "Zero weights issue",
+                "prescription": "Adjust weights to avoid neglecting factors"
+            },
+            {
+                "diagnosis": "Improper factor adjustments",
+                "prescription": "Revise factor logic for goal proximity"
+            },
+            {
+                "diagnosis": "Neglect of velocity matching",
+                "prescription": "Incorporate velocity matching into cost"
+            }
+        ],
+        "improved_heuristic_function": "\n    def heuristic_function(self, node_current: PriorityNode) -> float:\n        path_last = node_current.list_paths[-1]\n\n        distLastState = self.calc_heuristic_distance(path_last[-1])\n        if distLastState is None:\n            return np.inf\n\n        cost_lanelet, final_lanelet_id, start_lanelet_id = self.calc_heuristic_lanelet(path_last)\n        if cost_lanelet is None or final_lanelet_id[0] is None:\n            return np.inf\n\n        path_efficiency = self.calc_path_efficiency(path_last)\n        num_obstacles = self.num_obstacles_in_lanelet_at_time_step(path_last[-1].time_step, final_lanelet_id[0])\n        goal_in_lane = self.is_goal_in_lane(final_lanelet_id[0])\n        if self.dict_lanelets_costs[final_lanelet_id[0]] == -1:\n            return np.inf\n\n        angleToGoal = self.calc_angle_to_goal(path_last[-1])\n        orientationToGoalDiff = self.calc_orientation_diff(angleToGoal, path_last[-1].orientation)\n\n        pathLength = self.calc_travelled_distance(path_last)\n        cost_time = self.calc_time_cost(path_last)\n\n        if hasattr(self.planningProblem.goal.state_list[0], 'velocity'):\n            v_mean_goal = (self.planningProblem.goal.state_list[0].velocity.start +\n                           self.planningProblem.goal.state_list[0].velocity.end) / 2\n            dist_vel = abs(path_last[-1].velocity - v_mean_goal)\n        else:\n            dist_vel = 0\n\n        acc_cost = self.calc_acceleration_cost(path_last)\n\n        weights = np.array([8.7, 0.01, 0.5, 0.1, 0.05, 1, 0.5, 2.5])\n        cost = weights[0] * (cost_lanelet / len(path_last)) +                weights[1] * abs(orientationToGoalDiff) +                weights[3] * cost_time +                weights[2] * distLastState +                weights[4] * (100 - pathLength) +                weights[5] * dist_vel +                weights[6] * acc_cost +                weights[7] * path_efficiency\n\n        if goal_in_lane:\n            cost *= 0.07\n        if num_obstacles > 0:\n            cost *= (1 + 0.1 * num_obstacles)\n\n        if cost < 0:\n            cost = 0\n        return cost\n"
+    }
+}

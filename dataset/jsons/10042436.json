@@ -1,0 +1,39 @@
+{
+    "input": {
+        "heuristic_function": "    def heuristic_function(self, node_current: PriorityNode) -> float: \n         weight = np.ones(6) \n         last_path = node_current.list_paths[-1]  \n         if self.reached_goal(node_current.list_paths[-1]): \n             return 0.0 \n         if self.position_desired is None: \n             item_time = self.time_desired.start - node_current.list_paths[-1][-1].time_step \n         else: \n             velocity = node_current.list_paths[-1][-1].velocity \n             if np.isclose(velocity, 0): \n                 return np.inf   \n             else: \n                 item_time = self.calc_euclidean_distance(current_node=node_current) / velocity \n         current_timestep = last_path[-1].time_step \n         if hasattr(self.planningProblem.goal.state_list[0], 'time_step'): \n             goal_timestep = self.planningProblem.goal.state_list[0].time_step.end \n             if current_timestep <= goal_timestep: \n                 item_time = abs(self.planningProblem.goal.state_list[0].time_step.end - last_path[-1].time_step) \n             else: \n                 item_time = np.inf \n         # weight2 lane id \n         weight_id = 1 \n         cost_lanelet, final_lanelet_id, start_lanelet_id = self.calc_heuristic_lanelet(last_path)  # \u83b7\u53d6\u6700\u540e\u548c\u5f00\u59cb\u7684lanelet\u7684id \n         if final_lanelet_id != None: \n             if final_lanelet_id[0] in self.list_ids_lanelets_goal: \n                 weight_id = 0.8 \n         velocity_current = last_path[-1].velocity \n         if item_time > 2: \n             weight_velocity = 30 / (velocity_current + 1) \n         else: \n             if hasattr(self.planningProblem.goal.state_list[0], 'velocity'): \n                 velocity_goal_end = self.planningProblem.goal.state_list[0].velocity.end \n                 velocity_goal_start = self.planningProblem.goal.state_list[0].velocity.start \n                 if velocity_current >= velocity_goal_start and velocity_current <= velocity_goal_end: \n                     weight_velocity = 0 \n                 elif velocity_current > velocity_goal_end: \n                     weight_velocity = (velocity_current - velocity_goal_end) / 10 \n                 else: \n                     weight_velocity = (velocity_goal_start - velocity_current) / 10 \n             else: \n                 weight_velocity = 1 \n         weight_efficiency = self.calc_path_efficiency(last_path) \n         # comnbine \n         Comb = weight[0] * item_time + (weight_id + weight_velocity) * item_time \n         return Comb",
+        "motion_primitives": "V_0.0_20.0_Vstep_4.0_SA_-1.066_1.066_SAstep_0.18_T_0.5_Model_BMW_320i.xml"
+    },
+    "output": {
+        "summary": [
+            {
+                "diagnosis": "Inaccurate factor for velocity after two time steps",
+                "prescription": "Always use difference of goal velocity and current velocity"
+            },
+            {
+                "diagnosis": "Neglect path efficiency",
+                "prescription": "Include path efficiency into cost function"
+            },
+            {
+                "diagnosis": "Neglect orientation difference",
+                "prescription": "Include orientation difference into cost function"
+            },
+            {
+                "diagnosis": "Neglect of travelled distance",
+                "prescription": "Include travelled distance into cost function"
+            },
+            {
+                "diagnosis": "Neglect of steer cost",
+                "prescription": "Include steer cost into cost function"
+            },
+            {
+                "diagnosis": "Mixture of independent factors",
+                "prescription": "Include distance to goal independent of velocity"
+            },
+            {
+                "diagnosis": "Zero heuristic for reached goal",
+                "prescription": "Return value to evaluate path quality"
+            }
+        ],
+        "improved_heuristic_function": "    def heuristic_function(self, node_current: PriorityNode) -> float: \n         last_path = node_current.list_paths[-1] \n         path_efficiency = self.calc_path_efficiency(last_path) \n         if self.reached_goal(node_current.list_paths[-1]): \n             return 1/path_efficiency \n         distance = 0 \n         if self.position_desired is None: \n             item_time = self.time_desired.start - node_current.list_paths[-1][-1].time_step \n         else: \n             velocity = node_current.list_paths[-1][-1].velocity \n             if np.isclose(velocity, 0): \n                 return np.inf \n             else: \n                 distance = self.calc_euclidean_distance(current_node=node_current) \n                 item_time = self.calc_euclidean_distance(current_node=node_current) / velocity \n         if hasattr(self.planningProblem.goal.state_list[0], 'time_step'): \n             goal_timestep = sum(self.time_desired)/2 \n             item_time = abs(goal_timestep - last_path[-1].time_step) \n         # weight2 lane id \n         weight_id = 1 \n         cost_lanelet, final_lanelet_id, start_lanelet_id = self.calc_heuristic_lanelet(last_path) \n         if final_lanelet_id != None: \n             if final_lanelet_id[0] in self.list_ids_lanelets_goal: \n                 weight_id = 0.95 \n         velocity_current = last_path[-1].velocity \n         if hasattr(self.planningProblem.goal.state_list[0], 'velocity'): \n             velocity_goal_end = self.planningProblem.goal.state_list[0].velocity.end \n             velocity_goal_start = self.planningProblem.goal.state_list[0].velocity.start \n             if velocity_current >= velocity_goal_start and velocity_current <= velocity_goal_end: \n                 weight_velocity = 0 \n             else: \n                 weight_velocity = (velocity_goal_end + velocity_goal_start)/2 - velocity_current \n         else: \n             weight_velocity = 0 \n         travelled_distance = self.calc_travelled_distance(last_path) \n         steer_cost = self.calc_steering_angle_cost(last_path) \n         orientation_difference = self.calc_orientation_diff(self.calc_angle_to_goal(last_path[-1]), last_path[-1].orientation) \n         orientation_difference = (orientation_difference + np.pi) % (2 * np.pi) - np.pi \n         # comnbine \n         weight = np.ones(7) \n         weight[0] = 3 \n         weight[2] = 6 \n         weight[4] = 10 \n         weight[6] = 0.7 \n         Comb = weight[0] * distance + weight_velocity*weight[1] + path_efficiency * weight[2] + weight[3] * travelled_distance + weight[4]*orientation_difference + weight[5]*steer_cost + weight[6]*item_time \n         return Comb * weight_id"
+    }
+}

@@ -1,0 +1,19 @@
+{
+    "input": {
+        "heuristic_function": "    def heuristic_function(self, node_current: PriorityNode) -> float: \n         # 1 \n         # The euclidean distance between the ego vehicle and the goal position seems to be a great starting point to build the heuristic. \n         # Code is based on heuristic_function of BestFirstSearch in best_first_search.py \n         path_last = node_current.list_paths[-1] \n         if self.reached_goal(path_last): \n             goal_dist = 0.0 \n         if self.position_desired is None: \n             goal_dist = self.time_desired.start - path_last[-1].time_step \n         else: \n             velocity = path_last[-1].velocity \n             if np.isclose(velocity, 0): \n                 goal_dist = np.inf \n             else: \n                 goal_dist = self.calc_euclidean_distance(current_node=node_current) / velocity \n         cost_lanelet, final_lanelet_id, start_lanelet_id = self.calc_heuristic_lanelet(path_last) \n         # 2 \n         # Check whether the goal is in the lane \n         # Once the goal lane is reached, the vehicle should stay on it if possible. As we can see for example in problem USA_Lanker-1_2_T-1, the vehicle is more stable compared to just relying on euclidean distance. \n         if final_lanelet_id is not None: \n             goal_in_lanelet = self.is_goal_in_lane(final_lanelet_id[0]) \n         else: \n             goal_in_lanelet = False \n         # Cost function \n         # The base of the cost function is the euclidean distance. If the vehicle is in the goal lane, the cost ist multiplied by a factor of 0.7 \n         heuristic_value = goal_dist \n         if goal_in_lanelet: \n             heuristic_value = heuristic_value * 0.7 \n         return heuristic_value \n         # This solution was already sufficient to solve 363/500 scenarios, which probably wont lead to any prices but is enough for the grade bonus.  \n         # - Stefan Obermeier",
+        "motion_primitives": "V_0.0_20.0_Vstep_4.0_SA_-1.066_1.066_SAstep_0.18_T_0.5_Model_BMW_320i.xml"
+    },
+    "output": {
+        "summary": [
+            {
+                "diagnosis": "Neglect path efficiency",
+                "prescription": "Include path efficiency into cost calculation"
+            },
+            {
+                "diagnosis": "Zero velocity handling",
+                "prescription": "Don't return infinity if velocity is close to zero"
+            }
+        ],
+        "improved_heuristic_function": "    def heuristic_function(self, node_current: PriorityNode) -> float: \n         # 1 \n         # The euclidean distance between the ego vehicle and the goal position seems to be a great starting point to build the heuristic. \n         # Code is based on heuristic_function of BestFirstSearch in best_first_search.py \n         path_last = node_current.list_paths[-1] \n         if self.position_desired is None: \n             goal_dist = self.time_desired.start - path_last[-1].time_step \n         else: \n             velocity = path_last[-1].velocity \n             goal_dist = self.calc_euclidean_distance(current_node=node_current) / velocity \n         cost_lanelet, final_lanelet_id, start_lanelet_id = self.calc_heuristic_lanelet(path_last) \n         # 2 \n         if final_lanelet_id is not None: \n             goal_in_lanelet = self.is_goal_in_lane(final_lanelet_id[0]) \n         else: \n             goal_in_lanelet = False \n         path_eff = self.calc_path_efficiency(path_last) \n         heuristic_value = goal_dist * 2/path_eff \n         if goal_in_lanelet: \n             heuristic_value = heuristic_value * 0.6 \n         return heuristic_value"
+    }
+}

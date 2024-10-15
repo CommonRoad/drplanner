@@ -1,0 +1,14 @@
+input:
+  heuristic_function: "    def heuristic_function(self, node_current: PriorityNode) -> float: \n         path_last = node_current.list_paths[-1]  # the last path taken \n         current_node = path_last[-1] \n         if self.reached_goal(path_last): \n             return 0 \n         # calculate distance from current/start node to goal node \n         dist_current_goal = self.calc_heuristic_distance(current_node) \n         # orientation diff: \n         angle_to_goal = self.calc_angle_to_goal(current_node) \n         orientation_diff_to_goal = self.calc_orientation_diff(angle_to_goal, current_node.orientation) \n         # time: time cost (number of time steps) to perform the given path \n         cost_time = self.calc_time_cost(path_last) \n         # path length \n         pathLength = self.calc_travelled_distance(path_last) \n         #path efficiency \n         path_efficiency = self.calc_path_efficiency(path_last) \n         # total cost \n         cost = 2 * dist_current_goal + abs(orientation_diff_to_goal) + cost_time + (100-pathLength) + (1/path_efficiency) \n         if cost < 0: \n             cost = 0 \n         return cost"
+  motion_primitives: V_0.0_20.0_Vstep_4.0_SA_-1.066_1.066_SAstep_0.18_T_0.5_Model_BMW_320i.xml
+output:
+  summary:
+  - diagnosis: Neglect time goal
+    prescription: Take time goal into consideration
+  - diagnosis: Incorrect usage of path length
+    prescription: Use path length to reward short paths
+  - diagnosis: Zero heuristic for goal
+    prescription: Don't return zero if goal is reached
+  - diagnosis: No normalized orientation difference
+    prescription: Normalize orientation difference before usage
+  improved_heuristic_function: "    def heuristic_function(self, node_current: PriorityNode) -> float: \n         path_last = node_current.list_paths[-1]  # the last path taken \n         current_node = path_last[-1] \n         # calculate distance from current/start node to goal node \n         dist_current_goal = self.calc_heuristic_distance(current_node) \n         time_to_goal = 0 \n         # orientation diff: \n         angle_to_goal = self.calc_angle_to_goal(current_node) \n         orientation_diff_to_goal = self.calc_orientation_diff(angle_to_goal, current_node.orientation) \n         orientation_diff_to_goal = (orientation_diff_to_goal + np.pi) % (2 * np.pi) - np.pi \n         # time: time cost (number of time steps) to perform the given path \n         cost_time = abs(self.time_desired.start - current_node.time_step)#self.calc_time_cost(path_last) \n         # path length \n         pathLength = self.calc_travelled_distance(path_last) \n         #path efficiency \n         path_efficiency = self.calc_path_efficiency(path_last) \n         # total cost \n         cost = 2 * dist_current_goal + abs(orientation_diff_to_goal) + cost_time + (pathLength) + time_to_goal+(1/path_efficiency) \n         if cost < 0: \n             cost = 0 \n         return cost"

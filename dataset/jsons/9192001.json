@@ -1,0 +1,43 @@
+{
+    "input": {
+        "heuristic_function": "\n \n    def heuristic_function(self, node_current: PriorityNode) -> float: \n        path_last = node_current.list_paths[-1] \n        goal_state = self.planningProblem.goal.state_list \n \n        # positional distance \n        e_pos_start = self.calc_heuristic_distance(path_last[0]) \n        e_pos_end = self.calc_heuristic_distance(path_last[-1]) \n        dist_to_velocity = 0 \n \n        if e_pos_start is None: \n            return np.inf \n        if e_pos_end is None: \n            return np.inf \n        if self.reached_goal(path_last): \n            return 0.0 \n        if self.position_desired is None: \n            return self.time_desired.start - path_last[-1].time_step \n        else: \n            velocity = node_current.list_paths[-1][-1].velocity \n \n            if np.isclose(velocity, 0): \n                return np.inf \n \n            dist_to_velocity = e_pos_end / velocity \n \n        # velocity difference \n        if hasattr(self.planningProblem.goal.state_list[0], 'velocity'): \n            v_mean_goal = (goal_state[0].velocity.start + \n                           goal_state[0].velocity.end) / 2 \n            e_velocity = abs(path_last[-1].velocity - v_mean_goal) \n        else: \n            e_velocity = 0 \n \n        # orientation difference \n        e_orient = self.calc_angle_to_goal(path_last[-1]) \n \n        # time difference \n        self.planningProblem.goal.state_list[0].time_step.start \n        if hasattr(self.planningProblem.goal.state_list[0], 'time_step'): \n            time_mean_goal = (goal_state[0].time_step.start + goal_state[0].time_step.end) / 2 \n            e_time = abs(path_last[-1].time_step - time_mean_goal) \n        else: \n            e_time = 0 \n \n        # lanelet id \n        dist_to_lanelet_center, final_lanelet_id, start_lanelet_id = self.calc_heuristic_lanelet(path_last) \n        if dist_to_lanelet_center is None or final_lanelet_id[0] is None: \n            return np.inf \n \n        # obstacles on lanelets \n        dist_to_closest_obstacle = self.calc_dist_to_closest_obstacle(final_lanelet_id[0], path_last[-1].position, \n                                                                      path_last[-1].time_step) \n        if (not self.is_collision_free(path_last)): \n            return np.inf \n \n        # trajectory efficiency \n        path_efficiency = self.calc_path_efficiency(path_last) \n \n        # acceleration cost \n        acceleration_cost = self.calc_acceleration_cost(path_last) \n \n        weights = [5, 1, 3, 1, 2]  # Updated weights with added weight for acceleration cost \n        cost = weights[0] * e_pos_end \\ \n               + weights[1] * dist_to_lanelet_center / len(path_last) \\ \n               + weights[2] / (dist_to_closest_obstacle + 1) \\ \n               + weights[4] * acceleration_cost  # Added acceleration cost to the heuristic \n \n        if cost < 0: \n            cost = 0 \n \n        print('old') \n        return cost \n",
+        "motion_primitives": "V_0.0_20.0_Vstep_2.0_SA_-1.066_1.066_SAstep_0.18_T_0.5_Model_BMW_320i.xml"
+    },
+    "output": {
+        "summary": [
+            {
+                "diagnosis": "Neglect of velocity difference",
+                "prescription": "Integrate velocity difference into the cost calculation with an appropriate weight"
+            },
+            {
+                "diagnosis": "Neglect of orientation difference",
+                "prescription": "Incorporate orientation difference into the cost calculation with an appropriate weight."
+            },
+            {
+                "diagnosis": "Neglect of time difference",
+                "prescription": "Include time difference in the cost calculation with an appropriate weight"
+            },
+            {
+                "diagnosis": "Zero weights for some factors",
+                "prescription": "Ensure all relevant factors have non-zero weights to contribute to the heuristic"
+            },
+            {
+                "diagnosis": "Inconsistent use of weights",
+                "prescription": "Standardize the use of weights and adjust them to balance the cost components"
+            },
+            {
+                "diagnosis": "Acceleration cost not normalized",
+                "prescription": "Normalize acceleration cost by path length to make it comparable with other costs"
+            },
+            {
+                "diagnosis": "Path efficiency not used",
+                "prescription": "Utilize path efficiency to encourage shorter and faster paths"
+            },
+            {
+                "diagnosis": "Infinite cost for zero velocity",
+                "prescription": "Handle zero velocity case without defaulting to infinite cost"
+            }
+        ],
+        "improved_heuristic_function": "\n    def heuristic_function(self, node_current: PriorityNode) -> float: \n        path_last = node_current.list_paths[-1] \n        goal_state = self.planningProblem.goal.state_list \n \n        # positional distance \n        e_pos_start = self.calc_heuristic_distance(path_last[0]) \n        e_pos_end = self.calc_heuristic_distance(path_last[-1]) \n        dist_to_velocity = 0 \n \n        if e_pos_start is None or e_pos_end is None: \n            return np.inf \n        if self.reached_goal(path_last): \n            return 0.0 \n        if self.position_desired is None: \n            return self.time_desired.start - path_last[-1].time_step \n        else: \n            velocity = node_current.list_paths[-1][-1].velocity \n            if np.isclose(velocity, 0): \n                velocity += 0.1  # Small value to avoid division by zero \n            dist_to_velocity = e_pos_end / velocity \n \n        # velocity difference \n        if hasattr(self.planningProblem.goal.state_list[0], 'velocity'): \n            v_mean_goal = (goal_state[0].velocity.start + \n                           goal_state[0].velocity.end) / 2 \n            e_velocity = abs(path_last[-1].velocity - v_mean_goal) \n        else: \n            e_velocity = 0 \n \n        # orientation difference \n        e_orient = self.calc_angle_to_goal(path_last[-1]) \n \n        # time difference \n        if hasattr(self.planningProblem.goal.state_list[0], 'time_step'): \n            time_mean_goal = (goal_state[0].time_step.start + goal_state[0].time_step.end) / 2 \n            e_time = abs(path_last[-1].time_step - time_mean_goal) \n        else: \n            e_time = 0 \n \n        # lanelet id \n        dist_to_lanelet_center, final_lanelet_id, start_lanelet_id = self.calc_heuristic_lanelet(path_last) \n        if dist_to_lanelet_center is None or final_lanelet_id[0] is None: \n            return np.inf \n \n        # obstacles on lanelets \n        dist_to_closest_obstacle = self.calc_dist_to_closest_obstacle(final_lanelet_id[0], path_last[-1].position, \n                                                                      path_last[-1].time_step) \n        if (not self.is_collision_free(path_last)): \n            return np.inf \n \n        # trajectory efficiency \n        path_efficiency = self.calc_path_efficiency(path_last) \n \n        # acceleration cost \n        acceleration_cost = self.calc_acceleration_cost(path_last) / len(path_last) \n \n        weights = [5, 1, 3, 1, 2, 1, 1, \n                   1]  # Updated weights with added weights for velocity, orientation, time, and path efficiency \n        cost = weights[0] * e_pos_end \\ \n               + weights[1] * dist_to_lanelet_center / len(path_last) \\ \n               + weights[2] / (dist_to_closest_obstacle + 1) \\ \n               + weights[3] * e_velocity \\ \n               + weights[4] * e_orient \\ \n               + weights[5] * e_time \\ \n               + weights[6] * acceleration_cost \\ \n               + weights[7] * path_efficiency  # Added path efficiency to the heuristic \n \n        if cost < 0: \n            cost = 0 \n \n        print('new') \n        return cost \n"
+    }
+}

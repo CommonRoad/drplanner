@@ -1,0 +1,39 @@
+{
+    "input": {
+        "heuristic_function": "    def heuristic_function(self, node_current: PriorityNode) -> float: \n         eucDistFactor = 100 \n         orientFactor = 0.5 \n         veloFactor = 10 \n         path_last = node_current.list_paths[-1] \n         if self.reached_goal(node_current.list_paths[-1]): \n             return 0.0 \n         if self.position_desired is None: \n             return self.time_desired.start - path_last[-1].time_step \n         else: \n             cost_lanelet, final_lanelet_id, start_lanelet_id = self.calc_heuristic_lanelet(path_last) \n             if cost_lanelet is None or final_lanelet_id[0] is None: \n                 return np.inf \n             velocity = node_current.list_paths[-1][-1].velocity \n             if np.isclose(velocity, 0): \n                 return np.inf \n             # currentPos = path_last[-1].position \n             currentTime = path_last[-1].time_step \n             # currentOrient = path_last[-1].orientation \n             angleToGoal = self.calc_angle_to_goal(path_last[-1]) \n             orientationToGoalDiff = self.calc_orientation_diff(angleToGoal, path_last[-1].orientation) \n             eucDist = self.calc_euclidean_distance(current_node=node_current) \n             zuSchnell = 0 \n             if hasattr(self.planningProblem.goal.state_list[0], 'time_step'): \n                 maxEndTime = self.planningProblem.goal.state_list[0].time_step.end \n                 minTime = self.planningProblem.goal.state_list[0].time_step.start \n                 timeDiff = minTime-currentTime \n                 if currentTime > maxEndTime: \n                     return np.inf \n                 elif timeDiff > 25 and eucDist < 2: \n                     zuSchnell = 1 \n             distStartState = self.calc_heuristic_distance(path_last[0]) \n             distLastState = self.calc_heuristic_distance(path_last[-1]) \n             orientToGoalDiffStart = self.calc_orientation_diff(angleToGoal, path_last[0].orientation) \n             if eucDist < 8: \n                 eucDistFactor = 10 \n                 veloFactor = 5 \n                 if abs(orientationToGoalDiff) < 0.1: \n                     orientFactor = 1 \n                     eucDistFactor = 20 \n                     veloFactor = 0.1 \n             if distLastState is None: \n                 return np.inf \n             if distStartState < distLastState: \n                 return np.inf \n             obst = 0 \n             cost = orientFactor * abs(orientationToGoalDiff)  \n                    + eucDistFactor * eucDist + veloFactor / velocity \n             cost = cost \n             return cost \n ",
+        "motion_primitives": "V_0.0_20.0_Vstep_4.0_SA_-1.066_1.066_SAstep_0.18_T_0.5_Model_BMW_320i.xml"
+    },
+    "output": {
+        "summary": [
+            {
+                "diagnosis": "Zero heuristic for goal",
+                "prescription": "Return value in order to evaluate total path"
+            },
+            {
+                "diagnosis": "Zero velocity handling",
+                "prescription": "Don't return infinity if velocity is close to zero"
+            },
+            {
+                "diagnosis": "Start distance shorter than current handling",
+                "prescription": "Don't return infinity if current distance is smaller than current"
+            },
+            {
+                "diagnosis": "Neglect path efficiency",
+                "prescription": "Include path efficiency into cost calculation"
+            },
+            {
+                "diagnosis": "Inefficient weighting",
+                "prescription": "Adjust weights for relevance"
+            },
+            {
+                "diagnosis": "No normalized orientation difference",
+                "prescription": "Normalize orientation difference before usage"
+            },
+            {
+                "diagnosis": "Only usage of start time goal",
+                "prescription": "Incorporate whole time interval instead of only start"
+            }
+        ],
+        "improved_heuristic_function": "    def heuristic_function(self, node_current: PriorityNode) -> float: \n         path_last = node_current.list_paths[-1] \n         state = path_last[-1] \n         path_efficiency = self.calc_path_efficiency(path_last) \n         if self.reached_goal(node_current.list_paths[-1]): \n             return 5*(1/path_efficiency) \n         if self.position_desired is None: \n             time_diff = 0 \n             if state.time_step not in self.time_desired: \n                 time_diff = abs(sum(self.time_desired) / 2 - state.time_step) \n             return time_diff + 5*(1/path_efficiency) \n         else: \n             cost_lanelet, final_lanelet_id, start_lanelet_id = self.calc_heuristic_lanelet(path_last) \n             if cost_lanelet is None or final_lanelet_id[0] is None: \n                 return np.inf \n             velocity = node_current.list_paths[-1][-1].velocity \n             # currentPos = path_last[-1].position \n             currentTime = path_last[-1].time_step \n             # currentOrient = path_last[-1].orientation \n             angleToGoal = self.calc_angle_to_goal(path_last[-1]) \n             orientationToGoalDiff = self.calc_orientation_diff(angleToGoal, path_last[-1].orientation) \n             orientationToGoalDiff = (orientationToGoalDiff + np.pi) % (2 * np.pi) - np.pi \n             eucDist = self.calc_euclidean_distance(current_node=node_current) \n             zuSchnell = 0 \n             if hasattr(self.planningProblem.goal.state_list[0], 'time_step'): \n                 maxEndTime = self.planningProblem.goal.state_list[0].time_step.end \n                 minTime = self.planningProblem.goal.state_list[0].time_step.start \n                 timeDiff = minTime-currentTime \n                 if currentTime > maxEndTime: \n                     return np.inf \n                 elif timeDiff > 25 and eucDist < 2: \n                     zuSchnell = 1 \n             distLastState = self.calc_heuristic_distance(path_last[-1]) \n             eucDistFactor = 5 \n             orientFactor = 10 \n             veloFactor = 2 \n             path_efficiency_factor = 7 \n             if distLastState is None: \n                 return np.inf \n             cost = orientFactor * abs(orientationToGoalDiff) + eucDistFactor * eucDist + veloFactor * velocity + path_efficiency_factor*(1/path_efficiency) + zuSchnell \n             cost = cost \n             return cost"
+    }
+}

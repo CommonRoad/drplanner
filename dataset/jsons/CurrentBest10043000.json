@@ -1,0 +1,27 @@
+{
+    "input": {
+        "heuristic_function": "    def heuristic_function(self, node_current: PriorityNode) -> float: \n         if self.reached_goal(node_current.list_paths[-1]): \n             return 0.0 \n         node_last = node_current.list_paths[-1][-1] \n         if self.position_desired is None: \n             return self.time_desired.start - node_current.list_paths[-1][-1].time_step \n         else: \n             if np.isclose(node_last.velocity, 0): \n                 return np.inf \n             else: \n                 pos_cost = self.calc_euclidean_distance(current_node=node_current) / node_last.velocity \n         if hasattr(self.planningProblem.goal.state_list[0], 'velocity'): \n             vel_desired = (self.velocity_desired.start + self.velocity_desired.end)/2 \n             vel_diff = abs(node_last.velocity - vel_desired) \n         else: \n             vel_diff = 0 \n         if hasattr(self.planningProblem.goal.state_list[0], 'orientation'): \n             orient_desired = (self.orientation_desired.start + self.orientation_desired.end)/2 \n             orient_diff = abs(node_last.orientation - orient_desired) \n         else: \n             orient_diff = 0 \n         if hasattr(self.planningProblem.goal.state_list[0], 'time_step'): \n             timestep_desired = (self.time_desired.start + self.time_desired.end)/2 \n             timestep_diff = abs(node_last.time_step - timestep_desired) \n         else: \n             timestep_diff = 0 \n         cost = 0.8 * pos_cost + 0.1 * vel_diff + 0.05 * orient_diff + 0.02 * timestep_diff \n         if cost < 0: \n             cost = 0 \n         return cost",
+        "motion_primitives": "V_0.0_20.0_Vstep_4.0_SA_-1.066_1.066_SAstep_0.18_T_0.5_Model_BMW_320i.xml"
+    },
+    "output": {
+        "summary": [
+            {
+                "diagnosis": "Missing distance in final cost function",
+                "prescription": "Include distance to goal in cost function"
+            },
+            {
+                "diagnosis": "Neglect path efficiency",
+                "prescription": "Incorporate path efficiency into cost function"
+            },
+            {
+                "diagnosis": "Zero velocity handling",
+                "prescription": "Don't return infinity if velocity is close to zero"
+            },
+            {
+                "diagnosis": "Zero heuristic for goal",
+                "prescription": "Don't return zero if goal is reached"
+            }
+        ],
+        "improved_heuristic_function": "    def heuristic_function(self, node_current: PriorityNode) -> float: \n         node_last = node_current.list_paths[-1][-1] \n         path = node_current.list_paths[-1] \n         path_eff = self.calc_path_efficiency(path) \n         if self.position_desired is None: \n             return self.time_desired.start - node_current.list_paths[-1][-1].time_step + 1/path_eff \n         else: \n             pos = self.calc_euclidean_distance(current_node=node_current) \n             pos_cost = pos / node_last.velocity \n         if hasattr(self.planningProblem.goal.state_list[0], 'velocity'): \n             vel_desired = (self.velocity_desired.start + self.velocity_desired.end) / 2 \n             vel_diff = abs(node_last.velocity - vel_desired) \n         else: \n             vel_diff = 0 \n         if hasattr(self.planningProblem.goal.state_list[0], 'orientation'): \n             orient_desired = (self.orientation_desired.start + self.orientation_desired.end) / 2 \n             orient_diff = abs(node_last.orientation - orient_desired) \n         else: \n             orient_diff = 0 \n         if hasattr(self.planningProblem.goal.state_list[0], 'time_step'): \n             timestep_desired = (self.time_desired.start + self.time_desired.end) / 2 \n             timestep_diff = abs(node_last.time_step - timestep_desired) \n         else: \n             timestep_diff = 0 \n         cost = 0.2 * pos_cost + 0.1 * vel_diff + 0.5 * orient_diff + 0.02 * timestep_diff + 0.8*pos + 0.4*(1/path_eff) \n         if cost < 0: \n             cost = 0 \n         return cost"
+    }
+}

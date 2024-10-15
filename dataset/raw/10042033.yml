@@ -1,0 +1,16 @@
+input:
+  heuristic_function: "    def heuristic_function(self, node_current: PriorityNode) -> float: \n         if self.reached_goal(node_current.list_paths[-1]): \n             return 0.0 \n         if self.position_desired is None: \n             return self.time_desired.start - node_current.list_paths[-1][-1].time_step \n         else: \n             velocity = node_current.list_paths[-1][-1].velocity \n             current_position = node_current.list_paths[-1][-1].position \n             id_of_current_lanelet = self.scenario.lanelet_network.find_lanelet_by_position([current_position]) \n             current_lanelet_costs = self.dict_lanelets_costs[id_of_current_lanelet[0][0]]  \n             if np.isclose(velocity, 0): \n                 return np.inf \n             elif (self.list_ids_lanelets_goal is not None) and (current_lanelet_costs == -1): \n                 return np.inf \n             else: \n                 return self.calc_euclidean_distance(current_node=node_current) / velocity"
+  motion_primitives: V_0.0_20.0_Vstep_4.0_SA_-1.066_1.066_SAstep_0.18_T_0.5_Model_BMW_320i.xml
+output:
+  summary:
+  - diagnosis: Mixture of independent factors
+    prescription: Add distance to goal independent of velocity
+  - diagnosis: Zero velocity handling
+    prescription: Don't return infinity if velocity is close to zero
+  - diagnosis: Zero heuristic for goal
+    prescription: Make sure to return a meaningful value
+  - diagnosis: Ignore full time interval
+    prescription: Make sure to take also the time interval end into account
+  - diagnosis: Neglect of relevant factors
+    prescription: Include path efficiency, time cost, velocity difference and orientation difference into cost function
+  improved_heuristic_function: "    def heuristic_function(self, node_current: PriorityNode) -> float: \n         path = node_current.list_paths[-1] \n         state = node_current.list_paths[-1][-1] \n         path_eff = self.calc_path_efficiency(path) \n         if self.position_desired is None: \n             time_diff = 0 \n             if state.time_step not in self.time_desired: \n                 time_diff = abs(sum(self.time_desired) / 2 - state.time_step) \n             return time_diff + 5/path_eff \n         else: \n             cost_lanelet, final_lanelet_id, start_lanelet_id = self.calc_heuristic_lanelet(path) \n             if final_lanelet_id is None: \n                 return np.inf \n             current_lanelet_costs = self.dict_lanelets_costs[final_lanelet_id[0]] \n             vel_diff = 0 \n             if state.velocity not in self.velocity_desired: \n                 vel_diff = abs(sum(self.velocity_desired) / 2 - state.velocity) \n             orientation_difference = self.calc_orientation_diff(self.calc_angle_to_goal(state), state.orientation) \n             orientation_difference = (orientation_difference + np.pi) % (2 * np.pi) - np.pi \n             time_cost = self.calc_time_cost(path) \n             if (current_lanelet_costs == -1): \n                 return np.inf \n             return 2*self.calc_euclidean_distance(current_node=node_current) + 10*orientation_difference + vel_diff + 5/path_eff + time_cost + cost_lanelet"

@@ -1,0 +1,16 @@
+input:
+  heuristic_function: "    def heuristic_function(self, node_current: PriorityNode) -> float: \n         if self.reached_goal(node_current.list_paths[-1]): \n             return 0.0 \n         if self.position_desired is None: \n             return self.time_desired.start - node_current.list_paths[-1][-1].time_step \n         else: \n             velocity = node_current.list_paths[-1][-1].velocity \n             if np.isclose(velocity, 0): \n                 return np.inf \n             else: \n                 # calculate the orientation of the vehicle and add it to the heuristic \n                 orientation = node_current.list_paths[-1][-1].orientation \n                 return self.calc_euclidean_distance(node_current) / velocity + orientation/velocity"
+  motion_primitives: V_0.0_20.0_Vstep_4.0_SA_-1.066_1.066_SAstep_0.18_T_0.5_Model_BMW_320i.xml
+output:
+  summary:
+  - diagnosis: Zero heuristic for goal
+    prescription: If goal is reached return value to evaluate total path
+  - diagnosis: Neglect path efficiency
+    prescription: Include path efficiency into cost function
+  - diagnosis: Orientation not in comparison to goal
+    prescription: Incorporate a difference between current orientation and goal into cost function
+  - diagnosis: Zero velocity handling
+    prescription: Don't return infinity if velocity is close to zero
+  - diagnosis: Mixture of independent factors
+    prescription: Include orientation and distance difference independent of velocity
+  improved_heuristic_function: "    def heuristic_function(self, node_current: PriorityNode) -> float: \n         path = node_current.list_paths[-1] \n         state = path[-1] \n         path_efficiency = self.calc_path_efficiency(path) \n         if self.reached_goal(node_current.list_paths[-1]): \n             return 1/path_efficiency \n         if self.position_desired is None: \n             return self.time_desired.start - node_current.list_paths[-1][-1].time_step + 1/path_efficiency \n         else: \n             velocity = node_current.list_paths[-1][-1].velocity \n             # calculate the orientation of the vehicle and add it to the heuristic \n             orientation_difference = self.calc_orientation_diff(self.calc_angle_to_goal(state), state.orientation) \n             orientation_difference = (orientation_difference + np.pi) % (2 * np.pi) - np.pi \n             dist = self.calc_euclidean_distance(node_current) \n             return 1.6*dist + 5*orientation_difference + 10*(1/path_efficiency)"

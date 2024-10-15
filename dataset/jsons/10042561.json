@@ -1,26 +1,31 @@
 {
     "input": {
-        "heuristic_function": "\n    def heuristic_function(self, node_current: PriorityNode) -> float:\n        if self.reached_goal(node_current.list_paths[-1]):\n            return 0.0\n\n        advanced_time_estimate = self.advanced_time_estimate(node_current)\n        acceleration_penalty = self.acceleration_penalty(node_current)\n        return 0.5 * advanced_time_estimate + 0.5 * acceleration_penalty\n"
+        "heuristic_function": "    def heuristic_function(self, node_current: PriorityNode) -> float: \n         if self.reached_goal(node_current.list_paths[-1]): \n             return 0.0 \n         advanced_time_estimate = self.advanced_time_estimate(node_current) \n         acceleration_penalty = self.acceleration_penalty(node_current) \n         return 0.5 * advanced_time_estimate + 0.5 * acceleration_penalty \n     def advanced_time_estimate(self, node_current: PriorityNode) -> float: \n         if self.position_desired is None: \n             return self.time_desired.start - node_current.list_paths[-1][-1].time_step \n         time_estimate = super().heuristic_function(node_current) \n         time_left = self.time_difference(node_current) \n         return abs(time_left - time_estimate) \n     def acceleration_penalty(self, node_current: PriorityNode, steps: int = 0) -> float: \n         current_path = node_current.list_paths[-1] \n         if len(current_path) - 1 < steps or steps <= 0: \n             steps = len(current_path) - 1 \n         delta_sum = 0 \n         for i in range(steps + 1): \n             if i == 0: \n                 continue \n             delta = current_path[i].velocity - current_path[i - 1].velocity \n             delta_sum += delta \n         return delta_sum \n     def time_difference(self, node_current: PriorityNode) -> float: \n         if self.time_desired is None: \n             return 0 \n         if self.time_desired.length == np.inf or self.reached_goal( \n             node_current.list_paths[-1] \n         ): \n             return 0 \n         return ( \n             0.5 * (self.time_desired.end + self.time_desired.start) \n             - node_current.list_paths[-1][-1].time_step \n         ) * self.scenario.dt",
+        "motion_primitives": "V_0.0_20.0_Vstep_4.0_SA_-1.066_1.066_SAstep_0.18_T_0.5_Model_BMW_320i.xml"
     },
     "output": {
         "summary": [
             {
-                "diagnosis": "Zero cost for goal state",
-                "prescription": "Remove the zero cost for reaching the goal state"
+                "diagnosis": "Zero velocity handling in super function",
+                "prescription": "Don't return infinity if velocity is close to zero"
             },
             {
-                "diagnosis": "Static heuristic weights",
-                "prescription": "Dynamically adjust heuristic weights based on state"
+                "diagnosis": "Only used mixture of independent features",
+                "prescription": "Incorporate distance to goal independent from velocity"
             },
             {
-                "diagnosis": "Neglecting path efficiency",
-                "prescription": "Incorporate path efficiency into the heuristic"
+                "diagnosis": "Neglect of path efficiency",
+                "prescription": "Include path efficiency into cost function calculation"
             },
             {
-                "diagnosis": "Neglecting steering costs",
-                "prescription": "Incorporate steering angle and velocity costs into the heuristic"
+                "diagnosis": "Neglect of orientation difference",
+                "prescription": "Include orientation difference into cost function calculation"
+            },
+            {
+                "diagnosis": "Neglect of time cost",
+                "prescription": "Include time cost into cost function calculation"
             }
         ],
-        "improved_heuristic_function": "\n    def heuristic_function(self, node_current: PriorityNode) -> float:\n\n        advanced_time_estimate = self.advanced_time_estimate(node_current)\n        acceleration_penalty = self.acceleration_penalty(node_current)\n        path_efficiency = self.calc_path_efficiency(node_current.list_paths[-1])\n        steering_angle_cost = self.calc_steering_angle_cost(node_current.list_paths[-1])\n        steering_velocity_cost = self.calc_steering_velocity_cost(node_current.list_paths[-1])\n\n        # Adjust weights dynamically based on the current state\n        time_weight = 0.5\n        acceleration_weight = 0.5\n        efficiency_weight = 0.1\n        steering_angle_weight = 0.1\n        steering_velocity_weight = 0.1\n\n        cost = (time_weight * advanced_time_estimate +\n                acceleration_weight * acceleration_penalty +\n                efficiency_weight * (1 / path_efficiency) +\n                steering_angle_weight * steering_angle_cost +\n                steering_velocity_weight * steering_velocity_cost)\n\n        if cost < 0:\n            cost = 0.01\n        return cost\n"
+        "improved_heuristic_function": "    def heuristic_function(self, node_current: PriorityNode) -> float: \n         path = node_current.list_paths[-1] \n         path_efficiency = self.calc_path_efficiency(path) \n         if self.reached_goal(node_current.list_paths[-1]): \n             return 0.0 \n         if self.position_desired is None: \n             advanced_time_estimate = self.time_desired.start - node_current.list_paths[-1][-1].time_step \n         else: \n             time_estimate = self.calc_euclidean_distance(node_current)/node_current.list_paths[-1][-1].velocity \n             if not hasattr(self.planningProblem.goal.state_list, 'time'): \n                 time_left = 0 \n             if self.time_desired.length == np.inf or self.reached_goal(node_current.list_paths[-1]): \n                 time_left = 0 \n             else: \n                 time_left = (0.5 * (self.time_desired.end + self.time_desired.start)- node_current.list_paths[-1][-1].time_step) * self.scenario.dt \n             advanced_time_estimate = abs(time_left - time_estimate) \n         if self.position_desired is None: \n             return advanced_time_estimate + 1/path_efficiency \n         distance_goal = self.calc_euclidean_distance(node_current) \n         steps = 0 \n         current_path = node_current.list_paths[-1] \n         if len(current_path) - 1 < steps or steps <= 0: \n             steps = len(current_path) - 1 \n         delta_sum = 0 \n         for i in range(steps + 1): \n             if i == 0: \n                 continue \n             delta = current_path[i].velocity - current_path[i - 1].velocity \n             delta_sum += delta \n         acceleration_penalty = delta_sum \n         cost_time = self.calc_time_cost(path) \n         orientation_diff = self.calc_orientation_diff(self.calc_angle_to_goal(path[-1]), path[-1].orientation) \n         orientation_diff = (orientation_diff + np.pi) % (2 * np.pi) - np.pi \n         return 0.2*advanced_time_estimate + 0.3 * acceleration_penalty + 2*1/path_efficiency + 5*orientation_diff + cost_time + distance_goal"
     }
 }

@@ -1,30 +1,47 @@
 {
     "input": {
-        "heuristic_function": "\n    def heuristic_function(self, node_current: PriorityNode) -> float:\n\n        last_path = node_current.list_paths[-1]\n        state = last_path[-1]\n\n        velocity = state.velocity\n        orientation = state.orientation\n\n        ####################################\n        # adapted from SMP best first search class:#\n        ####################################\n        if self.reached_goal(node_current.list_paths[-1]):\n            # returns 0 if the goal node is reached\n            return 0.0\n\n        desired_start = self.time_desired.start\n        time_step = node_current.list_paths[-1][-1].time_step\n\n        if self.position_desired is None:\n            # if the desired position is not set, use the goal position\n            return desired_start - time_step\n        else:\n            if np.isclose(velocity, 0):\n                return np.inf\n            else:\n                distance = self.calc_euclidean_distance(current_node=node_current)\n                return (distance + orientation) / (velocity * time_step)\n        # get the goal\n\n"
+        "heuristic_function": "    def heuristic_function(self, node_current: PriorityNode) -> float: \n         last_path = node_current.list_paths[-1] \n         state = last_path[-1] \n         velocity = state.velocity \n         orientation = state.orientation \n         if self.reached_goal(node_current.list_paths[-1]): \n             # returns 0 if the goal node is reached \n             return 0.0 \n         desired_start = self.time_desired.start \n         time_step = node_current.list_paths[-1][-1].time_step \n         if self.position_desired is None: \n             # if the desired position is not set, use the goal position \n             return desired_start - time_step \n         else: \n             if np.isclose(velocity, 0): \n                 return np.inf \n             else: \n                 distance = self.calc_euclidean_distance(current_node=node_current) \n                 return (distance + orientation) / (velocity * time_step) \n         # get the goal",
+        "motion_primitives": "V_0.0_20.0_Vstep_4.0_SA_-1.066_1.066_SAstep_0.18_T_0.5_Model_BMW_320i.xml"
     },
     "output": {
         "summary": [
             {
-                "diagnosis": "Heuristic returns zero at goal",
-                "prescription": "Remove zero return for goal heuristic"
+                "diagnosis": "Zero velocity handling",
+                "prescription": "Don't return infinity if velocity is close to zero"
             },
             {
-                "diagnosis": "Infinite cost for zero velocity",
-                "prescription": "Modify handling of zero velocity"
+                "diagnosis": "Inefficient cost function due to mixtures",
+                "prescription": "Include the respective factors independent of each other"
             },
             {
-                "diagnosis": "Orientation in heuristic",
-                "prescription": "Refine orientation influence in heuristic"
+                "diagnosis": "Neglect of orientation difference",
+                "prescription": "Incorporate comparison to goal for orientation"
             },
             {
-                "diagnosis": "Time step influence unclear",
-                "prescription": "Clarify and adjust time step influence"
+                "diagnosis": "Neglect of velocity difference",
+                "prescription": "Incorporate comparison to goal for velocity"
             },
             {
-                "diagnosis": "Neglecting other costs in heuristic",
-                "prescription": "Incorporate additional costs into heuristic"
+                "diagnosis": "Neglect of path efficiency",
+                "prescription": "Incorporate path efficiency into heuristic calculation"
+            },
+            {
+                "diagnosis": "Neglect of acceleration cost",
+                "prescription": "Incorporate acceleration cost into heuristic calculation"
+            },
+            {
+                "diagnosis": "Neglect of steering cost",
+                "prescription": "Incorporate steering cost into heuristic calculation"
+            },
+            {
+                "diagnosis": "Zero heuristic for goal",
+                "prescription": "Return heuristic in order to evaluate the taken path"
+            },
+            {
+                "diagnosis": "Neglect of travelled distance",
+                "prescription": "Incorporate travelled distance into heuristic calculation"
             }
         ],
-        "improved_heuristic_function": "\n    def heuristic_function(self, node_current: PriorityNode) -> float:\n\n        last_path = node_current.list_paths[-1]\n        state = last_path[-1]\n\n        velocity = state.velocity\n        orientation = state.orientation\n\n        if self.position_desired is None:\n            desired_start = self.time_desired.start\n            time_step = state.time_step\n            return max(desired_start - time_step, 0)\n        else:\n            distance = self.calc_euclidean_distance(current_node=node_current)\n            orientation_diff = abs(orientation - (self.orientation_desired.start + self.orientation_desired.end)/2)\n            velocity_diff = abs(velocity - self.velocity_desired.start)\n\n            if np.isclose(velocity, 0):\n                velocity_cost = np.inf\n            else:\n                velocity_cost = self.calc_acceleration_cost(last_path)\n\n            time_cost = state.time_step - self.time_desired.start\n\n            cost = (distance + orientation_diff * 10 + velocity_diff * 5) * velocity_cost + abs(time_cost)\n            return max(cost, 0)\n"
+        "improved_heuristic_function": "    def heuristic_function(self, node_current: PriorityNode) -> float: \n         last_path = node_current.list_paths[-1] \n         state = last_path[-1] \n         velocity = state.velocity \n         orientation = state.orientation \n         path_efficiency = self.calc_path_efficiency(last_path) \n         if self.reached_goal(node_current.list_paths[-1]): \n             # returns 0 if the goal node is reached \n             return (1/path_efficiency)*2 \n         time_step = node_current.list_paths[-1][-1].time_step \n         acc_cost = self.calc_acceleration_cost(last_path) \n         steering_cost = self.calc_steering_angle_cost(last_path) \n         if self.position_desired is None: \n             # if the desired position is not set, use the goal position \n             return abs(sum(self.time_desired)/2 - time_step) + 5*(1/path_efficiency) + acc_cost + steering_cost \n         else: \n             orientation_difference = self.calc_orientation_diff(self.calc_angle_to_goal(state), orientation) \n             orientation_difference = (orientation_difference + np.pi) % (2 * np.pi) - np.pi \n             velocity_diff = 0 \n             if velocity not in self.velocity_desired: \n                 velocity_diff = abs(sum(self.velocity_desired)/2 - velocity) \n             travelled_distance = self.calc_travelled_distance(last_path) \n             distance = self.calc_euclidean_distance(current_node=node_current) \n             return travelled_distance + 2*distance + 8*(1/path_efficiency) + 10*orientation_difference + 0.5*velocity_diff"
     }
 }

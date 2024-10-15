@@ -1,0 +1,39 @@
+{
+    "input": {
+        "heuristic_function": "    def heuristic_function(self, node_current: PriorityNode) -> float: \n         # a sample heuristic function from a previous random student \n         path_last = node_current.list_paths[-1] \n         time_travelled = (len(path_last) * self.scenario.dt) \n         if self.reached_goal(node_current.list_paths[-1]): \n             return 0.0 \n         if self.position_desired is None: \n             time_to_goal = self.time_desired.start - node_current.list_paths[-1][-1].time_step \n             return (time_travelled + time_to_goal) \n         else: \n             velocity = node_current.list_paths[-1][-1].velocity \n             if np.isclose(velocity, 0): \n                 return np.inf \n             else: \n                 path_last = node_current.list_paths[-1] \n                 angleToGoal = self.calc_angle_to_goal(path_last[-1]) \n                 orientationToGoalDiff = abs(self.calc_orientation_diff(angleToGoal, path_last[-1].orientation)) \n                 orientationToGoalDiff = orientationToGoalDiff / math.pi \n                 time_to_goal = ((self.calc_euclidean_distance(current_node=node_current) / velocity) + time_travelled) \n                 factor = velocity / self.calc_euclidean_distance(current_node=node_current) \n                 return (((0.5) * (time_to_goal) + (0.5) * orientationToGoalDiff))",
+        "motion_primitives": "V_0.0_20.0_Vstep_4.0_SA_-1.066_1.066_SAstep_0.18_T_0.5_Model_BMW_320i.xml"
+    },
+    "output": {
+        "summary": [
+            {
+                "diagnosis": "Neglect of path efficiency",
+                "prescription": "Include path efficiency into cost calculation"
+            },
+            {
+                "diagnosis": "Neglect of distance to goal",
+                "prescription": "Incorporate distance to goal independent of velocity"
+            },
+            {
+                "diagnosis": "Zero velocity handling",
+                "prescription": "Don't return infinity if velocity is close to zero"
+            },
+            {
+                "diagnosis": "Zero heuristic for goal",
+                "prescription": "Don't return zero if goal is reached"
+            },
+            {
+                "diagnosis": "Incorrect orientation difference normalization",
+                "prescription": "Use correct normalization for orientation difference"
+            },
+            {
+                "diagnosis": "Inefficient survival mode",
+                "prescription": "Don't include total time into survival mode"
+            },
+            {
+                "diagnosis": "Inefficient weighting",
+                "prescription": "Adjust weights for relevance"
+            }
+        ],
+        "improved_heuristic_function": "    def heuristic_function(self, node_current: PriorityNode) -> float: \n         # a sample heuristic function from a previous random student \n         path_last = node_current.list_paths[-1] \n         time_travelled = (len(path_last) * self.scenario.dt) \n         path_efficiency = self.calc_path_efficiency(path_last) \n         if self.position_desired is None: \n             total_time_to_goal = self.time_desired.start - node_current.list_paths[-1][-1].time_step + 5/path_efficiency \n             return (total_time_to_goal) \n         else: \n             velocity = node_current.list_paths[-1][-1].velocity \n             path_last = node_current.list_paths[-1] \n             angleToGoal = self.calc_angle_to_goal(path_last[-1]) \n             orientationToGoalDiff = self.calc_orientation_diff(angleToGoal, path_last[-1].orientation) \n             orientationToGoalDiff = (orientationToGoalDiff + np.pi) % (2 * np.pi) - np.pi \n             distance = self.calc_euclidean_distance(current_node=node_current) \n             total_time_to_goal = ((distance / velocity) + time_travelled) \n             return (((0.1) * (total_time_to_goal) + (0.6) * orientationToGoalDiff + 0.8*distance )) + 1/path_efficiency *0.6"
+    }
+}

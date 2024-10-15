@@ -1,0 +1,20 @@
+input:
+  heuristic_function: "    def heuristic_function(self, node_current: PriorityNode) -> float: \n         path_last = node_current.list_paths[-1] \n         if self.reached_goal(path_last): \n             return 0.0 \n         cost_lanelet, final_lanelet_id, start_lanelet_id = self.calc_heuristic_lanelet(path_last) \n         angleToGoal = self.calc_angle_to_goal(path_last[-1]) \n         diff_orient_Goal = self.calc_orientation_diff(angleToGoal, path_last[-1].orientation)         \n         pathLength = self.calc_travelled_distance(path_last) \n         if self.position_desired is None: \n             return self.time_desired.start - path_last[-1].time_step \n         else: \n             velocity = path_last[-1].velocity \n             if np.isclose(velocity, 0): \n                 return np.inf \n             else: \n                 dist_toGoal = self.calc_euclidean_distance(current_node=node_current) \n                 time_toGoal = dist_toGoal / velocity \n                 cost_h = time_toGoal + pathLength*0.2 + diff_orient_Goal*0.3 \n                 if final_lanelet_id != None: \n                     goal_in_lane = self.is_goal_in_lane(final_lanelet_id[0]) \n                     lane_ident = self.is_adjacent(start_lanelet_id[0], final_lanelet_id[0]) \n                     if goal_in_lane == False and lane_ident: \n                         cost_h += diff_orient_Goal \n                 return cost_h"
+  motion_primitives: V_0.0_20.0_Vstep_4.0_SA_-1.066_1.066_SAstep_0.18_T_0.5_Model_BMW_320i.xml
+output:
+  summary:
+  - diagnosis: Neglect of path efficiency
+    prescription: Incorporate path efficiency into cost function
+  - diagnosis: Zero heuristic for goal
+    prescription: Return factor in order to evaluate taken path
+  - diagnosis: Zero velocity handling
+    prescription: Don't return infinity if velocity is close to zero
+  - diagnosis: Ignoring full time interval
+    prescription: Not only use time interval start
+  - diagnosis: No normalized orientation difference
+    prescription: Normalize orientation difference before usage
+  - diagnosis: Mixture of independent factors
+    prescription: Include distance to goal independent of factors
+  - diagnosis: Inefficient cost function weights
+    prescription: Adjust cost function weights for relevance
+  improved_heuristic_function: "    def heuristic_function(self, node_current: PriorityNode) -> float: \n         path_last = node_current.list_paths[-1] \n         path_efficiency = self.calc_path_efficiency(path_last) \n         if self.reached_goal(path_last): \n             return 2*(1/path_efficiency) \n         cost_lanelet, final_lanelet_id, start_lanelet_id = self.calc_heuristic_lanelet(path_last) \n         angleToGoal = self.calc_angle_to_goal(path_last[-1]) \n         diff_orient_Goal = self.calc_orientation_diff(angleToGoal, path_last[-1].orientation) \n         diff_orient_Goal = (diff_orient_Goal + np.pi) % (2 * np.pi) - np.pi \n         pathLength = self.calc_travelled_distance(path_last) \n         if self.position_desired is None: \n             time_cost = 0 \n             if path_last[-1].time_step not in self.time_desired: \n                 time_cost = abs(sum(self.time_desired)/2 - path_last[-1].time_step) \n             return time_cost + 2*(1/time_cost) \n         else: \n             velocity = path_last[-1].velocity \n             dist_toGoal = self.calc_euclidean_distance(current_node=node_current) \n             time_toGoal = dist_toGoal / velocity \n             cost_h = 0.8*time_toGoal + pathLength * 0.4 + diff_orient_Goal * 5 + dist_toGoal*3 + 10*(1/path_efficiency) \n             if final_lanelet_id != None: \n                 goal_in_lane = self.is_goal_in_lane(final_lanelet_id[0]) \n                 lane_ident = self.is_adjacent(start_lanelet_id[0], final_lanelet_id[0]) \n                 if goal_in_lane==False and lane_ident: \n                     cost_h += diff_orient_Goal \n             return cost_h"

@@ -1,30 +1,35 @@
 {
     "input": {
-        "heuristic_function": "\n    def heuristic_function(self, node_current: PriorityNode) -> float:\n        \n        if self.reached_goal(node_current.list_paths[-1]):\n            return 0.0\n\n        if self.position_desired is None:\n            return self.time_desired.start - node_current.list_paths[-1][-1].time_step\n\n        else:\n            velocity = node_current.list_paths[-1][-1].velocity\n\n            if np.isclose(velocity, 0):\n                return np.inf\n\n            else:\n                current_node_state = node_current.list_paths[-1][-1]    # get last state in current path\n                pos = current_node_state.position                       # get (rear axis) position of last state\n                # get positions of vehicle center (node state refers to reference point of Motion Primitives, i.e., rear axis)\n                pos_veh_center = pos + np.array([self.rear_ax_dist * np.cos(current_node_state.orientation),\n                                                 self.rear_ax_dist * np.sin(current_node_state.orientation)])\n\n                \n                        # get closest point (x,y) of goal position -> see eucl dist\n                        # try all available distance functions\n                        # return self.calc_heuristic_distance(node_current, '0') / velocity\n                pos_goal = self.planningProblem.goal.state_list[0].position.center\n\n                return SearchBaseClass.mean_squared_error(pos_veh_center, pos_goal) / velocity\n"
+        "heuristic_function": "    def heuristic_function(self, node_current: PriorityNode) -> float: \n         if self.reached_goal(node_current.list_paths[-1]): \n             return 0.0 \n         if self.position_desired is None: \n             return self.time_desired.start - node_current.list_paths[-1][-1].time_step \n         else: \n             velocity = node_current.list_paths[-1][-1].velocity \n             if np.isclose(velocity, 0): \n                 return np.inf \n             else: \n                 current_node_state = node_current.list_paths[-1][-1]    # get last state in current path \n                 pos = current_node_state.position                       # get (rear axis) position of last state \n                 # get positions of vehicle center (node state refers to reference point of Motion Primitives, i.e., rear axis) \n                 pos_veh_center = pos + np.array([self.rear_ax_dist * np.cos(current_node_state.orientation), \n                                                  self.rear_ax_dist * np.sin(current_node_state.orientation)]) \n                         # get closest point (x,y) of goal position -> see eucl dist \n                         # try all available distance functions \n                         # return self.calc_heuristic_distance(node_current, '0') / velocity \n                 pos_goal = self.planningProblem.goal.state_list[0].position.center \n                 return SearchBaseClass.mean_squared_error(pos_veh_center, pos_goal) / velocity \n ",
+        "motion_primitives": "V_0.0_20.0_Vstep_4.0_SA_-1.066_1.066_SAstep_0.18_T_0.5_Model_BMW_320i.xml"
     },
     "output": {
         "summary": [
             {
-                "diagnosis": "Zero heuristic for goal state",
-                "prescription": "Replace zero heuristic with small positive value"
+                "diagnosis": "Zero heuristic for goal",
+                "prescription": "Return value in order to evaluate taken path"
             },
             {
-                "diagnosis": "Infinite cost for zero velocity",
-                "prescription": "Implement a fallback cost for zero velocity"
+                "diagnosis": "Ignoring full time interval",
+                "prescription": "Take full time interval into account not only start"
             },
             {
-                "diagnosis": "Steering angle and velocity costs ignored",
-                "prescription": "Incorporate steering angle and velocity costs"
+                "diagnosis": "Neglect path efficiency",
+                "prescription": "Incorporate path efficiency into cost function"
             },
             {
-                "diagnosis": "Neglecting acceleration and path efficiency",
-                "prescription": "Add acceleration and path efficiency to heuristic"
+                "diagnosis": "Neglect orientation difference",
+                "prescription": "Incorporate orientation difference into cost function"
             },
             {
-                "diagnosis": "Desired orientation and velocity deviations not considered",
-                "prescription": "Factor in desired orientation and velocity deviations"
+                "diagnosis": "Neglect time cost",
+                "prescription": "Incorporate time cost into cost function"
+            },
+            {
+                "diagnosis": "Mixture of independent factors",
+                "prescription": "Include distance to goal independent of velocity"
             }
         ],
-        "improved_heuristic_function": "\n    def heuristic_function(self, node_current: PriorityNode) -> float:\n\n        path_last = node_current.list_paths[-1][-1]\n        if self.reached_goal(node_current.list_paths[-1]):\n            return 0.05\n\n        if self.position_desired is None:\n            return max(self.time_desired.start - path_last.time_step, 0.05)\n\n        else:\n            velocity = path_last.velocity\n            if np.isclose(velocity, 0):\n                return max(self.calc_acceleration_cost(node_current.list_paths[-1]), 0.05)\n\n            else:\n                pos = path_last.position\n                pos_veh_center = pos + np.array([self.rear_ax_dist * np.cos(path_last.orientation),\n                                                 self.rear_ax_dist * np.sin(path_last.orientation)])\n                pos_goal = self.planningProblem.goal.state_list[0].position.center\n                mse = SearchBaseClass.mean_squared_error(pos_veh_center, pos_goal)\n                path_efficiency = self.calc_path_efficiency(node_current.list_paths[-1])\n                steering_angle_cost = self.calc_steering_angle_cost(node_current.list_paths[-1])\n                steering_velocity_cost = self.calc_steering_velocity_cost(node_current.list_paths[-1])\n                acceleration_cost = self.calc_acceleration_cost(node_current.list_paths[-1])\n\n                cost = mse / velocity + 1 / path_efficiency + steering_angle_cost + steering_velocity_cost + 2 * acceleration_cost\n                if cost < 0.05:\n                    cost = 0.05\n                return cost\n"
+        "improved_heuristic_function": "    def heuristic_function(self, node_current: PriorityNode) -> float: \n         path = node_current.list_paths[-1] \n         state = path[-1] \n         path_efficiency = self.calc_path_efficiency(path) \n         if self.reached_goal(node_current.list_paths[-1]): \n             return 2*(1/path_efficiency) \n         if self.position_desired is None: \n             return abs(sum(self.time_desired)/2 - state.time_step) + 2*(1/path_efficiency) \n         else: \n             velocity = node_current.list_paths[-1][-1].velocity \n             current_node_state = node_current.list_paths[-1][-1]  # get last state in current path \n             pos = current_node_state.position  # get (rear axis) position of last state \n             # get positions of vehicle center (node state refers to reference point of Motion Primitives, i.e., rear axis) \n             pos_veh_center = pos + np.array([self.rear_ax_dist * np.cos(current_node_state.orientation), \n                                              self.rear_ax_dist * np.sin(current_node_state.orientation)]) \n             pos_goal = self.planningProblem.goal.state_list[0].position.center \n             dist = SearchBaseClass.mean_squared_error(pos_veh_center, pos_goal) \n             cost_time = self.calc_time_cost(path) \n             orientation_diff = self.calc_orientation_diff(self.calc_angle_to_goal(state), state.orientation) \n             return 3*dist + 10*(1/path_efficiency) + cost_time + 15*orientation_diff"
     }
 }

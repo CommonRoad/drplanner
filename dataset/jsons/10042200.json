@@ -1,26 +1,27 @@
 {
     "input": {
-        "heuristic_function": "\n    def heuristic_function(self, node_current: PriorityNode) -> float:\n        if self.reached_goal(node_current.list_paths[-1]):\n            return 0.0\n\n        if self.position_desired is None:\n            return self.time_desired.start - node_current.list_paths[-1][-1].time_step\n        else:\n            path_last = node_current.list_paths[-1]\n            current_node = path_last[-1]\n            (\n                off_dist,\n                end_lanelet_id,\n                start_lanelet_id,\n            ) = self.calc_heuristic_lanelet(path_last)\n            if end_lanelet_id is None:\n                return np.inf\n\n            e = self.calc_path_efficiency(path_last)\n            v = current_node.velocity\n\n            if np.isclose(v, 0):\n                return np.inf\n            else:\n                t = self.calc_euclidean_distance(current_node=node_current) / v\n                return 12 / e + 10 * t + off_dist\n"
+        "heuristic_function": "    def heuristic_function(self, node_current: PriorityNode) -> float: \n         if self.reached_goal(node_current.list_paths[-1]): \n             return 0.0 \n         if self.position_desired is None: \n             return self.time_desired.start - node_current.list_paths[-1][-1].time_step \n         else: \n             path_last = node_current.list_paths[-1] \n             current_node = path_last[-1] \n             ( \n                 off_dist, \n                 end_lanelet_id, \n                 start_lanelet_id, \n             ) = self.calc_heuristic_lanelet(path_last) \n             if end_lanelet_id is None: \n                 return np.inf \n             e = self.calc_path_efficiency(path_last) \n             v = current_node.velocity \n             if np.isclose(v, 0): \n                 return np.inf \n             else: \n                 t = self.calc_euclidean_distance(current_node=node_current) / v \n                 return 12 / e + 10 * t + off_dist",
+        "motion_primitives": "V_0.0_20.0_Vstep_4.0_SA_-1.066_1.066_SAstep_0.18_T_0.5_Model_BMW_320i.xml"
     },
     "output": {
         "summary": [
             {
-                "diagnosis": "Goal heuristic zero",
-                "prescription": "Replace zero heuristic for goal state with available costs to ensure goal prioritization"
+                "diagnosis": "Mixture of independent factors",
+                "prescription": "Include distance to goal independent of velocity"
             },
             {
-                "diagnosis": "Handling of zero velocity",
-                "prescription": "Modify the condition to handle low velocities more gracefully"
+                "diagnosis": "Zero velocity handling",
+                "prescription": "Don't return infinity if velocity is close to zero"
             },
             {
-                "diagnosis": "Heuristic weights imbalance",
-                "prescription": "Adjust heuristic weights to better reflect the importance of each term"
+                "diagnosis": "Zero velocity for goal",
+                "prescription": "Make sure to return a value which enables to evaluate total path"
             },
             {
-                "diagnosis": "Neglecting acceleration and steering costs",
-                "prescription": "Incorporate acceleration and steering costs into the heuristic in many conditions"
+                "diagnosis": "Ignore full time interval",
+                "prescription": "Take also time goal end into account"
             }
         ],
-        "improved_heuristic_function": "\n    def heuristic_function(self, node_current: PriorityNode) -> float:\n        path_last = node_current.list_paths[-1]\n\n        acceleration_cost = self.calc_acceleration_cost(path_last)\n        steering_angle_cost = self.calc_steering_angle_cost(path_last)\n        steering_velocity_cost = self.calc_steering_velocity_cost(path_last)\n\n        if self.reached_goal(node_current.list_paths[-1]):\n            return acceleration_cost + steering_angle_cost + steering_velocity_cost\n\n        if self.position_desired is None:\n            return max(self.time_desired.start - node_current.list_paths[-1][-1].time_step,\n                       0) + acceleration_cost + steering_angle_cost + steering_velocity_cost\n        else:\n            current_node = path_last[-1]\n            (\n                off_dist,\n                end_lanelet_id,\n                start_lanelet_id,\n            ) = self.calc_heuristic_lanelet(path_last)\n            if end_lanelet_id is None:\n                return np.inf\n\n            e = self.calc_path_efficiency(path_last)\n            v = max(current_node.velocity, 0.1)\n\n            t = self.calc_euclidean_distance(current_node=node_current) / v\n\n            return 8 / e + 8 * t + 2 * off_dist + acceleration_cost + steering_angle_cost + steering_velocity_cost\n"
+        "improved_heuristic_function": "    def heuristic_function(self, node_current: PriorityNode) -> float: \n         path_last = node_current.list_paths[-1] \n         state = node_current.list_paths[-1][-1] \n         e = self.calc_path_efficiency(path_last) \n         if self.position_desired is None: \n             time_diff = 0 \n             if state.time_step not in self.time_desired: \n                 time_diff = abs(sum(self.time_desired) / 2 - state.time_step) \n             return time_diff + 5/e \n         else: \n             current_node = path_last[-1] \n             ( \n                 off_dist, \n                 end_lanelet_id, \n                 start_lanelet_id, \n             ) = self.calc_heuristic_lanelet(path_last) \n             if end_lanelet_id is None: \n                 return np.inf \n             v = current_node.velocity \n             s = self.calc_euclidean_distance(current_node=node_current) \n             t = s / v \n             return 12 / e + 10 * t + off_dist + s"
     }
 }

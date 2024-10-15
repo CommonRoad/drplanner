@@ -1,0 +1,13 @@
+{
+    "input": {
+        "heuristic_function": "    def heuristic_function(self, node_current: PriorityNode) -> float: \n         if self.reached_goal(node_current.list_paths[-1]): \n             return 0.0 \n         if self.position_desired is None: \n             return self.time_desired.start - node_current.list_paths[-1][-1].time_step \n         else: \n             velocity = node_current.list_paths[-1][-1].velocity \n             if np.isclose(velocity, 0): \n                 return np.inf \n             else: \n                 path_last = node_current.list_paths[-1] \n                 angleToGoal = self.calc_angle_to_goal(path_last[-1]) \n                 orientationToGoalDiff = self.calc_orientation_diff(angleToGoal, path_last[-1].orientation) \n                 return (self.calc_euclidean_distance(current_node=node_current))",
+        "motion_primitives": "V_0.0_20.0_Vstep_4.0_SA_-1.066_1.066_SAstep_0.18_T_0.5_Model_BMW_320i.xml"
+    },
+    "output": {
+        "summary": {
+            "diagnosis": "Cost calculation uses arbitrary weights",
+            "prescription": "Choose appropriate weights for cost calculation according to relevance"
+        },
+        "improved_heuristic_function": "    def heuristic_function(self, node_current: PriorityNode) -> float: \n         state = node_current.list_paths[-1][-1] \n         path = node_current.list_paths[-1] \n         if self.reached_goal(node_current.list_paths[-1]): \n             return 0.0 \n         path_efficiency = self.calc_path_efficiency(path) \n         if np.isclose(path_efficiency, 0): \n             return np.inf \n         if self.position_desired is None: \n             return self.time_desired.start - node_current.list_paths[-1][-1].time_step \n         else: \n             orientationToGoalDiff = 0 \n             if state.orientation not in self.orientation_desired: \n                 angleToGoal = self.calc_angle_to_goal(state) \n                 orientationToGoalDiff = abs(self.calc_orientation_diff(angleToGoal, state.orientation)) \n                 orientationToGoalDiff = (orientationToGoalDiff + np.pi) % (2 * np.pi) - np.pi \n             velocity_diff = 0 \n             if state.velocity not in self.velocity_desired: \n                 velocity_diff = abs(sum(self.velocity_desired)/2 - state.velocity) \n             travelled_dist = self.calc_travelled_distance(path) \n             steer_cost = self.calc_steering_angle_cost(path) \n             return 3*(self.calc_euclidean_distance(current_node=node_current)) + orientationToGoalDiff + 0.7*travelled_dist + 0.3*steer_cost + 0.5*velocity_diff - 2*path_efficiency"
+    }
+}

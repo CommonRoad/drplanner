@@ -1,0 +1,13 @@
+{
+    "input": {
+        "heuristic_function": "    def heuristic_function(self, node_current: PriorityNode) -> float: \n         if self.reached_goal(node_current.list_paths[-1]): \n             return 0.0 \n         if self.position_desired is None: \n             return self.time_desired.start - node_current.list_paths[-1][-1].time_step \n         else: \n             velocity = node_current.list_paths[-1][-1].velocity \n             if np.isclose(velocity, 0): \n                 return np.inf \n             else: \n                 # heuristic_time_cost=self.calc_euclidean_distance(current_node=node_current)/velocity \n                 heuristic_distance = self.calc_euclidean_distance(current_node=node_current) \n                 # orientation_diff=self.calc_angle_to_goal(node_current.list_paths[-1][-1]) \n                 total_cost = heuristic_distance \n                 return total_cost",
+        "motion_primitives": "V_0.0_20.0_Vstep_4.0_SA_-1.066_1.066_SAstep_0.18_T_0.5_Model_BMW_320i.xml"
+    },
+    "output": {
+        "summary": {
+            "diagnosis": "Zero heuristic for goal state",
+            "prescription": "Return small positive value instead"
+        },
+        "improved_heuristic_function": "    def heuristic_function(self, node_current: PriorityNode) -> float: \n         path = node_current.list_paths[-1] \n         state = node_current.list_paths[-1][-1] \n         if self.reached_goal(node_current.list_paths[-1]): \n             return 0.5 \n         if self.position_desired is None: \n             return self.time_desired.start - node_current.list_paths[-1][-1].time_step \n         else: \n             path_efficiency = self.calc_path_efficiency(path) \n             if np.isclose(path_efficiency, 0): \n                 return np.inf \n             heuristic_distance = self.calc_euclidean_distance(current_node=node_current) \n             if state.orientation not in self.orientation_desired: \n                 orientation_diff = self.calc_orientation_diff(self.calc_angle_to_goal(state), state.orientation) \n                 orientation_diff = (orientation_diff + np.pi) % (2 * np.pi) - np.pi \n             else: \n                 orientation_diff = 0 \n             steering_angle_cost = self.calc_steering_angle_cost(path) \n             total_cost = 3*heuristic_distance + 0.8*orientation_diff + 0.2*steering_angle_cost - 2*path_efficiency \n             return total_cost"
+    }
+}

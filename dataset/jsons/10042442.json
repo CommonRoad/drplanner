@@ -1,0 +1,43 @@
+{
+    "input": {
+        "heuristic_function": "    def heuristic_function(self, node_current: PriorityNode) -> float: \n         #VELOCITY DIFFERENCE \n         path_last =  \n         if hasattr(self.planningProblem.goal.state_list[0], 'velocity'): \n             v_mean_goal = (self.planningProblem.goal.state_list[0].velocity.start + \n                            self.planningProblem.goal.state_list[0].velocity.end) / 2 \n             dist_vel = abs(path_last[-1].velocity - v_mean_goal) \n         else: \n             dist_vel = 0 \n         cost_lanelet, final_lanelet_id, start_lanelet_id = self.calc_heuristic_lanelet(path_last) \n             if cost_lanelet is None or final_lanelet_id[0] is None: \n                 return np.inf \n         ################### \n         #improvements made \n         ################### \n         #First change \n             #TIME DIFFERENCE: comparison of time \n             #time of final motion primitive of the path \n             #desired time by the goal (predefined) \n         if hasattr(self.planningProblem.goal.state_list[0], 'time_step'): \n             cost_time = self.time_desired.start \n             difference_time = abs(cost_time - state.time_step) \n         else: \n             difference_time = 0 \n         ### \n         #Second change \n         #CHECK: FINAL MOTION PRIMITIVE IN THE GOAL REGION \n         state_in_goal = (1 - self.is_goal_in_lane(final_lanelet_id[0])) \n         distLastState = self.calc_heuristic_distance(node_current.list_paths[-1][-1]) \n         #ORIENTATION DIFFERENCE \n         angleToGoal = self.calc_angle_to_goal(node_current.list_paths[-1][-1]) \n         orientationToGoalDiff = self.calc_orientation_diff(angleToGoal, node_current.list_paths[-1][-1].orientation) \n         if self.reached_goal(node_current.list_paths[-1]): \n             return 0.0 \n         if self.position_desired is None: \n             return self.time_desired.start - node_current.list_paths[-1][-1].time_step \n         else: \n             velocity = node_current.list_paths[-1][-1].velocity \n             if np.isclose(velocity, 0): \n                 return np.inf \n             else: \n                 return self.calc_euclidean_distance(current_node=node_current) / velocity",
+        "motion_primitives": "V_0.0_20.0_Vstep_4.0_SA_-1.066_1.066_SAstep_0.18_T_0.5_Model_BMW_320i.xml"
+    },
+    "output": {
+        "summary": [
+            {
+                "diagnosis": "No survival mode",
+                "prescription": "Implement survival mode if no positional goal is given"
+            },
+            {
+                "diagnosis": "Zero velocity handling",
+                "prescription": "Don't return infinity if velocity is close to zero"
+            },
+            {
+                "diagnosis": "Add collision check",
+                "prescription": "In case of collision return infinity"
+            },
+            {
+                "diagnosis": "Implemented factors but unused",
+                "prescription": "Include orientation difference, velocity difference, time difference etc. to cost calculation"
+            },
+            {
+                "diagnosis": "Mixture of independent factors",
+                "prescription": "Include distance to goal independent of velocity"
+            },
+            {
+                "diagnosis": "Neglect path efficiency",
+                "prescription": "Include path efficiency into cost function"
+            },
+            {
+                "diagnosis": "Neglect travelled distance",
+                "prescription": "Include travelled distance into cost function"
+            },
+            {
+                "diagnosis": "Neglect time cost",
+                "prescription": "Include time cost into cost function"
+            }
+        ],
+        "improved_heuristic_function": "    def heuristic_function(self, node_current: PriorityNode) -> float: \n         path_last = node_current.list_paths[-1] \n         state = path_last[-1] \n         path_efficiency = self.calc_path_efficiency(path_last) \n         if self.reached_goal(node_current.list_paths[-1]): \n             return 1/path_efficiency \n         if len(path_last) > 1 and not self.is_collision_free(path_last[1:]): \n             return np.inf \n         if self.position_desired is None: \n             return self.time_desired.start - node_current.list_paths[-1][-1].time_step + 1/path_efficiency \n         cost_lanelet, final_lanelet_id, start_lanelet_id = self.calc_heuristic_lanelet(path_last) \n         if cost_lanelet is None or final_lanelet_id[0] is None: \n             return np.inf \n         ################### \n         # improvements made \n         ################### \n         # TIME DIFFERENCE: comparison of time \n         if hasattr(self.planningProblem.goal.state_list[0], 'time_step'): \n             cost_time = self.time_desired.start \n             difference_time = abs(cost_time - state.time_step) \n         else: \n             difference_time = 0 \n         ### \n         # CHECK: FINAL MOTION PRIMITIVE IN THE GOAL REGION \n         distanceLastState = self.calc_heuristic_distance(path_last[-1]) \n         state_in_goal = 1 if not self.is_goal_in_lane(final_lanelet_id[0]) else 0 \n         # ORIENTATION DIFFERENCE \n         angleToGoal = self.calc_angle_to_goal(node_current.list_paths[-1][-1]) \n         orientationToGoalDiff = self.calc_orientation_diff(angleToGoal, node_current.list_paths[-1][-1].orientation) \n         orientationToGoalDiff = (orientationToGoalDiff + np.pi) % (2 * np.pi) - np.pi \n         # VELOCITY DIFFERENCE \n         if hasattr(self.planningProblem.goal.state_list[0], 'velocity'): \n             v_mean_goal = (self.planningProblem.goal.state_list[0].velocity.start + \n                            self.planningProblem.goal.state_list[0].velocity.end) / 2 \n             dist_vel = abs(path_last[-1].velocity - v_mean_goal) \n         else: \n             dist_vel = 0 \n         cost_time = self.calc_time_cost(path_last) \n         return 2*self.calc_euclidean_distance(current_node=node_current) + 8*(1/path_efficiency) + 0.8*dist_vel + 10*orientationToGoalDiff + state_in_goal + difference_time + 0.2*distanceLastState + 0.2*cost_time"
+    }
+}

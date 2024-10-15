@@ -1,0 +1,10 @@
+{
+    "input": {
+        "heuristic_function": null,
+        "motion_primitives": "V_0.0_20.0_Vstep_4.0_SA_-1.066_1.066_SAstep_0.18_T_0.5_Model_BMW_320i.xml"
+    },
+    "output": {
+        "summary": null,
+        "improved_heuristic_function": null
+    }
+}

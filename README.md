@@ -60,7 +60,7 @@ token_limit: 8000
 ```
 
 ### 3. Running DrPlanner 🩺
-We use the search-based motion planner, i.e., [commonroad-search](https://gitlab.lrz.de/tum-cps/commonroad-search), to demonstrate the advantages of our framework.
+We use the search-based and sampling-based motion planner, i.e., [commonroad-search](https://gitlab.lrz.de/tum-cps/commonroad-search) and [reactive-planner](https://github.com/CommonRoad/commonroad-reactive-planner), to demonstrate the advantages of our framework.
 If you wish to replicate this, please consult its README for the installation steps and place your own planner within `drplanner/planners/`. To facilitate a smoother start, we offer the planner used in the paper in this repository.
 After this, running DrPlanner is straightforward:
 ```bash
@@ -69,7 +69,36 @@ python run_drplanner.py
 
 The default settings include the iterative prompting, which you can deactivate in `config.yaml`.
 
-### 4. Example Prompt 🌠
+### 4. Code Structure 🛠️
+
+<details>
+ <summary>Here you go</summary>
+
+```sh
+drplanner
+├─ describer                        # Describer for the planner & trajectory
+│  ├─ base                          # Base class
+│  ├─ planner_description           # Planner describer
+│  ├─ trajectory_description        # Trajectory describer
+├─ diagnoser                        # Diagnoser for the target planner
+│  ├─ base                          # Base class
+│  ├─ sampling                      # Sampling-based planner
+│  ├─ search                        # Search-based planner
+├─ memory                           # Memory module for enhancing the performance
+├─ modular                          # Modular prompt structure
+├─ planners                         # Wrapper/some components for the planner
+├─ prompter                         # Connection to LLMs
+│  ├─ astar/*                       # Prompt components for the A*-based planner
+│  ├─ reactive planner/*            # Prompt components for the reactive planner
+│  ├─ base                          # Base class
+│  ├─ LLM                           # Interface to the LLM
+│  ├─ sampling                      # Prompter for sampling-based planner
+│  ├─ search                        # Prompter for search-based planner
+└─ utils                            # Utility functions
+```
+</details>
+
+### 5. Example Prompt 🌠
 <details>
 
 > You are an expert in diagnosing motion planners for automated vehicles. Your task is to identify diagnoses and recommend 

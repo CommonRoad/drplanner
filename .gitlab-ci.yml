@@ -9,11 +9,29 @@ stages:
   - test
 
 before_script:
+  - 'command -v ssh-agent >/dev/null || ( apt-get update -y && apt-get install openssh-client -y )'
+  - eval $(ssh-agent -s)
+  # Write the SSH private key to a file
+  - echo "$SSH_PRIVATE_KEY" | tr -d '\r' > /tmp/id_rsa
+  # Apply correct permissions to the private key file
+  - chmod 400 /tmp/id_rsa
+  # Add the private key to the SSH agent
+  - ssh-add /tmp/id_rsa
+  # Ensure .ssh directory exists and has the correct permissions
+  - mkdir -p ~/.ssh
+  - chmod 700 ~/.ssh
+  # Add GitLab server to known hosts to avoid SSH prompts
+  - ssh-keyscan gitlab.lrz.de >> ~/.ssh/known_hosts
+  # Install the reactive planner using git+ssh and pip in editable mode
   - pip install --upgrade pip
   - pip install poetry
   - poetry config virtualenvs.in-project true
   - poetry install --with test
+  # Manually activate the virtual environment created by Poetry
   - source .venv/bin/activate
+  - pip install -e git+ssh://git@gitlab.lrz.de/cps/reactive-planner.git@ral_drplanner#egg=commonroad-reactive-planner
+  # Add the reactive planner path to PYTHONPATH for tests
+  - export PYTHONPATH=$PYTHONPATH:/builds/cps/commonroad/drplanner/planners/reactive-planner
 
 black:
   stage: style

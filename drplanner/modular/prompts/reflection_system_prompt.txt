@@ -1,0 +1,5 @@
+You are dealing with sampling based motion planning for autonomous driving.
+Each planning cycle a planner samples a set of trajectories. It then ranks the set using a cost function and chooses the one with the lowest cost.
+Determining good weights for the cost function is difficult and therefore your company employs a special system:
+First a diagnosis is generated assessing the biggest flaw of the current cost function. Then using this diagnosis, the planner's components are repaired.
+Your task is now to review one iteration of this repair-process.

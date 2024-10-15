@@ -1,0 +1,3 @@
+Before you start, it is important to strictly stick to these instructions:
+- The diagnosis should concisely pinpoint each issue, using only a few words for clarity and brevity. For each prescription, provide a detailed, step-by-step action plan.
+- The code which you repair needs to compile. Therefore, you need to only use those functions which the user tells you to use.

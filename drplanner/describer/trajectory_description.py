@@ -1,12 +1,14 @@
+import numpy as np
+from commonroad.common.solution import CostFunction
 from commonroad_dc.costs.evaluation import (
     PlanningProblemCostResult,
     PartialCostFunction,
+    cost_function_mapping,
 )
 from commonroad.scenario.trajectory import Trajectory
 from commonroad.scenario.scenario import Scenario
 
 from drplanner.describer.base import DescriptionBase
-
 
 CostFunctionMeaningMapping = {
     PartialCostFunction.A: "squared sum of acceleration",
@@ -27,41 +29,116 @@ CostFunctionMeaningMapping = {
 }
 
 
+def get_infinite_cost_result(cost_function: CostFunction) -> PlanningProblemCostResult:
+    """Helper method creating a cost result in case of an exception."""
+    partial_cost_functions = cost_function_mapping[cost_function]
+    cost_result = PlanningProblemCostResult(cost_function, 0)
+    for pcf, weight in partial_cost_functions:
+        cost_result.add_partial_costs(pcf, np.inf, weight)
+    return cost_result
+
+
 class TrajectoryCostDescription(DescriptionBase):
+    """Class to generate a natural language description of a cost result obtained during planning."""
+
     domain = "trajectory_cost"
 
-    def __init__(self, cost_result: PlanningProblemCostResult):
+    def __init__(self, desired_cost: float = None):
+        self.desired_cost = desired_cost
         super().__init__()
-        self.cost_result = cost_result
 
-    def generate(self, desired_value: float):
-        description = (
-            f"The objective is to adjust the total cost of the planned trajectory to closely "
-            f"align with the desired value {desired_value}. "
+    def generate(self, cost_result: PlanningProblemCostResult) -> str:
+        description = f"To the chosen trajectory a total penalty of {cost_result.total_costs:.2f} was issued. "
+        description += "It consists of "
+        for item, cost in cost_result.partial_costs.items():
+            cost = cost * cost_result.weights[item]
+            if cost == 0.0:
+                continue
+            description += f"{CostFunctionMeaningMapping[item]}, valued at {cost:.2f}; "
+        self.description = description[:-2] + ". "
+        if self.desired_cost:
+            self.description += (
+                f"The objective is to decrease this penalty of the planned trajectory to closely "
+                f"align with desired value {self.desired_cost}.\n"
+            )
+        return self.description
+
+
+class TrajectoryCostComparison(DescriptionBase):
+    """Class to generate a natural language description of a comparison of two different cost results."""
+
+    domain = "trajectory_cost_comparison"
+
+    def __init__(self, desired_cost: float = None):
+        self.desired_cost = desired_cost
+        super().__init__()
+
+    def generate(
+        self,
+        a: PlanningProblemCostResult,
+        b: PlanningProblemCostResult,
+        a_name: str = "previous",
+        b_name: str = "current",
+    ):
+        description = f"Here is a performance comparison between the {a_name} and {b_name} version\n"
+        description += TrajectoryCostComparison._compare(
+            "total penalty", a.total_costs, b.total_costs, a_name, b_name
         )
-        description += f"The current total cost is calculated to be {self.cost_result.total_costs:.2f}, "
-        description += "includes "
-        for item, cost in self.cost_result.partial_costs.items():
-            description += (
-                f"{CostFunctionMeaningMapping[item]}, valued at {cost:.2f} "
-                f"with a weight of {self.cost_result.weights[item]}; "
+        description += "Total penalty is calculated by a weighted sum of:\n"
+        for (item, a_cost), (_, b_cost) in zip(
+            a.partial_costs.items(), b.partial_costs.items()
+        ):
+            a_cost *= a.weights[item]
+            b_cost *= a.weights[item]
+            if a_cost == 0.0 and b_cost == 0.0:
+                continue
+            description += TrajectoryCostComparison._compare(
+                CostFunctionMeaningMapping[item], a_cost, b_cost, a_name, b_name
             )
-        self.description = description[:-2] + "."
-        return self.description
+        description = description[:-2] + ". "
 
-    def update(self):
-        description = f"the updated total cost is calculated to be {self.cost_result.total_costs:.2f}, "
-        description += "which includes "
-        for item, cost in self.cost_result.partial_costs.items():
+        threshold = 1.0
+        if abs(a.total_costs - b.total_costs) < threshold:
+            description += "The performance of the motion planner is stagnating."
+        elif a.total_costs < b.total_costs:
+            description += "The performance of the motion planner is getting worse."
+        elif a.total_costs > b.total_costs:
+            description += "The performance of the motion planner is getting better."
+
+        if self.desired_cost:
             description += (
-                f"{CostFunctionMeaningMapping[item]}, which is {cost:.2f} "
-                f"with a weight of {self.cost_result.weights[item]}; "
+                f"The objective is to adjust the penalty of the planned trajectory to closely "
+                f"align with the desired value {self.desired_cost}.\n"
             )
-        self.description = description[:-2] + "."
-        return self.description
+        self.description = description
+        return description
+
+    @staticmethod
+    def _compare(
+        item: str,
+        initial: float,
+        repaired: float,
+        version_initial: str,
+        version_repaired: str,
+    ):
+        threshold_1 = 1.0
+        threshold_2 = 0.1
+        if abs(initial - repaired) < threshold_2:
+            compare = "about equal to"
+        elif threshold_1 > repaired - initial > 0:
+            compare = "slightly worse than"
+        elif repaired > initial:
+            compare = "worse than"
+        elif threshold_1 > initial - repaired > 0:
+            compare = "slightly better than"
+        else:
+            compare = "better than"
+        return f"- {item}: {version_repaired} result ({repaired:.2f}) is {compare} {version_initial} result ({initial:.2f})\n"
 
 
 class TrajectoryStateDescription(DescriptionBase):
+    """Class for generating a natual language description of a trajectory calculated by a motion planner."""
+
     domain = "trajectory_state"
 
     def __init__(self, planned_trajectory: Trajectory, scenario: Scenario):

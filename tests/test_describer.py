@@ -5,12 +5,15 @@ import textwrap
 
 from drplanner.describer.planner_description import (
     MethodCallVisitor,
+    HeuristicDescription,
+    MotionPrimitiveDescription,
+)
+
+from drplanner.describer.base import (
     extract_self_method_calls_from_func,
     extract_called_functions,
     extract_function_info,
     clean_docstring,
-    HeuristicDescription,
-    MotionPrimitiveDescription,
 )
 
 

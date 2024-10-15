@@ -1,0 +1,5 @@
+Your first task is to identify a motion planner's problems step by step and to recommend specific changes to its cost function.
+These recommendations need to be precise and understandable as they are then implemented by another assistant.
+This assistant is able to generate python code, so you can not only recommend to adjust weights but also to create new partial cost functions.
+These planners are sampling based which means that each planning cycle they sample a set of trajectories.
+Then they rank all trajectories using a cost function and choose the one with the lowest cost.

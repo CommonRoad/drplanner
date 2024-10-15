@@ -1,8 +1,8 @@
-# DrPlanner 🩺: Diagnosis and Repair of Motion Planners Using LLMs
+# DrPlanner 🩺: Diagnosis and Repair of Motion Planners for Automated Vehicles Using Large Language Models
 
 [![Static Badge](https://img.shields.io/badge/Arxiv-pdf-8A2BE2?logo=arxiv)](https://arxiv.org/abs/2403.07470)
 [![Custom badge](https://img.shields.io/badge/Project%20Page-white?logo=GitHub&color=yellow)](https://commonroad.github.io/drplanner/)
-[![GitHub issues](https://img.shields.io/github/issues/CommonRoad/drplanner)](https://github.com/PJLab-ADG/DiLu/issues)
+[![GitHub issues](https://img.shields.io/github/issues/CommonRoad/drplanner)](https://github.com/CommonRoad/drplanner/issues)
 ## 🔍 Framework Overview
 
 <img src="./docs/figures/framework.png" width=92%>
@@ -11,6 +11,7 @@
 
 
 ## 🌟 Highlights
+- **`2024-07-22`** Exciting news! **DrPlanner is accepted by RA-L 2024 🎉🎉!**
 - **`2024-03-13`** Our paper is available on [Arxiv](https://arxiv.org/abs/2403.07470)📄!
 
 <table style="border-collapse: collapse; border: none;">
@@ -44,19 +45,22 @@ pip install . # or poetry install
 
 ### 2. Configuration ⚙️ 
 
-All configurable parameters are located in `drplanner/utils/config.py`.
-
-Before running DrPlanner, set up your `OpenAI API keys`.
+All configurable parameters are located in `drplanner/utils/config.py`. 
+Before running DrPlanner, set up your `OPENAI_API_KEY` following:
+```sh
+export OPENAI_API_KEY=YOUR_API_KEY # on Linux/Mac
+set OPENAI_API_KEY=YOUR_API_KEY # on Windows
+$Env:OPENAI_API_KEY = "YOUR_API_KEY" # on Windows (PowerShell)
+```
 
 Configure as below:
 ```
-api_key: # 'sk-xxxxxx'
 gpt_version: # "gpt4-xxx"
 token_limit: 8000
 ```
 
 ### 3. Running DrPlanner 🩺
-We use the search-based motion planner, i.e., [commonroad-search](https://gitlab.lrz.de/tum-cps/commonroad-search), to demonstrate the advantages of our framework.
+We use the search-based and sampling-based motion planner, i.e., [commonroad-search](https://gitlab.lrz.de/tum-cps/commonroad-search) and [reactive-planner](https://github.com/CommonRoad/commonroad-reactive-planner), to demonstrate the advantages of our framework.
 If you wish to replicate this, please consult its README for the installation steps and place your own planner within `drplanner/planners/`. To facilitate a smoother start, we offer the planner used in the paper in this repository.
 After this, running DrPlanner is straightforward:
 ```bash
@@ -65,7 +69,36 @@ python run_drplanner.py
 
 The default settings include the iterative prompting, which you can deactivate in `config.yaml`.
 
-### 4. Example Prompt 🌠
+### 4. Code Structure 🛠️
+
+<details>
+ <summary>Here you go</summary>
+
+```sh
+drplanner
+├─ describer                        # Describer for the planner & trajectory
+│  ├─ base                          # Base class
+│  ├─ planner_description           # Planner describer
+│  ├─ trajectory_description        # Trajectory describer
+├─ diagnoser                        # Diagnoser for the target planner
+│  ├─ base                          # Base class
+│  ├─ sampling                      # Sampling-based planner
+│  ├─ search                        # Search-based planner
+├─ memory                           # Memory module for enhancing the performance
+├─ modular                          # Modular prompt structure
+├─ planners                         # Wrapper/some components for the planner
+├─ prompter                         # Connection to LLMs
+│  ├─ astar/*                       # Prompt components for the A*-based planner
+│  ├─ reactive planner/*            # Prompt components for the reactive planner
+│  ├─ base                          # Base class
+│  ├─ LLM                           # Interface to the LLM
+│  ├─ sampling                      # Prompter for sampling-based planner
+│  ├─ search                        # Prompter for search-based planner
+└─ utils                            # Utility functions
+```
+</details>
+
+### 5. Example Prompt 🌠
 <details>
 
 > You are an expert in diagnosing motion planners for automated vehicles. Your task is to identify diagnoses and recommend 
@@ -172,12 +205,11 @@ region by linking motion primitives.This is the code of the heuristic function:
 >            cost = 0
 >        return cost
 >```
->Improved result:
->
->Diagnosis: the acceleration is not considered
->Prescription: add acceleration cost to the heuristic function
->Diagnosis: the heuristic should not return 0 when reaching goal region
->Prescription: set a certain heuristic when reaching the goal
+>Improved result:<br>
+>Diagnosis: the acceleration is not considered <br>
+>Prescription: add acceleration cost to the heuristic function<br>
+>Diagnosis: the heuristic should not return 0 when reaching goal region<br>
+>Prescription: set a certain heuristic when reaching the goal<br>
 >```
 >    def heuristic_function(self, node_current: PriorityNode) -> float:
 >        acceleration_cost = self.calc_acceleration_cost(path_last)
@@ -212,10 +244,12 @@ If you find our paper and codes useful, we highly encourage you to cite our pape
 
 ```bibtex
 @article{DrPlanner,
-  title = {{DrPlanner}: Diagnosis and Repair of Motion Planners Using Large Language Models },
+  title = {{DrPlanner}: Diagnosis and Repair of Motion Planners for Autonomous Vehicles Using Large Language Models },
   author = {Yuanfei Lin and Chenran Li and Mingyu Ding and Masayoshi Tomizuka and Wei Zhan and Matthias Althoff},
-  archivePrefix = {arXiv},
-  journal = {arXiv preprint arXiv:2403.07470},
+  journal = {IEEE Robotics and Automation Letters},
+  volume = {9},
+  number = {10},
+  pages = {8218-8225},
   year = {2024}}
 ```
 

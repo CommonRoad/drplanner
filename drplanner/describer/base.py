@@ -1,5 +1,12 @@
+import ast
+import inspect
+import re
+import textwrap
+import traceback
+import warnings
 from abc import ABC, abstractmethod
 import os
+from typing import Callable
 
 
 class DescriptionBase(ABC):
@@ -29,3 +36,161 @@ class DescriptionBase(ABC):
             print(f"<output> Description saved to {full_path}.")
         else:
             print("<output> No description generated yet.")
+
+
+def extract_self_method_calls_from_func(func):
+    code = inspect.getsource(func)
+    return extract_self_method_calls(code)
+
+
+def extract_self_method_calls(code: str) -> list[str]:
+    code = textwrap.dedent(code)  # dedent the code before parsing
+    tree = ast.parse(code)
+
+    method_calls = []
+
+    for node in ast.walk(tree):
+        # Check if it's an attribute accessed through 'self'
+        if (
+            isinstance(node, ast.Attribute)
+            and isinstance(node.value, ast.Name)
+            and node.value.id == "self"
+        ):
+            # Check if this attribute is part of a method call
+            for parent in ast.walk(tree):
+                if (
+                    isinstance(parent, ast.Call) and parent.func == node
+                ):  # Ensure that the call's function is the attribute we found
+                    method_calls.append(node.attr)
+                    break  # If we found a match, break out of the inner loop
+
+    return method_calls
+
+
+def extract_called_functions(func: Callable):
+    """
+    Extract the names of the functions called within the given function.
+    """
+    # Extract the source code of the function
+    source = inspect.getsource(func)
+
+    # Dedent the source code
+    dedented_source = textwrap.dedent(source)
+
+    # Parse the adjusted source code
+    tree = ast.parse(dedented_source)
+
+    # Get all function calls
+    function_calls = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Call):
+            if isinstance(node.func, ast.Name):
+                function_calls.append(node.func.id)
+            elif (
+                isinstance(node.func, ast.Attribute)
+                and isinstance(node.func.value, ast.Name)
+                and node.func.value.id == "self"
+            ):
+                function_calls.append(node.func.attr)
+
+    return function_calls
+
+
+def extract_function_info(func: Callable):
+    """Extract the function name and its docstring."""
+    function_name = func.__name__
+    docstring = func.__doc__
+    return function_name, docstring
+
+
+def clean_docstring(docstring):
+    # Remove lines starting with ":param" and the subsequent line (if it doesn't start with ":")
+    cleaned = re.sub(r"\s*:param.*?(?=\n:|$)", "", docstring, flags=re.DOTALL)
+
+    # Remove any leading and trailing whitespace
+    cleaned = cleaned.strip()
+
+    return cleaned
+
+
+class FunctionDescriptionBase(DescriptionBase, ABC):
+    """Class to generate a natural language description of python code."""
+
+    def __init__(self, function: Callable):
+        super().__init__()
+        self.called_functions = list(set(extract_self_method_calls_from_func(function)))
+
+    def generate_function_description(
+        self, class_or_instance, function_description: str
+    ):
+        description = (
+            "In " + function_description + ", the following functions are called:"
+        )
+        for func_name in self.called_functions:
+            func = getattr(
+                class_or_instance, func_name, None
+            )  # get the method from the class or instance
+            if func:
+                name, doc = extract_function_info(func)
+                if doc:
+                    # only adding the explanation when it exists, avoiding error
+                    description += f'"{name}" {clean_docstring(doc)} '
+                else:
+                    warnings.warn(f'the docstring of function "{name}" is missing')
+            else:
+                description += f"{func_name} not found; "
+        self.description = description.replace("\n", "").replace("\t", "")
+        return self.description
+
+
+class ExceptionDescription(DescriptionBase):
+    """Class to generate a natural language description of any exception."""
+
+    def __init__(self, exception: Exception):
+        super().__init__()
+        self.exception = exception
+
+    def generate(self):
+        tb = traceback.extract_tb(self.exception.__traceback__)  # Extract the traceback
+        frame = None
+        for frame_summary in tb:
+            # Checks if "drplanner" is present in the filename attribute of the FrameSummary
+            if "drplanner" in frame_summary.filename:
+                frame = frame_summary
+
+        if not frame:
+            # The last frame often contains the most relevant information about where the exception occurred
+            frame = tb[-1]
+
+        summary = (
+            f"TYPE: {type(self.exception)} METHOD: {frame.name} LINE: {frame.line}"
+        )
+        return summary
+
+
+class DrPlannerException(Exception):
+    """Base class for all custom defined exceptions."""
+
+    def __init__(self, issue: str, remedy: str):
+        super().__init__()
+        self.issue = issue
+        self.remedy = remedy
+
+    def describe(self) -> str:
+        return f"{self.issue} {self.remedy}"
+
+
+class PlanningException(DrPlannerException):
+    """Exception is caused by issues during the planning process."""
+
+    def __init__(self, cause: str, solution: str):
+        super().__init__(f"The planner failed: {cause}", solution)
+
+
+class MissingParameterException(DrPlannerException):
+    """Exception is caused by the LLM not adhering to structured output constraints."""
+
+    def __init__(self, parameter: str):
+        problem = f"The LLM did not provide the essential parameter <{parameter}>"
+        solution = "To fix this you need to send the required parameter next time!"
+        super().__init__(problem, solution)

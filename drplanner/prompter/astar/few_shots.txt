@@ -55,7 +55,7 @@ Prescription: set a certain heuristic when reaching the goal
         return cost
 ```
 
-Feasible motion primitives with the same name format that you can directly use, pls be careful about the name:
+Feasible motion primitives with the same name format that you can directly use, pls be careful about the name and pick only one:
 'V_0.0_20.0_Vstep_1.0_SA_-1.066_1.066_SAstep_0.27_T_0.5_Model_BMW_320i.xml',
 'V_0.0_20.0_Vstep_1.0_SA_-1.066_1.066_SAstep_2.13_T_0.5_Model_BMW_320i.xml',
 'V_0.0_20.0_Vstep_2.0_SA_-1.066_1.066_SAstep_0.18_T_0.5_Model_BMW_320i.xml',

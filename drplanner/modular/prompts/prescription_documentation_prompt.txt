@@ -1,0 +1,40 @@
+There exist some pre-defined helper methods which you can use with ```self.```
+If the diagnoses tells you to introduce one of them, you do not need to create your own helper method!
+```acceleration_costs(trajectory: TrajectorySample) -> float```,
+```jerk_costs(trajectory: TrajectorySample) -> float```,
+```lateral_jerk_costs(trajectory: TrajectorySample) -> float```,
+```longitudinal_jerk_costs(trajectory: TrajectorySample) -> float```,
+```orientation_offset_costs(trajectory: TrajectorySample) -> float```,
+```steering_angle_costs(trajectory: TrajectorySample) -> float```,
+```steering_velocity_costs(trajectory: TrajectorySample) -> float```,
+```distance_to_reference_path_costs(trajectory: TrajectorySample) -> float```,
+```path_length_costs(trajectory: TrajectorySample) -> float```
+```desired_velocity_costs(self, trajectory: TrajectorySample) -> float:```
+```desired_path_length_costs(self, trajectory: TrajectorySample) -> float:```
+
+If diagnosis demands helper methods which are not included in the list above, you need to create your own custom ones.
+For this purpose, you are allowed to use the "np" library and the "simps" function for integration.
+Also, you have access to the following attributes of the trajectory parameter:
+```
+trajectory.dt
+trajectory.cartesian.x
+trajectory.cartesian.y
+trajectory.cartesian.theta
+trajectory.cartesian.v
+trajectory.cartesian.a
+trajectory.cartesian.kappa
+trajectory.cartesian.kappa_dot
+```
+trajectory.dt is the float time_step
+All other attributes are of type "np.ndarray" and hold the trajectory values from start time (index = 0) to end time (index = -1)
+If you define custom methods, please make sure to only use the allowed attributes, libraries and functions!
+Here is an example of what a custom static method could look like:
+```
+def time_dependent_acceleration_costs(trajectory: TrajectorySample) -> float:
+    # get acceleration over time
+    acceleration = trajectory.cartesian.a
+    # calculate the cost for acceleration over time
+    cost = np.sum(np.square(acceleration) * trajectory.dt * np.arange(len(acceleration)))
+    return cost / np.sum(trajectory.dt)  # normalize by total time
+```
+It can then be called inside the cost function code as "self.time_dependent_acceleration_costs(trajectory)"

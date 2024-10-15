@@ -2,7 +2,7 @@
 
 <code> <i>Please </i> <b>DONOT</b> <i> merge this branch to the other ones! Keep them confidential!</i></code>
 
-This repository contains the dataset for the DrPlanner project. Currently, there are ~50 data points in the dataset. Each data point contains the following information:
+This repository contains the dataset for the DrPlanner project. Currently, there are ~100 data points in the dataset for the search-based planners only. Each data point contains the following information:
 - **input**: the heuristic function to be diagnosed (<mark>todo</mark>: the motion primitives need to be added)
 - **output**:
   1. summary: diagnosis and prescription pairs

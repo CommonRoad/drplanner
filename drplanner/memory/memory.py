@@ -24,7 +24,7 @@ class FewShotMemory:
         try:
             self.collection = self.client.get_collection(name="few_shots")
             print("[DrPlanner] MEMORY: Loaded existing collection successfully!")
-        except InvalidCollectionException as _:
+        except (ValueError, InvalidCollectionException) as _:
             self.collection = self.client.create_collection(name="few_shots")
             print("[DrPlanner] MEMORY: Initialized missing collection successfully!")
 

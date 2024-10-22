@@ -52,6 +52,8 @@ from drplanner.prompter.prompter import Prompter
 from drplanner.memory.vectorStore import PlanningMemory
 from drplanner.reflection.reflectionAgent import ReflectionAgent
 
+from crgeo.commonroad_geometric.dataset.commonroad_data import CommonRoadData
+
 delimiter = "####"
 
 import numpy as np
@@ -67,6 +69,7 @@ class DrSearchPlanner(DrPlannerBase):
         planner_id: str,
         agent_memory: PlanningMemory,
         updated_memory: PlanningMemory,
+        scenario_data:list[CommonRoadData],
     ):
         super().__init__(scenario, planning_problem_set, config)
 
@@ -97,6 +100,7 @@ class DrSearchPlanner(DrPlannerBase):
         self.cost_evaluator = CostFunctionEvaluator(
             self.cost_type, VehicleType.BMW_320i
         )
+        self.scenario_data = scenario_data
 
     def diagnose_repair(self):
         nr_iteration = 0
@@ -119,6 +123,7 @@ class DrSearchPlanner(DrPlannerBase):
         # retrieve similar memories
         fewshot_results = (
             self.agent_memory.retrieveMemory(
+                #TODO: add scenario description
                 prompt_planner=prompt_planner, top_k=self.few_shot_num
             )
             if self.few_shot_num > 0
@@ -283,18 +288,21 @@ class DrSearchPlanner(DrPlannerBase):
     ):
         # ----- human message -----
         if with_memory:
+            #TODO:add scenario description
             human_message = f"""\
             Above messages are some examples of how you make a decision successfully in the past. Those scenarios are similar to the current scenario. You should refer to those examples to make a decision for the current scenario. 
 
             Here is the current scenario:
             {delimiter} Driving scenario description:
             {prompt_planner}
+        
             {delimiter} Diagnoses and prescriptions records:
             {diagnoses_prescriptions_records}
 
             You can stop reasoning once you have a solution. 
             """
         else:
+            #TODO:add scenario description
             human_message = f"""\
             No similar memories found. You should reason based on the current scenario.
 

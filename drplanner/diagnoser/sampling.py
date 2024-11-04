@@ -148,4 +148,3 @@ class DrSamplingPlanner(DrPlannerBase):
         # Update statistics outside the try-except to keep logic clean
         self.statistic.flawed_helper_methods_count += missing_hf
         return solution
-

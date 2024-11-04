@@ -124,20 +124,28 @@ class DrSamplingPlanner(DrPlannerBase):
         Wrapper method to run the sampling-based motion planner.
         """
         try:
+            # Run the planner, skipping try-except for the first iteration
             solution, missing_hf = self.motion_planner.evaluate_on_scenario(
                 self.absolute_scenario_path, absolute_save_path=self.config.path_to_plot
             )
-            self.statistic.flawed_helper_methods_count += missing_hf
         except Exception as e:
-            solution = e
-            # generate alternative plot if trajectory can not be obtained
-            plot_planner(
-                self.scenario,
-                self.planning_problem_set,
-                None,
-                None,
-                None,
-                self.config.path_to_plot,
-            )
+            if nr_iter == 0:
+                # For the first iteration, re-raise the error to expose it to the user
+                raise
+            else:
+                solution = e
+                missing_hf = 0
+                # Generate alternative plot if trajectory cannot be obtained
+                plot_planner(
+                    self.scenario,
+                    self.planning_problem_set,
+                    None,
+                    None,
+                    None,
+                    self.config.path_to_plot,
+                )
 
+        # Update statistics outside the try-except to keep logic clean
+        self.statistic.flawed_helper_methods_count += missing_hf
         return solution
+

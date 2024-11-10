@@ -1,4 +1,5 @@
 import sys; import os; sys.path.insert(0, os.getcwd())
+import torch
 
 from pathlib import Path
 
@@ -18,8 +19,9 @@ from crgeo.commonroad_geometric.simulation.simulation_factory import SimulationF
 def collect_data_from_scenarios_over(
     scenario_dir: Path,
     preprocessor: ScenarioPreprocessor,
-    samples_per_scenario: int,
+    #samples_per_scenario: int,
 ) -> list[CommonRoadData]:
+    samples_per_scenario = 1
     collector = DatasetCollector(
         extractor_factory=TrafficExtractorFactory(
             options=TrafficExtractorOptions(
@@ -47,6 +49,8 @@ def collect_data_from_scenarios_over(
             planning_problem_set=scenario_bundle.preprocessed_planning_problem_set,
             max_samples=samples_per_scenario,
         ):
+            #TODO:标签怎么处理？
+            #data.y=torch.tensor([1])
             scenario_data.append(data)
         break
         
@@ -57,7 +61,7 @@ def collect_data_from_scenarios_over(
 if __name__ == '__main__':
     dataset_ = collect_data_from_scenarios_over(
         scenario_dir=Path('data/highd-sample'),
-        samples_per_scenario=10,
+        #samples_per_scenario=1,
         preprocessor=DepopulateScenarioPreprocessor(depopulator=5)
     )
     print(f"Collected {len(dataset_)} samples")

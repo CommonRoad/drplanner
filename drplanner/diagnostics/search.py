@@ -52,7 +52,7 @@ from drplanner.prompter.prompter import Prompter
 from drplanner.memory.vectorStore import PlanningMemory
 from drplanner.reflection.reflectionAgent import ReflectionAgent
 
-from crgeo.commonroad_geometric.dataset.commonroad_data import CommonRoadData
+#from crgeo.commonroad_geometric.dataset.commonroad_data import CommonRoadData
 
 delimiter = "####"
 
@@ -69,7 +69,7 @@ class DrSearchPlanner(DrPlannerBase):
         planner_id: str,
         agent_memory: PlanningMemory,
         updated_memory: PlanningMemory,
-        scenario_data:list[CommonRoadData],
+        
     ):
         super().__init__(scenario, planning_problem_set, config)
 
@@ -100,7 +100,7 @@ class DrSearchPlanner(DrPlannerBase):
         self.cost_evaluator = CostFunctionEvaluator(
             self.cost_type, VehicleType.BMW_320i
         )
-        self.scenario_data = scenario_data
+       
 
     def diagnose_repair(self):
         nr_iteration = 0

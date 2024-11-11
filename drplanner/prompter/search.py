@@ -31,7 +31,7 @@ class PrompterSearch(PrompterBase):
             "algorithm",
             "planner",
             "trajectory",
-            "emergency_prescriptions",
+            "few_shots",
             "feedback",
         ]
         super().__init__(
@@ -61,21 +61,18 @@ class PrompterSearch(PrompterBase):
         motion_primitives_id: str,
     ):
         # Local import inside the function
-        from SMP.motion_planner.search_algorithms.best_first_search import AStarSearch
+        hf_code = (
+            "This is the code of the heuristic function: ```"
+            + inspect.getsource(motion_planner_obj.heuristic_function)
+            + "```"
+        )
 
-        if isinstance(motion_planner_obj, AStarSearch):
-            hf_code = (
-                "This is the code of the heuristic function: ```"
-                + inspect.getsource(motion_planner_obj.heuristic_function)
-                + "```"
-            )
+        # generate heuristic function's description
+        hf_obj = HeuristicDescription(motion_planner_obj.heuristic_function)
+        heuristic_function_des = hf_obj.generate(motion_planner_obj)
 
-            # generate heuristic function's description
-            hf_obj = HeuristicDescription(motion_planner_obj.heuristic_function)
-            heuristic_function_des = hf_obj.generate(motion_planner_obj)
-
-            # generate motion primitives' description
-            motion_primitives_des = self.mp_obj.generate(motion_primitives_id)
-            self.user_prompt.set(
-                "planner", hf_code + heuristic_function_des + motion_primitives_des
-            )
+        # generate motion primitives' description
+        motion_primitives_des = self.mp_obj.generate(motion_primitives_id)
+        self.user_prompt.set(
+            "planner", hf_code + heuristic_function_des + motion_primitives_des
+        )

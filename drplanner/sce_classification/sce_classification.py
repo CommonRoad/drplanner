@@ -16,20 +16,36 @@ class SceneClassifier:
         self.reference_path = reference_path
         self.scenario = scenario
 
+    def left_turn_data(self):
+        direction_changes = np.diff(self.reference_path.path_orientation)
+        left_turns = direction_changes[direction_changes > 0]
+
+        max_curvature = np.max(self.reference_path.path_curvature)
+        mean_curvature = np.mean(self.reference_path.path_curvature)
+        std_curvature= np.std(self.reference_path.path_curvature)
+
+        left_turn_sum = np.sum(left_turns)
+        left_turn_sum_drgree = np.degrees(left_turn_sum)
+
+        print(f"maximum curvature: {max_curvature}")
+        print(f"average curvature: {mean_curvature}")
+        print(f"Curvature standard deviation: {std_curvature}")
+        print(f"Sum of left turns (radians): {left_turn_sum}")
+        print(f"Total left turn (degrees): {left_turn_sum_drgree}")
+        return max_curvature,mean_curvature,std_curvature,left_turn_sum,left_turn_sum_drgree
+        
     def classify_scene(self):
         """
         Classifies the scene based on the path characteristics and prints the type of scene.
         """
         if self.is_straight_line():
             print("The scene is a straight line.")
-        else:
-            turn_type = self.classify_turn()
-            if turn_type == 'left':
-                print("The scene is a simple left turn.")
-            elif turn_type == 'right':
-                print("The scene is a simple right turn.")
-            else:
-                print("The scene is a complex path or no turn.")
+        if self.classify_turn() == 'left':
+            print("The scene is a simple left turn.")
+        elif self.classify_turn() == 'right':
+            print("The scene is a simple right turn.")
+        elif self.classify_turn() == 'no_turn':
+            print("The scene is a complex path or no turn.")
 
         if self.is_lane_change():
             print("The scene involves a lane change.")
@@ -47,7 +63,7 @@ class SceneClassifier:
         
         """
         #TODO: Determine the value of tolerance
-        tolerance: float = 1e-2
+        tolerance: float = 0.1
 
         # Calculating Direction Angle Change
         direction_changes = np.diff(self.reference_path.path_orientation)
@@ -60,8 +76,8 @@ class SceneClassifier:
         Determines if the path is a simple left turn, right turn, or no turn.
 
         """
-        curvature_threshold: float = 0.1
-        std_threshold: float = 0.05
+        curvature_threshold: float = 0.31
+        std_threshold: float = 0.013
         angle_threshold: float =np.pi/2
 
         # Check that the path direction change is predominantly to the specified direction
@@ -73,15 +89,15 @@ class SceneClassifier:
         is_curvature_consistent = np.all(np.abs(self.reference_path.path_curvature) < curvature_threshold)
         #TODO: Decide on a metric
         # Check the standard deviation of the curvature
-        is_curvature_std_small = np.std(self.reference_path.path_curvature) < std_threshold
+        is_curvature_std_small = np.std(np.abs(self.reference_path.path_curvature)) < std_threshold
 
         # Check if the sum of left turns is around 90 degrees (in radians)
         left_turn_sum = np.sum(left_turns)
-        is_left_turn_sum_near_90 = np.abs(np.degrees(left_turn_sum) - angle_threshold) < 10  # Allow a tolerance of 10 degrees
+        is_left_turn_sum_near_90 = np.abs(np.degrees(left_turn_sum - angle_threshold)) < 10  # Allow a tolerance of 10 degrees
 
         # Check if the sum of right turns is around 90 degrees (in radians)
         right_turn_sum = np.sum(right_turns)
-        is_right_turn_sum_near_90 = np.abs(np.degrees(right_turn_sum) - angle_threshold) < 10  # Allow a tolerance of 10 degrees
+        is_right_turn_sum_near_90 = np.abs(np.degrees(right_turn_sum - angle_threshold)) < 10  # Allow a tolerance of 10 degrees
 
         # Determine the type of turn
         if len(left_turns) > len(direction_changes) / 2 and is_curvature_consistent and is_curvature_std_small and is_left_turn_sum_near_90:

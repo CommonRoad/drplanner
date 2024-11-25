@@ -210,11 +210,15 @@ region by linking motion primitives.This is the code of the heuristic function:
 ## 🔖 Citation
 If you find our paper and codes useful, we highly encourage you to cite our paper:
 
+
 ```bibtex
 @article{DrPlanner,
   title = {{DrPlanner}: Diagnosis and Repair of Motion Planners for Autonomous Vehicles Using Large Language Models },
   author = {Yuanfei Lin and Chenran Li and Mingyu Ding and Masayoshi Tomizuka and Wei Zhan and Matthias Althoff},
   journal = {IEEE Robotics and Automation Letters},
+  volume = {9},
+  number = {10},
+  pages = {8218-8225},
   year = {2024}}
 ```
 
